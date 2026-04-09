@@ -17,6 +17,7 @@ export function Layout() {
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [isProfileOpen, setIsProfileOpen] = useState(false);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+  const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const navigate = useNavigate();
 
@@ -37,7 +38,7 @@ export function Layout() {
               />
             </div>
             
-            <DropdownMenu>
+            <DropdownMenu open={isDropdownOpen} onOpenChange={setIsDropdownOpen}>
               <DropdownMenuTrigger className="focus:outline-none">
                 <Avatar className="h-10 w-10 border-2 border-[#5a8c12] shadow-sm cursor-pointer hover:opacity-90 transition-opacity">
                   <AvatarImage src={user?.photoURL || ''} alt={user?.displayName || 'User'} />
@@ -46,7 +47,11 @@ export function Layout() {
                   </AvatarFallback>
                 </Avatar>
               </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-56 rounded-xl border-2 border-[#5a8c12] dark:bg-slate-900 dark:border-[#5a8c12]/50">
+              <DropdownMenuContent 
+                align="end" 
+                className="w-56 rounded-xl border-2 border-[#5a8c12] dark:bg-slate-900 dark:border-[#5a8c12]/50"
+                onInteractOutside={(e) => e.preventDefault()}
+              >
                 <DropdownMenuGroup>
                   <DropdownMenuLabel className="font-normal">
                     <div className="flex flex-col space-y-1">
@@ -55,14 +60,32 @@ export function Layout() {
                     </div>
                   </DropdownMenuLabel>
                   <DropdownMenuSeparator className="bg-slate-100 dark:bg-slate-800" />
-                  <DropdownMenuItem onClick={() => setIsProfileOpen(true)} className="cursor-pointer gap-2 hover:bg-slate-50 dark:hover:bg-slate-800 focus:bg-slate-50 dark:focus:bg-slate-800 dark:text-slate-200">
+                  <DropdownMenuItem 
+                    onSelect={(e) => {
+                      e.preventDefault();
+                      setIsProfileOpen(true);
+                    }} 
+                    className="cursor-pointer gap-2 hover:bg-slate-50 dark:hover:bg-slate-800 focus:bg-slate-50 dark:focus:bg-slate-800 dark:text-slate-200"
+                  >
                     <UserIcon size={14} strokeWidth={1.5} /> Profile
                   </DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => setIsSettingsOpen(true)} className="cursor-pointer gap-2 hover:bg-slate-50 dark:hover:bg-slate-800 focus:bg-slate-50 dark:focus:bg-slate-800 dark:text-slate-200">
+                  <DropdownMenuItem 
+                    onSelect={(e) => {
+                      e.preventDefault();
+                      setIsSettingsOpen(true);
+                    }} 
+                    className="cursor-pointer gap-2 hover:bg-slate-50 dark:hover:bg-slate-800 focus:bg-slate-50 dark:focus:bg-slate-800 dark:text-slate-200"
+                  >
                     <Settings size={14} strokeWidth={1.5} /> Settings
                   </DropdownMenuItem>
                   <DropdownMenuSeparator className="bg-slate-100 dark:bg-slate-800" />
-                  <DropdownMenuItem onClick={logOut} className="cursor-pointer gap-2 text-red-600 focus:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 focus:bg-red-50 dark:focus:bg-red-900/20">
+                  <DropdownMenuItem 
+                    onSelect={(e) => {
+                      e.preventDefault();
+                      logOut();
+                    }} 
+                    className="cursor-pointer gap-2 text-red-600 focus:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 focus:bg-red-50 dark:focus:bg-red-900/20"
+                  >
                     <LogOut size={14} strokeWidth={1.5} /> Log out
                   </DropdownMenuItem>
                 </DropdownMenuGroup>

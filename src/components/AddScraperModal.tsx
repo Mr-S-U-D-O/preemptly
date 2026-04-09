@@ -8,7 +8,32 @@ import { useAuth } from './AuthProvider';
 import { useData } from './DataProvider';
 import { collection, doc, setDoc, serverTimestamp, addDoc } from 'firebase/firestore';
 import { db, handleFirestoreError, OperationType } from '../firebase';
-import { Plus, AlertCircle, Activity, Search, Database, Target, Zap, Hash, MessageSquare, Briefcase } from 'lucide-react';
+import { 
+  Plus, 
+  AlertCircle, 
+  Activity, 
+  Search, 
+  Database, 
+  Target, 
+  Zap, 
+  Hash, 
+  MessageSquare, 
+  Briefcase,
+  Users,
+  Globe,
+  Cpu,
+  Rocket,
+  Flame,
+  Shield,
+  TrendingUp,
+  Mail,
+  Link,
+  Terminal,
+  Filter,
+  Eye,
+  Radar,
+  Magnet
+} from 'lucide-react';
 
 const ICONS = [
   { name: 'Activity', icon: Activity },
@@ -19,6 +44,20 @@ const ICONS = [
   { name: 'Hash', icon: Hash },
   { name: 'MessageSquare', icon: MessageSquare },
   { name: 'Briefcase', icon: Briefcase },
+  { name: 'Users', icon: Users },
+  { name: 'Globe', icon: Globe },
+  { name: 'Cpu', icon: Cpu },
+  { name: 'Rocket', icon: Rocket },
+  { name: 'Flame', icon: Flame },
+  { name: 'Shield', icon: Shield },
+  { name: 'TrendingUp', icon: TrendingUp },
+  { name: 'Mail', icon: Mail },
+  { name: 'Link', icon: Link },
+  { name: 'Terminal', icon: Terminal },
+  { name: 'Filter', icon: Filter },
+  { name: 'Eye', icon: Eye },
+  { name: 'Radar', icon: Radar },
+  { name: 'Magnet', icon: Magnet },
 ];
 
 export function AddScraperModal({ open, onOpenChange }: { open: boolean, onOpenChange: (open: boolean) => void }) {
