@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import React, { useState } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -6,9 +6,20 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useAuth } from './AuthProvider';
 import { useData } from './DataProvider';
-import { collection, doc, setDoc, serverTimestamp } from 'firebase/firestore';
+import { collection, doc, setDoc, serverTimestamp, addDoc } from 'firebase/firestore';
 import { db, handleFirestoreError, OperationType } from '../firebase';
-import { Plus, AlertCircle } from 'lucide-react';
+import { Plus, AlertCircle, Activity, Search, Database, Target, Zap, Hash, MessageSquare, Briefcase } from 'lucide-react';
+
+const ICONS = [
+  { name: 'Activity', icon: Activity },
+  { name: 'Search', icon: Search },
+  { name: 'Database', icon: Database },
+  { name: 'Target', icon: Target },
+  { name: 'Zap', icon: Zap },
+  { name: 'Hash', icon: Hash },
+  { name: 'MessageSquare', icon: MessageSquare },
+  { name: 'Briefcase', icon: Briefcase },
+];
 
 export function AddScraperModal({ open, onOpenChange }: { open: boolean, onOpenChange: (open: boolean) => void }) {
   const { user } = useAuth();
@@ -17,6 +28,7 @@ export function AddScraperModal({ open, onOpenChange }: { open: boolean, onOpenC
   const [subreddit, setSubreddit] = useState('');
   const [keyword, setKeyword] = useState('');
   const [interval, setInterval] = useState('15');
+  const [icon, setIcon] = useState('Activity');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -34,12 +46,25 @@ export function AddScraperModal({ open, onOpenChange }: { open: boolean, onOpenC
     setError(null);
     try {
       const newScraperRef = doc(collection(db, 'scrapers'));
-      await setDoc(newScraperRef, {
+      const scraperData = {
         name: name.trim(),
         subreddit: subreddit.replace(/^r\//, ''), // Remove r/ if user typed it
         keyword,
         intervalMinutes: parseInt(interval, 10),
         status: 'active',
+        icon,
+        createdAt: serverTimestamp(),
+        userId: user.uid
+      };
+
+      await setDoc(newScraperRef, scraperData);
+
+      // Log the creation
+      await addDoc(collection(db, 'logs'), {
+        type: 'scraper_created',
+        scraperId: newScraperRef.id,
+        scraperName: name.trim(),
+        message: `New scraper "${name.trim()}" deployed for r/${scraperData.subreddit}`,
         createdAt: serverTimestamp(),
         userId: user.uid
       });
@@ -50,6 +75,7 @@ export function AddScraperModal({ open, onOpenChange }: { open: boolean, onOpenC
       setSubreddit('');
       setKeyword('');
       setInterval('15');
+      setIcon('Activity');
     } catch (error) {
       handleFirestoreError(error, OperationType.CREATE, 'scrapers');
     } finally {
@@ -113,12 +139,36 @@ export function AddScraperModal({ open, onOpenChange }: { open: boolean, onOpenC
                 <SelectValue placeholder="Select interval" />
               </SelectTrigger>
               <SelectContent className="rounded-xl border-[#5a8c12]">
+                <SelectItem value="1">Every 1 minute (Fast)</SelectItem>
                 <SelectItem value="5">Every 5 minutes</SelectItem>
                 <SelectItem value="15">Every 15 minutes</SelectItem>
                 <SelectItem value="30">Every 30 minutes</SelectItem>
                 <SelectItem value="60">Every 1 hour</SelectItem>
+                <SelectItem value="180">Every 3 hours</SelectItem>
+                <SelectItem value="360">Every 6 hours</SelectItem>
+                <SelectItem value="720">Every 12 hours</SelectItem>
+                <SelectItem value="1440">Every 24 hours</SelectItem>
               </SelectContent>
             </Select>
+          </div>
+          <div className="space-y-2">
+            <Label className="text-slate-700 font-semibold">Icon</Label>
+            <div className="flex flex-wrap gap-2">
+              {ICONS.map(({ name: iconName, icon: IconComponent }) => (
+                <button
+                  key={iconName}
+                  type="button"
+                  onClick={() => setIcon(iconName)}
+                  className={`p-2 rounded-xl border-2 transition-all ${
+                    icon === iconName 
+                      ? 'border-[#5a8c12] bg-[#5a8c12]/10 text-[#5a8c12]' 
+                      : 'border-slate-200 text-slate-500 hover:border-slate-300 hover:bg-slate-50'
+                  }`}
+                >
+                  <IconComponent size={20} strokeWidth={1.5} />
+                </button>
+              ))}
+            </div>
           </div>
           <DialogFooter className="pt-4">
             <Button type="button" variant="outline" onClick={() => onOpenChange(false)} className="rounded-xl border-slate-200 hover:bg-slate-50">Cancel</Button>

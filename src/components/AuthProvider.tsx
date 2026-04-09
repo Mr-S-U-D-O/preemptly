@@ -1,7 +1,8 @@
-import { createContext, useContext, useEffect, useState } from 'react';
+import React, { createContext, useContext, useEffect, useState } from 'react';
 import { User, onAuthStateChanged, signInWithPopup, GoogleAuthProvider, signOut } from 'firebase/auth';
 import { auth } from '../firebase';
-import { Button } from '@/components/ui/button';
+import { Target } from 'lucide-react';
+import { LoginScreen } from './LoginScreen';
 
 interface AuthContextType {
   user: User | null;
@@ -42,19 +43,18 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   };
 
   if (loading) {
-    return <div className="min-h-screen flex items-center justify-center">Loading...</div>;
+    return (
+      <div className="min-h-screen flex flex-col items-center justify-center bg-white dark:bg-slate-950">
+        <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-[#5a8c12] to-[#304513] flex items-center justify-center shadow-lg shadow-[#5a8c12]/20 animate-pulse mb-4">
+          <Target className="text-white w-8 h-8" />
+        </div>
+        <div className="text-slate-500 dark:text-slate-400 font-medium animate-pulse">Loading IntentFirstHunter...</div>
+      </div>
+    );
   }
 
   if (!user) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-slate-50">
-        <div className="bg-white p-8 rounded-xl shadow-sm border border-slate-200 text-center max-w-md w-full">
-          <h1 className="text-2xl font-bold mb-2">Intent Lead Gen</h1>
-          <p className="text-slate-500 mb-6">Sign in to manage your Reddit scrapers and leads.</p>
-          <Button onClick={signIn} className="w-full">Sign in with Google</Button>
-        </div>
-      </div>
-    );
+    return <LoginScreen onSignIn={signIn} />;
   }
 
   return (

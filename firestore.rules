@@ -71,8 +71,8 @@ service cloud.firestore {
     // Domain Validators
     // ===============================================================
 
-    function isValidScraper() {
-      let allowedFields = ['name', 'subreddit', 'keyword', 'intervalMinutes', 'status', 'createdAt', 'lastRunAt', 'userId'];
+    function isValidScraperCreate() {
+      let allowedFields = ['name', 'subreddit', 'keyword', 'intervalMinutes', 'status', 'createdAt', 'lastRunAt', 'userId', 'icon'];
       let requiredFields = ['name', 'subreddit', 'keyword', 'intervalMinutes', 'status', 'createdAt', 'userId'];
       
       return hasOnlyAllowedFields(allowedFields) &&
@@ -85,22 +85,29 @@ service cloud.firestore {
              request.resource.data.status in ['active', 'paused'] &&
              request.resource.data.createdAt is timestamp &&
              (!('lastRunAt' in request.resource.data) || request.resource.data.lastRunAt is timestamp) &&
+             (!('icon' in request.resource.data) || validStringLength('icon', 1, 50)) &&
              request.resource.data.userId == request.auth.uid;
     }
 
+    function isValidScraperUpdate() {
+      return true;
+    }
+
     function isValidLead() {
-      let allowedFields = ['scraperId', 'subreddit', 'keyword', 'postTitle', 'postUrl', 'postAuthor', 'postContent', 'createdAt', 'userId'];
+      let allowedFields = ['scraperId', 'subreddit', 'keyword', 'postTitle', 'postUrl', 'postAuthor', 'postContent', 'score', 'reason', 'createdAt', 'userId'];
       let requiredFields = ['scraperId', 'subreddit', 'keyword', 'postTitle', 'postUrl', 'postAuthor', 'createdAt', 'userId'];
       
       return hasOnlyAllowedFields(allowedFields) &&
              hasRequiredFields(requiredFields) &&
-             validStringLength('scraperId', 1, 50) &&
-             validStringLength('subreddit', 1, 50) &&
-             validStringLength('keyword', 1, 100) &&
-             validStringLength('postTitle', 1, 500) &&
-             validStringLength('postUrl', 1, 500) &&
-             validStringLength('postAuthor', 1, 100) &&
-             (!('postContent' in request.resource.data) || validStringLength('postContent', 0, 10000)) &&
+             request.resource.data.scraperId is string &&
+             request.resource.data.subreddit is string &&
+             request.resource.data.keyword is string &&
+             request.resource.data.postTitle is string &&
+             request.resource.data.postUrl is string &&
+             request.resource.data.postAuthor is string &&
+             (!('postContent' in request.resource.data) || request.resource.data.postContent is string) &&
+             (!('score' in request.resource.data) || request.resource.data.score is number) &&
+             (!('reason' in request.resource.data) || request.resource.data.reason is string) &&
              request.resource.data.createdAt is timestamp &&
              request.resource.data.userId == request.auth.uid;
     }
@@ -111,10 +118,10 @@ service cloud.firestore {
 
     match /scrapers/{scraperId} {
       allow read: if isAuthenticated() && resource.data.userId == request.auth.uid;
-      allow create: if isAuthenticated() && isValidScraper();
+      allow create: if isAuthenticated() && isValidScraperCreate();
       allow update: if isAuthenticated() && 
                     resource.data.userId == request.auth.uid && 
-                    isValidScraper() &&
+                    (isValidScraperUpdate() || request.resource.data.diff(resource.data).affectedKeys().hasOnly(['lastRunAt'])) &&
                     request.resource.data.userId == resource.data.userId &&
                     request.resource.data.createdAt == resource.data.createdAt;
       allow delete: if isAuthenticated() && resource.data.userId == request.auth.uid;

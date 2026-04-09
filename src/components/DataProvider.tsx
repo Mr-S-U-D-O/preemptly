@@ -1,13 +1,14 @@
-import { createContext, useContext, useEffect, useState } from 'react';
+import React, { createContext, useContext, useEffect, useState } from 'react';
 import { collection, onSnapshot, query, where } from 'firebase/firestore';
 import { db, handleFirestoreError, OperationType } from '../firebase';
-import { Scraper, Lead } from '../types';
+import { Scraper, Lead, SystemLog } from '../types';
 import { useAuth } from './AuthProvider';
 import { useScraperEngine } from '../hooks/useScraperEngine';
 
 interface DataContextType {
   scrapers: Scraper[];
   leads: Lead[];
+  logs: SystemLog[];
 }
 
 const DataContext = createContext<DataContextType | undefined>(undefined);
@@ -16,6 +17,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
   const { user } = useAuth();
   const [scrapers, setScrapers] = useState<Scraper[]>([]);
   const [leads, setLeads] = useState<Lead[]>([]);
+  const [logs, setLogs] = useState<SystemLog[]>([]);
 
   useEffect(() => {
     if (!user) return;
@@ -47,9 +49,26 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
       handleFirestoreError(error, OperationType.LIST, 'leads');
     });
 
+    const logsQuery = query(collection(db, 'logs'), where('userId', '==', user.uid));
+    const unsubscribeLogs = onSnapshot(logsQuery, (snapshot) => {
+      const data: SystemLog[] = [];
+      snapshot.forEach((doc) => {
+        data.push({ id: doc.id, ...doc.data() } as SystemLog);
+      });
+      data.sort((a, b) => {
+        const timeA = a.createdAt?.toMillis?.() || 0;
+        const timeB = b.createdAt?.toMillis?.() || 0;
+        return timeB - timeA;
+      });
+      setLogs(data);
+    }, (error) => {
+      handleFirestoreError(error, OperationType.LIST, 'logs');
+    });
+
     return () => {
       unsubscribeScrapers();
       unsubscribeLeads();
+      unsubscribeLogs();
     };
   }, [user]);
 
@@ -57,7 +76,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
   useScraperEngine(scrapers);
 
   return (
-    <DataContext.Provider value={{ scrapers, leads }}>
+    <DataContext.Provider value={{ scrapers, leads, logs }}>
       {children}
     </DataContext.Provider>
   );

@@ -21,7 +21,7 @@ export function Layout() {
   const navigate = useNavigate();
 
   return (
-    <div className="flex h-screen bg-[#f8f9fa] font-sans text-slate-900 p-4 gap-6">
+    <div className="flex h-screen bg-[#f8f9fa] dark:bg-slate-950 font-sans text-slate-900 dark:text-slate-100 p-4 gap-6 transition-colors">
       <Sidebar scrapers={scrapers} onAddScraper={() => setIsAddModalOpen(true)} />
       
       <main className="flex-1 flex flex-col overflow-hidden bg-transparent">
@@ -31,7 +31,7 @@ export function Layout() {
               <Search size={16} strokeWidth={1.5} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
               <Input 
                 placeholder="Search leads or scrapers..." 
-                className="pl-9 bg-white border-2 border-transparent focus-visible:border-[#5a8c12] shadow-sm rounded-xl h-10 focus-visible:ring-0 transition-colors"
+                className="pl-9 bg-white dark:bg-slate-900 border-2 border-transparent focus-visible:border-[#5a8c12] shadow-sm rounded-xl h-10 focus-visible:ring-0 transition-colors dark:text-slate-100"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
               />
@@ -46,23 +46,23 @@ export function Layout() {
                   </AvatarFallback>
                 </Avatar>
               </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-56 rounded-xl border-2 border-[#5a8c12]">
+              <DropdownMenuContent align="end" className="w-56 rounded-xl border-2 border-[#5a8c12] dark:bg-slate-900 dark:border-[#5a8c12]/50">
                 <DropdownMenuGroup>
                   <DropdownMenuLabel className="font-normal">
                     <div className="flex flex-col space-y-1">
-                      <p className="text-sm font-medium leading-none">{user?.displayName || 'User'}</p>
-                      <p className="text-xs leading-none text-slate-500">{user?.email}</p>
+                      <p className="text-sm font-medium leading-none dark:text-slate-200">{user?.displayName || 'User'}</p>
+                      <p className="text-xs leading-none text-slate-500 dark:text-slate-400">{user?.email}</p>
                     </div>
                   </DropdownMenuLabel>
-                  <DropdownMenuSeparator className="bg-slate-100" />
-                  <DropdownMenuItem onClick={() => setIsProfileOpen(true)} className="cursor-pointer gap-2 hover:bg-slate-50 focus:bg-slate-50">
+                  <DropdownMenuSeparator className="bg-slate-100 dark:bg-slate-800" />
+                  <DropdownMenuItem onClick={() => setIsProfileOpen(true)} className="cursor-pointer gap-2 hover:bg-slate-50 dark:hover:bg-slate-800 focus:bg-slate-50 dark:focus:bg-slate-800 dark:text-slate-200">
                     <UserIcon size={14} strokeWidth={1.5} /> Profile
                   </DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => setIsSettingsOpen(true)} className="cursor-pointer gap-2 hover:bg-slate-50 focus:bg-slate-50">
+                  <DropdownMenuItem onClick={() => setIsSettingsOpen(true)} className="cursor-pointer gap-2 hover:bg-slate-50 dark:hover:bg-slate-800 focus:bg-slate-50 dark:focus:bg-slate-800 dark:text-slate-200">
                     <Settings size={14} strokeWidth={1.5} /> Settings
                   </DropdownMenuItem>
-                  <DropdownMenuSeparator className="bg-slate-100" />
-                  <DropdownMenuItem onClick={logOut} className="cursor-pointer gap-2 text-red-600 focus:text-red-600 hover:bg-red-50 focus:bg-red-50">
+                  <DropdownMenuSeparator className="bg-slate-100 dark:bg-slate-800" />
+                  <DropdownMenuItem onClick={logOut} className="cursor-pointer gap-2 text-red-600 focus:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 focus:bg-red-50 dark:focus:bg-red-900/20">
                     <LogOut size={14} strokeWidth={1.5} /> Log out
                   </DropdownMenuItem>
                 </DropdownMenuGroup>

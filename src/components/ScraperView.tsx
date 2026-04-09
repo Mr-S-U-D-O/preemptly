@@ -1,12 +1,13 @@
 import { useParams, useNavigate } from 'react-router-dom';
 import { useData } from './DataProvider';
 import { format } from 'date-fns';
-import { ExternalLink, Activity, PauseCircle, Trash2, RefreshCw, Database } from 'lucide-react';
+import { ExternalLink, Activity, PauseCircle, Trash2, RefreshCw, Database, Clock, PlayCircle, Search } from 'lucide-react';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
-import { doc, deleteDoc, collection, query, where, getDocs, setDoc, serverTimestamp, updateDoc } from 'firebase/firestore';
-import { db } from '../firebase';
-import { useState } from 'react';
+import { Input } from '@/components/ui/input';
+import { doc, deleteDoc, collection, query, where, getDocs, setDoc, serverTimestamp, updateDoc, addDoc } from 'firebase/firestore';
+import { db, handleFirestoreError, OperationType } from '../firebase';
+import { useState, useMemo } from 'react';
 import { useAuth } from './AuthProvider';
 import { ConfirmModal } from './ConfirmModal';
 
@@ -17,9 +18,26 @@ export function ScraperView() {
   const navigate = useNavigate();
   const [isRetrying, setIsRetrying] = useState(false);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
 
   const scraper = scrapers.find(s => s.id === id);
   const scraperLeads = leads.filter(l => l.scraperId === id);
+
+  const filteredLeads = useMemo(() => {
+    if (!searchQuery.trim()) return scraperLeads;
+    const query = searchQuery.toLowerCase();
+    return scraperLeads.filter(lead => 
+      lead.postTitle.toLowerCase().includes(query) ||
+      lead.subreddit.toLowerCase().includes(query) ||
+      lead.keyword.toLowerCase().includes(query)
+    );
+  }, [scraperLeads, searchQuery]);
+
+  const sortedLeads = [...filteredLeads].sort((a, b) => {
+    const timeA = a.createdAt?.toMillis?.() || 0;
+    const timeB = b.createdAt?.toMillis?.() || 0;
+    return timeB - timeA;
+  });
 
   if (!scraper) {
     return (
@@ -29,12 +47,39 @@ export function ScraperView() {
     );
   }
 
+  const handleToggleStatus = async () => {
+    try {
+      const newStatus = scraper.status === 'active' ? 'paused' : 'active';
+      await updateDoc(doc(db, 'scrapers', scraper.id), { status: newStatus });
+      
+      // Log the action
+      await addDoc(collection(db, 'logs'), {
+        type: newStatus === 'active' ? 'scraper_resumed' : 'scraper_paused',
+        scraperId: scraper.id,
+        scraperName: scraper.name,
+        message: `Scraper "${scraper.name}" ${newStatus === 'active' ? 'resumed' : 'paused'}`,
+        createdAt: serverTimestamp(),
+        userId: user?.uid
+      });
+    } catch (error) {
+      handleFirestoreError(error, OperationType.UPDATE, 'scrapers');
+    }
+  };
+
+  const handleDeleteLead = async (leadId: string) => {
+    try {
+      await deleteDoc(doc(db, 'leads', leadId));
+    } catch (error) {
+      handleFirestoreError(error, OperationType.DELETE, 'leads');
+    }
+  };
+
   const handleDelete = async () => {
     try {
       await deleteDoc(doc(db, 'scrapers', scraper.id));
       navigate('/');
     } catch (error) {
-      console.error('Error deleting scraper:', error);
+      handleFirestoreError(error, OperationType.DELETE, 'scrapers');
     }
   };
 
@@ -42,56 +87,101 @@ export function ScraperView() {
     if (!user) return;
     setIsRetrying(true);
     try {
-      const rssUrl = encodeURIComponent(`https://www.reddit.com/r/${scraper.subreddit}/new.rss`);
-      const response = await fetch(`https://api.rss2json.com/v1/api.json?rss_url=${rssUrl}`);
+      const response = await fetch(`/api/reddit/${scraper.subreddit}`);
       
-      if (!response.ok) throw new Error('Failed to fetch from RSS API');
+      if (!response.ok) throw new Error('Failed to fetch from Reddit API');
       
-      const data = await response.json();
-      const posts = data.items || [];
+      const posts = await response.json();
       const keywordLower = scraper.keyword.toLowerCase();
       
       let newLeadsCount = 0;
 
+      // Log manual run start
+      await addDoc(collection(db, 'logs'), {
+        type: 'scraper_run',
+        scraperId: scraper.id,
+        scraperName: scraper.name,
+        message: `Manual scan started for r/${scraper.subreddit} (Scraper: "${scraper.name}")`,
+        createdAt: serverTimestamp(),
+        userId: user.uid
+      });
+
       for (const post of posts) {
-        const title = post.title || '';
-        const selftext = (post.content || '').replace(/<[^>]*>?/gm, '');
+        const postData = post.data;
+        const title = postData.title || '';
+        const selftext = postData.selftext || '';
         
         if (title.toLowerCase().includes(keywordLower) || selftext.toLowerCase().includes(keywordLower)) {
           const leadsRef = collection(db, 'leads');
+          const postUrl = `https://www.reddit.com${postData.permalink}`;
           const q = query(
             leadsRef, 
             where('scraperId', '==', scraper.id),
-            where('postUrl', '==', post.link)
+            where('postUrl', '==', postUrl),
+            where('userId', '==', user.uid)
           );
           
           const existingDocs = await getDocs(q);
           
           if (existingDocs.empty) {
             const newLeadRef = doc(collection(db, 'leads'));
-            await setDoc(newLeadRef, {
-              scraperId: scraper.id,
-              subreddit: scraper.subreddit,
-              keyword: scraper.keyword,
-              postTitle: title,
-              postUrl: post.link,
-              postAuthor: (post.author || '').replace('/u/', ''),
-              postContent: selftext.substring(0, 10000),
-              createdAt: serverTimestamp(),
-              userId: user.uid
-            });
-            newLeadsCount++;
+            try {
+              const leadData: any = {
+                scraperId: scraper.id,
+                subreddit: scraper.subreddit,
+                keyword: scraper.keyword,
+                postTitle: title,
+                postUrl: postUrl,
+                postAuthor: postData.author || 'unknown',
+                postContent: selftext.substring(0, 10000),
+                createdAt: serverTimestamp(),
+                userId: user.uid
+              };
+              
+              if (postData.score !== undefined) leadData.score = postData.score;
+              if (postData.reason) leadData.reason = postData.reason;
+
+              await setDoc(newLeadRef, leadData);
+              newLeadsCount++;
+
+              // Log lead found
+              await addDoc(collection(db, 'logs'), {
+                type: 'lead_found',
+                scraperId: scraper.id,
+                scraperName: scraper.name,
+                message: `Manual scan: Found new lead in r/${scraper.subreddit}: "${title.substring(0, 50)}..."`,
+                createdAt: serverTimestamp(),
+                userId: user.uid
+              });
+            } catch (e) {
+              console.error(`Failed to save lead for post ${title}:`, e);
+            }
           }
         }
       }
 
-      await updateDoc(doc(db, 'scrapers', scraper.id), {
-        lastRunAt: serverTimestamp()
+      try {
+        await updateDoc(doc(db, 'scrapers', scraper.id), {
+          lastRunAt: serverTimestamp()
+        });
+      } catch (e) {
+        console.error(`Failed to update lastRunAt for scraper ${scraper.name}:`, e);
+        throw e;
+      }
+
+      // Log completion
+      await addDoc(collection(db, 'logs'), {
+        type: 'scraper_run',
+        scraperId: scraper.id,
+        scraperName: scraper.name,
+        message: `Manual scan completed. Found ${newLeadsCount} new leads.`,
+        createdAt: serverTimestamp(),
+        userId: user.uid
       });
 
       console.log(`Retry complete. Found ${newLeadsCount} new leads.`);
     } catch (error) {
-      console.error('Error retrying scraper:', error);
+      handleFirestoreError(error, OperationType.UPDATE, 'scrapers');
     } finally {
       setIsRetrying(false);
     }
@@ -100,21 +190,36 @@ export function ScraperView() {
   return (
     <div className="max-w-7xl mx-auto space-y-6">
       <div className="flex flex-col mb-6">
-        <span className="text-xs text-slate-500 font-medium mb-1">Pages / Scrapers / {scraper.name}</span>
+        <span className="text-xs text-slate-500 dark:text-slate-400 font-medium mb-1">Pages / Scrapers / {scraper.name}</span>
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-4">
-            <h1 className="text-xl font-bold text-slate-800">{scraper.name}</h1>
-            <div className={`flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold ${scraper.status === 'active' ? 'bg-[#5a8c12]/10 text-[#5a8c12]' : 'bg-slate-100 text-slate-600'}`}>
+            <h1 className="text-xl font-bold text-slate-800 dark:text-slate-100">{scraper.name}</h1>
+            <div className={`flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold ${scraper.status === 'active' ? 'bg-[#5a8c12]/10 text-[#5a8c12]' : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300'}`}>
               {scraper.status === 'active' ? <Activity size={14} strokeWidth={1.5} /> : <PauseCircle size={14} strokeWidth={1.5} />}
               {scraper.status.toUpperCase()}
             </div>
           </div>
           <div className="flex items-center gap-3">
             <Button 
+              onClick={handleToggleStatus} 
+              variant="outline" 
+              className={`gap-2 rounded-xl border-2 transition-colors ${
+                scraper.status === 'active' 
+                  ? 'border-amber-500 text-amber-600 hover:bg-amber-50 dark:hover:bg-amber-900/20' 
+                  : 'border-[#5a8c12] text-[#5a8c12] hover:bg-[#5a8c12]/10'
+              }`}
+            >
+              {scraper.status === 'active' ? (
+                <><PauseCircle size={16} strokeWidth={1.5} /> Pause</>
+              ) : (
+                <><PlayCircle size={16} strokeWidth={1.5} /> Unpause</>
+              )}
+            </Button>
+            <Button 
               onClick={handleRetry} 
               disabled={isRetrying}
               variant="outline" 
-              className="gap-2 border-2 border-[#5a8c12] text-[#5a8c12] hover:bg-[#5a8c12] hover:text-white transition-colors rounded-xl"
+              className="gap-2 border-2 border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors rounded-xl"
             >
               <RefreshCw size={16} strokeWidth={1.5} className={isRetrying ? 'animate-spin' : ''} />
               {isRetrying ? 'Running...' : 'Force Run'}
@@ -131,81 +236,124 @@ export function ScraperView() {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <div className="bg-white p-6 rounded-2xl shadow-[0_4px_20px_rgba(0,0,0,0.03)] border-2 border-[#5a8c12]">
-          <p className="text-sm font-semibold text-slate-500 mb-1">Target Subreddit</p>
-          <p className="text-xl font-bold text-slate-800">r/{scraper.subreddit}</p>
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+        <div className="bg-white dark:bg-slate-900 p-6 rounded-2xl shadow-[0_4px_20px_rgba(0,0,0,0.03)] border-2 border-[#5a8c12] dark:border-[#5a8c12]/50">
+          <p className="text-sm font-semibold text-slate-500 dark:text-slate-400 mb-1">Target Subreddit</p>
+          <p className="text-xl font-bold text-slate-800 dark:text-slate-100">r/{scraper.subreddit}</p>
         </div>
-        <div className="bg-white p-6 rounded-2xl shadow-[0_4px_20px_rgba(0,0,0,0.03)] border-2 border-[#5a8c12]">
-          <p className="text-sm font-semibold text-slate-500 mb-1">Target Keyword</p>
-          <p className="text-xl font-bold text-slate-800">"{scraper.keyword}"</p>
+        <div className="bg-white dark:bg-slate-900 p-6 rounded-2xl shadow-[0_4px_20px_rgba(0,0,0,0.03)] border-2 border-[#5a8c12] dark:border-[#5a8c12]/50">
+          <p className="text-sm font-semibold text-slate-500 dark:text-slate-400 mb-1">Target Keyword</p>
+          <p className="text-xl font-bold text-slate-800 dark:text-slate-100">"{scraper.keyword}"</p>
         </div>
-        <div className="bg-white p-6 rounded-2xl shadow-[0_4px_20px_rgba(0,0,0,0.03)] border-2 border-[#5a8c12]">
-          <p className="text-sm font-semibold text-slate-500 mb-1">Total Leads Found</p>
-          <p className="text-xl font-bold text-slate-800">{scraperLeads.length}</p>
+        <div className="bg-white dark:bg-slate-900 p-6 rounded-2xl shadow-[0_4px_20px_rgba(0,0,0,0.03)] border-2 border-[#5a8c12] dark:border-[#5a8c12]/50">
+          <p className="text-sm font-semibold text-slate-500 dark:text-slate-400 mb-1">Total Leads Found</p>
+          <p className="text-xl font-bold text-slate-800 dark:text-slate-100">{scraperLeads.length}</p>
+        </div>
+        <div className="bg-white dark:bg-slate-900 p-6 rounded-2xl shadow-[0_4px_20px_rgba(0,0,0,0.03)] border-2 border-[#5a8c12] dark:border-[#5a8c12]/50">
+          <div className="flex items-center gap-2 mb-1">
+            <Clock size={14} className="text-slate-500 dark:text-slate-400" />
+            <p className="text-sm font-semibold text-slate-500 dark:text-slate-400">Last Run</p>
+          </div>
+          <p className="text-lg font-bold text-slate-800 dark:text-slate-100">
+            {scraper.lastRunAt?.toDate ? format(scraper.lastRunAt.toDate(), 'MMM d, h:mm a') : 'Never'}
+          </p>
         </div>
       </div>
 
-      <div className="bg-white rounded-2xl shadow-[0_4px_20px_rgba(0,0,0,0.03)] border-2 border-[#5a8c12] overflow-hidden">
-        <div className="p-6 border-b border-slate-50 flex items-center gap-3">
-          <Database size={20} strokeWidth={1.5} className="text-[#5a8c12]" />
-          <h2 className="text-lg font-bold text-slate-800">Generated Leads Database</h2>
+      <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-[0_4px_20px_rgba(0,0,0,0.03)] border-2 border-[#5a8c12] dark:border-[#5a8c12]/50 overflow-hidden">
+        <div className="p-6 border-b border-slate-50 dark:border-slate-800 flex items-center justify-between gap-3">
+          <div className="flex items-center gap-3">
+            <Database size={20} strokeWidth={1.5} className="text-[#5a8c12]" />
+            <h2 className="text-lg font-bold text-slate-800 dark:text-slate-100">Generated Leads Database</h2>
+          </div>
+          <div className="relative max-w-sm w-full">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+            <Input 
+              placeholder="Search leads by title, subreddit, or keyword..." 
+              className="pl-9 bg-slate-50 dark:bg-slate-800/50 border-slate-200 dark:border-slate-700 rounded-xl h-10 focus-visible:ring-[#5a8c12] dark:text-slate-100"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+            />
+          </div>
         </div>
         
         {scraperLeads.length === 0 ? (
-          <div className="p-12 text-center text-slate-500">
+          <div className="p-12 text-center text-slate-500 dark:text-slate-400">
             No leads generated yet for this scraper.
           </div>
         ) : (
           <Table>
             <TableHeader>
-              <TableRow className="bg-slate-50/50">
+              <TableRow className="bg-slate-50/50 dark:bg-slate-800/50">
                 <TableHead className="w-[120px]">Date</TableHead>
                 <TableHead className="w-[100px]">Time</TableHead>
+                <TableHead className="w-[80px]">Score</TableHead>
                 <TableHead className="w-[150px]">User</TableHead>
                 <TableHead>Post Title & Content</TableHead>
                 <TableHead className="text-right w-[100px]">Link</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
-              {scraperLeads.map((lead) => {
+              {sortedLeads.map((lead) => {
                 const dateObj = lead.createdAt?.toMillis ? new Date(lead.createdAt.toMillis()) : new Date();
                 
                 return (
-                  <TableRow key={lead.id} className="hover:bg-slate-50/50">
-                    <TableCell className="font-medium text-slate-700">
+                  <TableRow key={lead.id} className="hover:bg-slate-50/50 dark:hover:bg-slate-800/50">
+                    <TableCell className="font-medium text-slate-700 dark:text-slate-300">
                       {format(dateObj, 'MMM dd, yyyy')}
                     </TableCell>
-                    <TableCell className="text-slate-500">
+                    <TableCell className="text-slate-500 dark:text-slate-400">
                       {format(dateObj, 'HH:mm')}
                     </TableCell>
                     <TableCell>
-                      <span className="inline-flex items-center px-2 py-1 rounded-md bg-slate-100 text-slate-700 text-xs font-medium">
+                      {lead.score !== undefined ? (
+                        <span className={`inline-flex items-center px-2 py-1 rounded-md text-xs font-bold ${
+                          lead.score >= 8 ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400' :
+                          lead.score >= 6 ? 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400' :
+                          'bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300'
+                        }`} title={lead.reason}>
+                          {lead.score}/10
+                        </span>
+                      ) : (
+                        <span className="text-slate-400 dark:text-slate-500 text-xs">-</span>
+                      )}
+                    </TableCell>
+                    <TableCell>
+                      <span className="inline-flex items-center px-2 py-1 rounded-md bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 text-xs font-medium">
                         u/{lead.postAuthor}
                       </span>
                     </TableCell>
                     <TableCell>
                       <div className="flex flex-col gap-1 max-w-[500px]">
-                        <span className="font-semibold text-slate-800 truncate" title={lead.postTitle}>
+                        <span className="font-semibold text-slate-800 dark:text-slate-200 truncate" title={lead.postTitle}>
                           {lead.postTitle}
                         </span>
                         {lead.postContent && (
-                          <span className="text-xs text-slate-500 line-clamp-2" title={lead.postContent}>
+                          <span className="text-xs text-slate-500 dark:text-slate-400 line-clamp-2" title={lead.postContent}>
                             {lead.postContent}
                           </span>
                         )}
                       </div>
                     </TableCell>
                     <TableCell className="text-right">
-                      <a 
-                        href={lead.postUrl} 
-                        target="_blank" 
-                        rel="noopener noreferrer"
-                        className="inline-flex items-center justify-center w-8 h-8 rounded-full hover:bg-[#5a8c12]/10 text-[#5a8c12] transition-colors"
-                        title="View on Reddit"
-                      >
-                        <ExternalLink size={16} strokeWidth={1.5} />
-                      </a>
+                      <div className="flex items-center justify-end gap-2">
+                        <a 
+                          href={lead.postUrl} 
+                          target="_blank" 
+                          rel="noopener noreferrer"
+                          className="inline-flex items-center justify-center w-8 h-8 rounded-full hover:bg-[#5a8c12]/10 text-[#5a8c12] transition-colors"
+                          title="View on Reddit"
+                        >
+                          <ExternalLink size={16} strokeWidth={1.5} />
+                        </a>
+                        <button
+                          onClick={() => handleDeleteLead(lead.id)}
+                          className="inline-flex items-center justify-center w-8 h-8 rounded-full hover:bg-red-50 dark:hover:bg-red-900/20 text-red-500 transition-colors"
+                          title="Delete Lead"
+                        >
+                          <Trash2 size={16} strokeWidth={1.5} />
+                        </button>
+                      </div>
                     </TableCell>
                   </TableRow>
                 );
