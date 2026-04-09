@@ -98,17 +98,23 @@ export function AddScraperModal({ open, onOpenChange }: { open: boolean, onOpenC
 
       await setDoc(newScraperRef, scraperData);
 
-      // Log the creation
-      await addDoc(collection(db, 'logs'), {
-        type: 'scraper_created',
-        scraperId: newScraperRef.id,
-        scraperName: name.trim(),
-        message: `New scraper "${name.trim()}" deployed for r/${scraperData.subreddit}`,
-        createdAt: serverTimestamp(),
-        userId: user.uid
-      });
+      // Log the creation - wrapped in try-catch so it doesn't block the UI if logging fails
+      try {
+        await addDoc(collection(db, 'logs'), {
+          type: 'scraper_created',
+          scraperId: newScraperRef.id,
+          scraperName: name.trim(),
+          message: `New scraper "${name.trim()}" deployed for r/${scraperData.subreddit}`,
+          createdAt: serverTimestamp(),
+          userId: user.uid
+        });
+      } catch (logError) {
+        console.error('Failed to log scraper creation:', logError);
+      }
       
+      // Close modal first for better UX
       onOpenChange(false);
+      
       // Reset form
       setName('');
       setSubreddit('');

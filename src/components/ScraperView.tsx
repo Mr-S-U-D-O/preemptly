@@ -10,6 +10,10 @@ import { db, handleFirestoreError, OperationType } from '../firebase';
 import { useState, useMemo } from 'react';
 import { useAuth } from './AuthProvider';
 import { ConfirmModal } from './ConfirmModal';
+import { GoogleGenAI } from '@google/genai';
+
+// Initialize AI on the frontend as per mandatory guidelines
+const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
 
 export function ScraperView() {
   const { id } = useParams<{ id: string }>();
@@ -89,9 +93,12 @@ export function ScraperView() {
     try {
       const response = await fetch(`/api/reddit/${scraper.subreddit}`);
       
-      if (!response.ok) throw new Error('Failed to fetch from Reddit API');
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.error || `API returned ${response.status}`);
+      }
       
-      const posts = await response.json();
+      const rawPosts = await response.json();
       const keywordLower = scraper.keyword.toLowerCase();
       
       let newLeadsCount = 0;
@@ -106,12 +113,65 @@ export function ScraperView() {
         userId: user.uid
       });
 
-      for (const post of posts) {
+      // AI Scoring on the frontend
+      let scoredPosts = [];
+      try {
+        if (rawPosts.length > 0) {
+          const minimizedData = rawPosts.map((post: any) => ({
+            index: post.data.index,
+            title: post.data.title,
+            content: post.data.selftext.substring(0, 800)
+          }));
+
+          const prompt = `You are an expert lead generation analyst. I am providing a JSON array of ${minimizedData.length} recent social media posts. 
+          Evaluate EACH AND EVERY post for buying intent or service needs. 
+          
+          CRITICAL: You MUST return a score for EVERY post in the input array. Do not skip any.
+          
+          Score the intent from 1 to 10:
+          - 1-3: General discussion, memes, news, or complaints with no need for a service.
+          - 4-6: Vague interest or general questions about a topic.
+          - 7-10: High intent. Actively looking for a recommendation, a tool, a service, or a professional to hire.
+          
+          Return ONLY a valid JSON array of objects. 
+          Format: [{ "index": number, "score": number, "reason": "string", "isLead": boolean }]
+          
+          Input Data:
+          ${JSON.stringify(minimizedData)}`;
+
+          const aiResponse = await ai.models.generateContent({
+            model: 'gemini-3-flash-preview',
+            contents: prompt,
+          });
+
+          const responseText = aiResponse.text || '[]';
+          const cleanedText = responseText.replace(/```json/gi, '').replace(/```/g, '').trim();
+          const scoredData = JSON.parse(cleanedText);
+
+          scoredData.forEach((scoreObj: any) => {
+            const post = rawPosts.find((p: any) => p.data.index === scoreObj.index);
+            if (post) {
+              post.data.score = scoreObj.score;
+              post.data.reason = scoreObj.reason;
+              post.data.isLead = scoreObj.isLead;
+            }
+          });
+        }
+        scoredPosts = rawPosts;
+      } catch (aiError) {
+        console.error("Manual scan AI Scoring failed:", aiError);
+        scoredPosts = rawPosts;
+      }
+
+      for (const post of scoredPosts) {
         const postData = post.data;
         const title = postData.title || '';
         const selftext = postData.selftext || '';
         
-        if (title.toLowerCase().includes(keywordLower) || selftext.toLowerCase().includes(keywordLower)) {
+        const hasKeyword = title.toLowerCase().includes(keywordLower) || selftext.toLowerCase().includes(keywordLower);
+        const isAiLead = postData.isLead === true || (postData.score && postData.score >= 7);
+
+        if (hasKeyword || isAiLead) {
           const leadsRef = collection(db, 'leads');
           const postUrl = `https://www.reddit.com${postData.permalink}`;
           const q = query(
@@ -164,9 +224,8 @@ export function ScraperView() {
         await updateDoc(doc(db, 'scrapers', scraper.id), {
           lastRunAt: serverTimestamp()
         });
-      } catch (e) {
-        console.error(`Failed to update lastRunAt for scraper ${scraper.name}:`, e);
-        throw e;
+      } catch (firestoreError) {
+        handleFirestoreError(firestoreError, OperationType.UPDATE, 'scrapers');
       }
 
       // Log completion
@@ -181,7 +240,22 @@ export function ScraperView() {
 
       console.log(`Retry complete. Found ${newLeadsCount} new leads.`);
     } catch (error) {
-      handleFirestoreError(error, OperationType.UPDATE, 'scrapers');
+      console.error("Scraper run failed:", error);
+      // Create an error log
+      try {
+        await addDoc(collection(db, 'logs'), {
+          type: 'scraper_error',
+          scraperId: scraper.id,
+          scraperName: scraper.name,
+          message: `Manual scan failed: ${error instanceof Error ? error.message : String(error)}`,
+          createdAt: serverTimestamp(),
+          userId: user.uid
+        });
+      } catch (e) {
+        console.error("Failed to log error:", e);
+      }
+      // We don't use handleFirestoreError here because it's likely an API error
+      // But we can show a toast or alert if we had one. For now, the log is good.
     } finally {
       setIsRetrying(false);
     }

@@ -137,5 +137,13 @@ service cloud.firestore {
                     request.resource.data.createdAt == resource.data.createdAt;
       allow delete: if isAuthenticated() && resource.data.userId == request.auth.uid;
     }
+
+    match /logs/{logId} {
+      allow read: if isAuthenticated() && resource.data.userId == request.auth.uid;
+      allow create: if isAuthenticated() && 
+                    request.resource.data.userId == request.auth.uid &&
+                    request.resource.data.createdAt is timestamp;
+      allow delete: if isAuthenticated() && resource.data.userId == request.auth.uid;
+    }
   }
 }

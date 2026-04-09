@@ -50,7 +50,6 @@ export function Layout() {
               <DropdownMenuContent 
                 align="end" 
                 className="w-56 rounded-xl border-2 border-[#5a8c12] dark:bg-slate-900 dark:border-[#5a8c12]/50"
-                onInteractOutside={(e) => e.preventDefault()}
               >
                 <DropdownMenuGroup>
                   <DropdownMenuLabel className="font-normal">
@@ -61,29 +60,20 @@ export function Layout() {
                   </DropdownMenuLabel>
                   <DropdownMenuSeparator className="bg-slate-100 dark:bg-slate-800" />
                   <DropdownMenuItem 
-                    onSelect={(e) => {
-                      e.preventDefault();
-                      setIsProfileOpen(true);
-                    }} 
+                    onClick={() => setIsProfileOpen(true)} 
                     className="cursor-pointer gap-2 hover:bg-slate-50 dark:hover:bg-slate-800 focus:bg-slate-50 dark:focus:bg-slate-800 dark:text-slate-200"
                   >
                     <UserIcon size={14} strokeWidth={1.5} /> Profile
                   </DropdownMenuItem>
                   <DropdownMenuItem 
-                    onSelect={(e) => {
-                      e.preventDefault();
-                      setIsSettingsOpen(true);
-                    }} 
+                    onClick={() => setIsSettingsOpen(true)} 
                     className="cursor-pointer gap-2 hover:bg-slate-50 dark:hover:bg-slate-800 focus:bg-slate-50 dark:focus:bg-slate-800 dark:text-slate-200"
                   >
                     <Settings size={14} strokeWidth={1.5} /> Settings
                   </DropdownMenuItem>
                   <DropdownMenuSeparator className="bg-slate-100 dark:bg-slate-800" />
                   <DropdownMenuItem 
-                    onSelect={(e) => {
-                      e.preventDefault();
-                      logOut();
-                    }} 
+                    onClick={() => logOut()} 
                     className="cursor-pointer gap-2 text-red-600 focus:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 focus:bg-red-50 dark:focus:bg-red-900/20"
                   >
                     <LogOut size={14} strokeWidth={1.5} /> Log out

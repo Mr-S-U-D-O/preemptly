@@ -3,6 +3,10 @@ import { Scraper, SystemLog } from '../types';
 import { collection, doc, setDoc, getDocs, query, where, serverTimestamp, updateDoc, addDoc } from 'firebase/firestore';
 import { db, handleFirestoreError, OperationType } from '../firebase';
 import { useAuth } from '../components/AuthProvider';
+import { GoogleGenAI } from '@google/genai';
+
+// Initialize AI on the frontend as per mandatory guidelines
+const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
 
 export function useScraperEngine(scrapers: Scraper[]) {
   const { user } = useAuth();
@@ -61,23 +65,85 @@ export function useScraperEngine(scrapers: Scraper[]) {
 
         const response = await fetchWithRetry(`/api/reddit/${scraper.subreddit}`);
         if (!response.ok) {
-          throw new Error(`Reddit API returned ${response.status}`);
+          const errorData = await response.json().catch(() => ({}));
+          throw new Error(errorData.error || `API returned ${response.status}`);
         }
         
-        const data = await response.json();
-        const posts = data || [];
+        const rawPosts = await response.json();
         
+        if (rawPosts.length === 0) {
+          await createLog({
+            type: 'scraper_run',
+            scraperId: scraper.id,
+            scraperName: scraper.name,
+            message: `Scraper "${scraper.name}" completed scan. No recent posts found in r/${scraper.subreddit}.`
+          });
+          return;
+        }
+
+        // AI Scoring on the frontend
+        let scoredPosts = [];
+        try {
+          const minimizedData = rawPosts.map((post: any) => ({
+            index: post.data.index,
+            title: post.data.title,
+            content: post.data.selftext.substring(0, 800)
+          }));
+
+          const prompt = `You are an expert lead generation analyst. I am providing a JSON array of ${minimizedData.length} recent social media posts. 
+          Evaluate EACH AND EVERY post for buying intent or service needs. 
+          
+          CRITICAL: You MUST return a score for EVERY post in the input array. Do not skip any.
+          
+          Score the intent from 1 to 10:
+          - 1-3: General discussion, memes, news, or complaints with no need for a service.
+          - 4-6: Vague interest or general questions about a topic.
+          - 7-10: High intent. Actively looking for a recommendation, a tool, a service, or a professional to hire.
+          
+          Return ONLY a valid JSON array of objects. 
+          Format: [{ "index": number, "score": number, "reason": "string", "isLead": boolean }]
+          
+          Input Data:
+          ${JSON.stringify(minimizedData)}`;
+
+          const aiResponse = await ai.models.generateContent({
+            model: 'gemini-3-flash-preview',
+            contents: prompt,
+          });
+
+          const responseText = aiResponse.text || '[]';
+          const cleanedText = responseText.replace(/```json/gi, '').replace(/```/g, '').trim();
+          const scoredData = JSON.parse(cleanedText);
+
+          // Map scores back
+          scoredData.forEach((scoreObj: any) => {
+            const post = rawPosts.find((p: any) => p.data.index === scoreObj.index);
+            if (post) {
+              post.data.score = scoreObj.score;
+              post.data.reason = scoreObj.reason;
+              post.data.isLead = scoreObj.isLead;
+            }
+          });
+          
+          scoredPosts = rawPosts;
+        } catch (aiError) {
+          console.error("AI Scoring failed on frontend:", aiError);
+          scoredPosts = rawPosts; // Fallback to raw posts
+        }
+
         const keywordLower = scraper.keyword.toLowerCase();
         let leadsFound = 0;
         
-        for (const post of posts) {
+        for (const post of scoredPosts) {
           const postData = post.data;
           const title = postData.title || '';
           const selftext = postData.selftext || '';
           
-          // Check if keyword matches title or content
-          if (title.toLowerCase().includes(keywordLower) || selftext.toLowerCase().includes(keywordLower)) {
-            
+          // Check if keyword matches title or content OR if AI marked it as lead
+          const hasKeyword = title.toLowerCase().includes(keywordLower) || selftext.toLowerCase().includes(keywordLower);
+          const isAiLead = postData.isLead === true || (postData.score && postData.score >= 7);
+
+          if (hasKeyword || isAiLead) {
             // Check if we already have this lead to avoid duplicates
             const leadsRef = collection(db, 'leads');
             const q = query(
@@ -116,7 +182,7 @@ export function useScraperEngine(scrapers: Scraper[]) {
                   scraperId: scraper.id,
                   scraperName: scraper.name,
                   message: `New high-intent lead found in r/${scraper.subreddit}: "${title.substring(0, 50)}..."`,
-                  details: `Score: ${postData.score}/10 | Keyword: ${scraper.keyword}`
+                  details: `Score: ${postData.score || 'N/A'}/10 | Keyword: ${scraper.keyword}`
                 });
 
                 console.log(`Found new lead in r/${scraper.subreddit}: ${title}`);
