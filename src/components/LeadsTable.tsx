@@ -1,14 +1,14 @@
 import { Lead, Scraper } from '../types';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { formatDistanceToNow } from 'date-fns';
-import { ExternalLink, Trash2, Search, ArrowUpDown, ArrowUp, ArrowDown, BrainCircuit } from 'lucide-react';
+import { ExternalLink, Trash2, Search, ArrowUpDown, ArrowUp, ArrowDown, BrainCircuit, CheckCircle2, XCircle, Clock } from 'lucide-react';
 import { doc, deleteDoc } from 'firebase/firestore';
 import { db, handleFirestoreError, OperationType } from '../firebase';
 import { useState, useMemo } from 'react';
 import { Input } from '@/components/ui/input';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 
-type SortColumn = 'postTitle' | 'subreddit' | 'keyword' | 'score' | 'postAuthor' | 'createdAt';
+type SortColumn = 'postTitle' | 'subreddit' | 'keyword' | 'score' | 'postAuthor' | 'createdAt' | 'status';
 type SortDirection = 'asc' | 'desc';
 
 export function LeadsTable({ leads, scrapers }: { leads: Lead[], scrapers: Scraper[] }) {
@@ -114,6 +114,9 @@ export function LeadsTable({ leads, scrapers }: { leads: Lead[], scrapers: Scrap
           <TableHead className="cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors" onClick={() => handleSort('createdAt')}>
             <div className="flex items-center">Found <SortIcon column="createdAt" /></div>
           </TableHead>
+          <TableHead className="cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors" onClick={() => handleSort('status')}>
+            <div className="flex items-center">Status <SortIcon column="status" /></div>
+          </TableHead>
           <TableHead className="text-right">Action</TableHead>
         </TableRow>
       </TableHeader>
@@ -185,6 +188,18 @@ export function LeadsTable({ leads, scrapers }: { leads: Lead[], scrapers: Scrap
               </TableCell>
               <TableCell className="text-slate-500 dark:text-slate-400 text-sm">u/{lead.postAuthor}</TableCell>
               <TableCell className="text-slate-500 dark:text-slate-400 text-sm">{timeAgo}</TableCell>
+              <TableCell>
+                <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold ${
+                  lead.status === 'sent' ? 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400' :
+                  lead.status === 'rejected' ? 'bg-slate-100 text-slate-500 dark:bg-slate-800 dark:text-slate-400' :
+                  'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400'
+                }`}>
+                  {lead.status === 'sent' && <CheckCircle2 size={12} />}
+                  {lead.status === 'rejected' && <XCircle size={12} />}
+                  {(!lead.status || lead.status === 'new') && <Clock size={12} />}
+                  {(!lead.status || lead.status === 'new') ? 'New' : lead.status.charAt(0).toUpperCase() + lead.status.slice(1)}
+                </span>
+              </TableCell>
               <TableCell className="text-right">
                 <div className="flex items-center justify-end gap-2">
                   <a 

@@ -1,7 +1,7 @@
 import { useParams, useNavigate } from 'react-router-dom';
 import { useData } from './DataProvider';
 import { format } from 'date-fns';
-import { ExternalLink, Activity, PauseCircle, Trash2, RefreshCw, Database, Clock, PlayCircle, Search, BrainCircuit } from 'lucide-react';
+import { ExternalLink, Activity, PauseCircle, Trash2, RefreshCw, Database, Clock, PlayCircle, Search, BrainCircuit, MessageCircle, CheckCircle2, XCircle } from 'lucide-react';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -10,11 +10,8 @@ import { db, handleFirestoreError, OperationType } from '../firebase';
 import { useState, useMemo, useEffect } from 'react';
 import { useAuth } from './AuthProvider';
 import { ConfirmModal } from './ConfirmModal';
-import { GoogleGenAI } from '@google/genai';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
-
-// Initialize AI on the frontend as per mandatory guidelines
-const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 
 export function ScraperView() {
   const { id } = useParams<{ id: string }>();
@@ -102,8 +99,21 @@ export function ScraperView() {
     }
   };
 
+  const handleStatusChange = async (leadId: string, status: 'new' | 'sent' | 'rejected') => {
+    try {
+      await updateDoc(doc(db, 'leads', leadId), { status });
+    } catch (error) {
+      handleFirestoreError(error, OperationType.UPDATE, 'leads');
+    }
+  };
+
   const handleDelete = async () => {
     try {
+      // Delete all associated leads first to clean up the database
+      for (const lead of scraperLeads) {
+        await deleteDoc(doc(db, 'leads', lead.id));
+      }
+      // Then delete the scraper
       await deleteDoc(doc(db, 'scrapers', scraper.id));
       navigate('/');
     } catch (error) {
@@ -115,174 +125,19 @@ export function ScraperView() {
     if (!user) return;
     setIsRetrying(true);
     try {
-      const response = await fetch(`/api/reddit/${scraper.subreddit}`);
+      const response = await fetch(`/api/scrapers/${scraper.id}/run`, {
+        method: 'POST',
+      });
       
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
         throw new Error(errorData.error || `API returned ${response.status}`);
       }
       
-      const rawPosts = await response.json();
-      const keywordLower = scraper.keyword.toLowerCase();
-      
-      let newLeadsCount = 0;
-
-      // Log manual run start
-      await addDoc(collection(db, 'logs'), {
-        type: 'scraper_run',
-        scraperId: scraper.id,
-        scraperName: scraper.name,
-        message: `Manual scan started for r/${scraper.subreddit} (Scraper: "${scraper.name}")`,
-        createdAt: serverTimestamp(),
-        userId: user.uid
-      });
-
-      // AI Scoring on the frontend
-      let scoredPosts = [];
-      try {
-        if (rawPosts.length > 0) {
-          const minimizedData = rawPosts.map((post: any) => ({
-            index: post.data.index,
-            title: post.data.title,
-            content: post.data.selftext.substring(0, 800)
-          }));
-
-          const prompt = `You are an expert lead generation analyst. I am providing a JSON array of ${minimizedData.length} recent social media posts. 
-          
-          YOUR SPECIFIC TARGET: ${scraper.leadDefinition || 'General commercial intent'}
-          
-          Evaluate EACH AND EVERY post based on this target definition. 
-          
-          CRITICAL: You MUST return a score for EVERY post in the input array. Do not skip any.
-          
-          Score the intent from 1 to 10:
-          - 1-3: No match to the target definition.
-          - 4-6: Partial match or vague interest.
-          - 7-10: Perfect match. The user is explicitly asking for exactly what is described in the target definition.
-          
-          Return ONLY a valid JSON array of objects. 
-          Format: [{ "index": number, "score": number, "reason": "string", "isLead": boolean }]
-          
-          Input Data:
-          ${JSON.stringify(minimizedData)}`;
-
-          const aiResponse = await ai.models.generateContent({
-            model: 'gemini-3-flash-preview',
-            contents: prompt,
-          });
-
-          const responseText = aiResponse.text || '[]';
-          const cleanedText = responseText.replace(/```json/gi, '').replace(/```/g, '').trim();
-          const scoredData = JSON.parse(cleanedText);
-
-          scoredData.forEach((scoreObj: any) => {
-            const post = rawPosts.find((p: any) => p.data.index === scoreObj.index);
-            if (post) {
-              post.data.score = scoreObj.score;
-              post.data.reason = scoreObj.reason;
-              post.data.isLead = scoreObj.isLead;
-            }
-          });
-        }
-        scoredPosts = rawPosts;
-      } catch (aiError) {
-        console.error("Manual scan AI Scoring failed:", aiError);
-        scoredPosts = rawPosts;
-      }
-
-      for (const post of scoredPosts) {
-        const postData = post.data;
-        const title = postData.title || '';
-        const selftext = postData.selftext || '';
-        
-        const hasKeyword = title.toLowerCase().includes(keywordLower) || selftext.toLowerCase().includes(keywordLower);
-        const isAiLead = postData.isLead === true || (postData.score && postData.score >= 7);
-
-        if (hasKeyword || isAiLead) {
-          const leadsRef = collection(db, 'leads');
-          const postUrl = `https://www.reddit.com${postData.permalink}`;
-          const q = query(
-            leadsRef, 
-            where('scraperId', '==', scraper.id),
-            where('postUrl', '==', postUrl),
-            where('userId', '==', user.uid)
-          );
-          
-          const existingDocs = await getDocs(q);
-          
-          if (existingDocs.empty) {
-            const newLeadRef = doc(collection(db, 'leads'));
-            try {
-              const leadData: any = {
-                scraperId: scraper.id,
-                subreddit: scraper.subreddit,
-                keyword: scraper.keyword,
-                postTitle: title,
-                postUrl: postUrl,
-                postAuthor: postData.author || 'unknown',
-                postContent: selftext.substring(0, 10000),
-                createdAt: serverTimestamp(),
-                userId: user.uid
-              };
-              
-              if (postData.score !== undefined) leadData.score = postData.score;
-              if (postData.reason) leadData.reason = postData.reason;
-
-              await setDoc(newLeadRef, leadData);
-              newLeadsCount++;
-
-              // Log lead found
-              await addDoc(collection(db, 'logs'), {
-                type: 'lead_found',
-                scraperId: scraper.id,
-                scraperName: scraper.name,
-                message: `Manual scan: Found new lead in r/${scraper.subreddit}: "${title.substring(0, 50)}..."`,
-                createdAt: serverTimestamp(),
-                userId: user.uid
-              });
-            } catch (e) {
-              console.error(`Failed to save lead for post ${title}:`, e);
-            }
-          }
-        }
-      }
-
-      try {
-        await updateDoc(doc(db, 'scrapers', scraper.id), {
-          lastRunAt: serverTimestamp()
-        });
-      } catch (firestoreError) {
-        handleFirestoreError(firestoreError, OperationType.UPDATE, 'scrapers');
-      }
-
-      // Log completion
-      await addDoc(collection(db, 'logs'), {
-        type: 'scraper_run',
-        scraperId: scraper.id,
-        scraperName: scraper.name,
-        message: `Manual scan completed. Found ${newLeadsCount} new leads.`,
-        createdAt: serverTimestamp(),
-        userId: user.uid
-      });
-
-      console.log(`Retry complete. Found ${newLeadsCount} new leads.`);
+      console.log("Scraper run completed successfully");
     } catch (error) {
-      console.error("Scraper run failed:", error);
-      // Create an error log
-      try {
-        await addDoc(collection(db, 'logs'), {
-          type: 'scraper_error',
-          scraperId: scraper.id,
-          scraperName: scraper.name,
-          message: `Manual scan failed: ${error instanceof Error ? error.message : String(error)}`,
-          createdAt: serverTimestamp(),
-          userId: user.uid
-        });
-      } catch (e) {
-        console.error("Failed to log error:", e);
-      }
-      // We don't use handleFirestoreError here because it's likely an API error
-      // But we can show a toast or alert if we had one. For now, the log is good.
+      console.error("Manual scan failed:", error);
+      alert("Failed to run scraper. Please check the logs.");
     } finally {
       setIsRetrying(false);
     }
@@ -412,12 +267,15 @@ export function ScraperView() {
                   <TableHead className="w-[80px]">Score</TableHead>
                   <TableHead className="w-[150px]">User</TableHead>
                   <TableHead>Post Title & Content</TableHead>
-                  <TableHead className="text-right w-[100px]">Action</TableHead>
+                  <TableHead className="w-[120px]">Status</TableHead>
+                  <TableHead className="text-right w-[120px]">Action</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {sortedLeads.map((lead) => {
                   const dateObj = lead.createdAt?.toMillis ? new Date(lead.createdAt.toMillis()) : new Date();
+                  const clientPhone = scraper?.clientPhone || '';
+                  const whatsappUrl = `https://wa.me/${clientPhone.replace(/[^0-9]/g, '')}?text=${encodeURIComponent(lead.whatsappMessage || '')}`;
                   
                   return (
                     <TableRow key={lead.id} className="hover:bg-slate-50/50 dark:hover:bg-slate-800/50">
@@ -488,8 +346,46 @@ export function ScraperView() {
                           )}
                         </div>
                       </TableCell>
+                      <TableCell>
+                        <DropdownMenu>
+                          <DropdownMenuTrigger className="outline-none">
+                            <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold cursor-pointer transition-colors ${
+                              lead.status === 'sent' ? 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400 hover:bg-blue-200' :
+                              lead.status === 'rejected' ? 'bg-slate-100 text-slate-500 dark:bg-slate-800 dark:text-slate-400 hover:bg-slate-200' :
+                              'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400 hover:bg-amber-200'
+                            }`}>
+                              {lead.status === 'sent' && <CheckCircle2 size={12} />}
+                              {lead.status === 'rejected' && <XCircle size={12} />}
+                              {(!lead.status || lead.status === 'new') && <Clock size={12} />}
+                              {(!lead.status || lead.status === 'new') ? 'New' : lead.status.charAt(0).toUpperCase() + lead.status.slice(1)}
+                            </span>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end" className="w-32 rounded-xl">
+                            <DropdownMenuItem onClick={() => handleStatusChange(lead.id, 'new')} className="cursor-pointer">
+                              <Clock className="mr-2 h-4 w-4 text-amber-500" /> New
+                            </DropdownMenuItem>
+                            <DropdownMenuItem onClick={() => handleStatusChange(lead.id, 'sent')} className="cursor-pointer">
+                              <CheckCircle2 className="mr-2 h-4 w-4 text-blue-500" /> Sent
+                            </DropdownMenuItem>
+                            <DropdownMenuItem onClick={() => handleStatusChange(lead.id, 'rejected')} className="cursor-pointer">
+                              <XCircle className="mr-2 h-4 w-4 text-slate-500" /> Rejected
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      </TableCell>
                       <TableCell className="text-right">
                         <div className="flex items-center justify-end gap-2">
+                          {clientPhone && lead.whatsappMessage && (
+                            <a 
+                              href={whatsappUrl} 
+                              target="_blank" 
+                              rel="noopener noreferrer"
+                              className="inline-flex items-center justify-center w-8 h-8 rounded-full bg-green-100 text-green-600 hover:bg-green-200 dark:bg-green-900/30 dark:text-green-400 transition-colors"
+                              title="Send via WhatsApp"
+                            >
+                              <MessageCircle size={16} strokeWidth={1.5} />
+                            </a>
+                          )}
                           <a 
                             href={lead.postUrl} 
                             target="_blank" 

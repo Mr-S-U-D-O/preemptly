@@ -64,9 +64,11 @@ export function AddScraperModal({ open, onOpenChange }: { open: boolean, onOpenC
   const { user } = useAuth();
   const { scrapers } = useData();
   const [name, setName] = useState('');
+  const [clientName, setClientName] = useState('');
+  const [clientPhone, setClientPhone] = useState('');
   const [subreddit, setSubreddit] = useState('');
   const [keyword, setKeyword] = useState('');
-  const [leadDefinition, setLeadDefinition] = useState('');
+  const [idealCustomerProfile, setIdealCustomerProfile] = useState('');
   const [interval, setInterval] = useState('15');
   const [icon, setIcon] = useState('Activity');
   const [loading, setLoading] = useState(false);
@@ -88,9 +90,11 @@ export function AddScraperModal({ open, onOpenChange }: { open: boolean, onOpenC
       const newScraperRef = doc(collection(db, 'scrapers'));
       const scraperData = {
         name: name.trim(),
+        clientName: clientName.trim(),
+        clientPhone: clientPhone.trim(),
         subreddit: subreddit.replace(/^r\//, ''), // Remove r/ if user typed it
         keyword,
-        leadDefinition: leadDefinition.trim(),
+        idealCustomerProfile: idealCustomerProfile.trim(),
         intervalMinutes: parseInt(interval, 10),
         status: 'active',
         icon,
@@ -119,9 +123,11 @@ export function AddScraperModal({ open, onOpenChange }: { open: boolean, onOpenC
       
       // Reset form
       setName('');
+      setClientName('');
+      setClientPhone('');
       setSubreddit('');
       setKeyword('');
-      setLeadDefinition('');
+      setIdealCustomerProfile('');
       setInterval('15');
       setIcon('Activity');
     } catch (error) {
@@ -145,15 +151,39 @@ export function AddScraperModal({ open, onOpenChange }: { open: boolean, onOpenC
             </div>
           )}
           <div className="space-y-2">
-            <Label htmlFor="name" className="text-slate-700 font-semibold">Scraper Name</Label>
+            <Label htmlFor="name" className="text-slate-700 font-semibold">Scraper Name (Internal)</Label>
             <Input 
               id="name" 
-              placeholder="e.g. SaaS Founders" 
+              placeholder="e.g. Web Design Leads" 
               value={name} 
               onChange={(e) => { setName(e.target.value); setError(null); }} 
               required 
               className="rounded-xl border-slate-200 focus-visible:ring-[#5a8c12]"
             />
+          </div>
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label htmlFor="clientName" className="text-slate-700 font-semibold">Client Name</Label>
+              <Input 
+                id="clientName" 
+                placeholder="e.g. Bob's Web Design" 
+                value={clientName} 
+                onChange={(e) => setClientName(e.target.value)} 
+                required 
+                className="rounded-xl border-slate-200 focus-visible:ring-[#5a8c12]"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="clientPhone" className="text-slate-700 font-semibold">Client WhatsApp Number</Label>
+              <Input 
+                id="clientPhone" 
+                placeholder="e.g. 1234567890" 
+                value={clientPhone} 
+                onChange={(e) => setClientPhone(e.target.value)} 
+                required 
+                className="rounded-xl border-slate-200 focus-visible:ring-[#5a8c12]"
+              />
+            </div>
           </div>
           <div className="space-y-2">
             <Label htmlFor="subreddit" className="text-slate-700 font-semibold">Target Subreddit</Label>
@@ -181,16 +211,16 @@ export function AddScraperModal({ open, onOpenChange }: { open: boolean, onOpenC
             />
           </div>
           <div className="space-y-2">
-            <Label htmlFor="leadDefinition" className="text-slate-700 font-semibold">Lead Definition (AI Instructions)</Label>
+            <Label htmlFor="idealCustomerProfile" className="text-slate-700 font-semibold">Ideal Customer Profile (AI Instructions)</Label>
             <textarea 
-              id="leadDefinition" 
-              placeholder="Describe your perfect lead... e.g. Someone asking for a lightweight CRM because Salesforce is too expensive." 
-              value={leadDefinition} 
-              onChange={(e) => setLeadDefinition(e.target.value)} 
+              id="idealCustomerProfile" 
+              placeholder="Describe the client's perfect lead... e.g. Someone asking for a lightweight CRM because Salesforce is too expensive." 
+              value={idealCustomerProfile} 
+              onChange={(e) => setIdealCustomerProfile(e.target.value)} 
               required 
               className="w-full min-h-[80px] p-3 rounded-xl border-2 border-slate-200 focus:border-[#5a8c12] focus:ring-0 transition-colors text-sm dark:bg-slate-900 dark:border-slate-800 dark:text-slate-100"
             />
-            <p className="text-[10px] text-slate-500">The AI will use this description to score posts based on your specific needs.</p>
+            <p className="text-[10px] text-slate-500">The AI will use this description to score posts and write the WhatsApp summary.</p>
           </div>
           <div className="space-y-2">
             <Label htmlFor="interval" className="text-slate-700 font-semibold">Run Interval</Label>

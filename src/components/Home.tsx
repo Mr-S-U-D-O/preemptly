@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useMemo, useState, useEffect } from 'react';
 import { useData } from './DataProvider';
 import { LeadsTable } from './LeadsTable';
 import { Button } from '@/components/ui/button';
@@ -55,6 +55,11 @@ export function Home() {
   const navigate = useNavigate();
   const [resetModalOpen, setResetModalOpen] = useState(false);
   const [resetType, setResetType] = useState<'leads' | 'scrapers' | 'logs' | 'all' | null>(null);
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   const handleReset = async () => {
     if (!resetType) return;
@@ -177,7 +182,7 @@ export function Home() {
   ].filter(d => d.value > 0);
 
   const SCRAPER_COLORS = [
-    '#5a8c12', '#3b82f6', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899', '#06b6d4', '#10b981'
+    '#008cff', '#3b82f6', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899', '#06b6d4', '#10b981'
   ];
 
   const getLogIcon = (type: string) => {
@@ -317,9 +322,11 @@ export function Home() {
               <p className="text-sm text-slate-500">Breakdown of leads found by each scraper over the last 7 days</p>
             </div>
           </div>
-          <div className="h-[350px] w-full">
-            <ResponsiveContainer width="100%" height="100%">
-              <AreaChart data={chartData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+          <div className="overflow-hidden border border-slate-200 rounded-xl bg-white w-full flex justify-center items-center" style={{ minHeight: '320px' }}>
+            {!mounted ? (
+              <div className="h-full w-full animate-pulse bg-slate-100 dark:bg-slate-800 rounded-2xl"></div>
+            ) : chartData && chartData.length > 0 ? (
+              <AreaChart width={800} height={300} data={chartData} margin={{ top: 10, right: 30, left: 0, bottom: 0 }}>
                 <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" className="dark:stroke-slate-800" />
                 <XAxis dataKey="date" axisLine={false} tickLine={false} tick={{ fill: '#94a3b8', fontSize: 11, fontWeight: 600 }} dy={10} />
                 <YAxis axisLine={false} tickLine={false} tick={{ fill: '#94a3b8', fontSize: 11, fontWeight: 600 }} />
@@ -347,7 +354,9 @@ export function Home() {
                   />
                 ))}
               </AreaChart>
-            </ResponsiveContainer>
+            ) : (
+              <div className="flex items-center justify-center h-full text-slate-400">No chart data available</div>
+            )}
           </div>
         </div>
         
@@ -357,9 +366,11 @@ export function Home() {
           <p className="text-sm text-slate-500 mb-8">Real-time status distribution</p>
           
           <div className="flex-1 flex flex-col items-center justify-center">
-            <div className="h-[200px] w-full relative">
-              <ResponsiveContainer width="100%" height="100%">
-                <PieChart>
+            <div className="overflow-hidden border border-slate-200 rounded-xl bg-white w-full flex justify-center items-center relative" style={{ minHeight: '200px' }}>
+              {!mounted ? (
+                <div className="h-full w-full animate-pulse bg-slate-100 dark:bg-slate-800 rounded-full"></div>
+              ) : pieData && pieData.length > 0 ? (
+                <PieChart width={200} height={200}>
                   <Pie
                     data={pieData}
                     cx="50%"
@@ -374,7 +385,9 @@ export function Home() {
                     ))}
                   </Pie>
                 </PieChart>
-              </ResponsiveContainer>
+              ) : (
+                <div className="flex items-center justify-center h-full text-slate-400">No health data</div>
+              )}
               <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
                 <span className="text-3xl font-black text-slate-900 dark:text-white">{scrapers.length}</span>
                 <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Total</span>
@@ -402,18 +415,22 @@ export function Home() {
         <div className="bg-white dark:bg-slate-900 p-8 rounded-3xl shadow-sm border border-slate-200 dark:border-slate-800">
           <h3 className="text-lg font-bold text-slate-900 dark:text-white tracking-tight mb-2">Top Keywords</h3>
           <p className="text-sm text-slate-500 mb-8">Highest performing search terms</p>
-          <div className="h-[250px] w-full">
-            <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={stats.topKeywordsData} layout="vertical" margin={{ left: -20 }}>
+          <div className="overflow-hidden border border-slate-200 rounded-xl bg-white w-full flex justify-center items-center" style={{ minHeight: '250px' }}>
+            {!mounted ? (
+              <div className="h-full w-full animate-pulse bg-slate-100 dark:bg-slate-800 rounded-2xl"></div>
+            ) : stats.topKeywordsData && stats.topKeywordsData.length > 0 ? (
+              <BarChart width={300} height={250} data={stats.topKeywordsData} layout="vertical" margin={{ left: -20 }}>
                 <XAxis type="number" hide />
                 <YAxis dataKey="name" type="category" axisLine={false} tickLine={false} tick={{ fill: '#64748b', fontSize: 12, fontWeight: 600 }} width={100} />
                 <Tooltip 
                   cursor={{ fill: 'transparent' }}
                   contentStyle={{ borderRadius: '12px', border: 'none', backgroundColor: '#0f172a', color: '#fff' }}
                 />
-                <Bar dataKey="value" fill="#5a8c12" radius={[0, 4, 4, 0]} barSize={20} />
+                <Bar dataKey="value" fill="#008cff" radius={[0, 4, 4, 0]} barSize={20} />
               </BarChart>
-            </ResponsiveContainer>
+            ) : (
+              <div className="flex items-center justify-center h-full text-slate-400">No keyword data</div>
+            )}
           </div>
         </div>
 

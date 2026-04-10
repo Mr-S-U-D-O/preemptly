@@ -5,6 +5,9 @@ export interface Scraper {
   keyword: string;
   intervalMinutes: number;
   leadDefinition?: string;
+  clientName?: string;
+  clientPhone?: string;
+  idealCustomerProfile?: string;
   status: 'active' | 'paused';
   createdAt: any;
   lastRunAt?: any;
@@ -23,6 +26,8 @@ export interface Lead {
   postContent?: string;
   score?: number;
   reason?: string;
+  status?: 'new' | 'sent' | 'rejected';
+  whatsappMessage?: string;
   createdAt: any;
   userId: string;
 }

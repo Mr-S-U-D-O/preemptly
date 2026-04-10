@@ -72,15 +72,18 @@ service cloud.firestore {
     // ===============================================================
 
     function isValidScraperCreate() {
-      let allowedFields = ['name', 'subreddit', 'keyword', 'leadDefinition', 'intervalMinutes', 'status', 'createdAt', 'lastRunAt', 'userId', 'icon'];
-      let requiredFields = ['name', 'subreddit', 'keyword', 'leadDefinition', 'intervalMinutes', 'status', 'createdAt', 'userId'];
+      let allowedFields = ['name', 'subreddit', 'keyword', 'leadDefinition', 'clientName', 'clientPhone', 'idealCustomerProfile', 'intervalMinutes', 'status', 'createdAt', 'lastRunAt', 'userId', 'icon'];
+      let requiredFields = ['name', 'subreddit', 'keyword', 'intervalMinutes', 'status', 'createdAt', 'userId'];
       
       return hasOnlyAllowedFields(allowedFields) &&
              hasRequiredFields(requiredFields) &&
              validStringLength('name', 1, 100) &&
              validStringLength('subreddit', 1, 50) &&
              validStringLength('keyword', 1, 100) &&
-             validStringLength('leadDefinition', 1, 2000) &&
+             (!('leadDefinition' in request.resource.data) || validStringLength('leadDefinition', 1, 2000)) &&
+             (!('clientName' in request.resource.data) || validStringLength('clientName', 1, 100)) &&
+             (!('clientPhone' in request.resource.data) || validStringLength('clientPhone', 1, 50)) &&
+             (!('idealCustomerProfile' in request.resource.data) || validStringLength('idealCustomerProfile', 1, 2000)) &&
              request.resource.data.intervalMinutes is number &&
              request.resource.data.intervalMinutes > 0 &&
              request.resource.data.status in ['active', 'paused'] &&
@@ -91,12 +94,17 @@ service cloud.firestore {
     }
 
     function isValidScraperUpdate() {
-      let allowedFields = ['name', 'subreddit', 'keyword', 'leadDefinition', 'intervalMinutes', 'status', 'createdAt', 'lastRunAt', 'userId', 'icon'];
+      let allowedFields = ['name', 'subreddit', 'keyword', 'leadDefinition', 'clientName', 'clientPhone', 'idealCustomerProfile', 'intervalMinutes', 'status', 'createdAt', 'lastRunAt', 'userId', 'icon'];
+      let requiredFields = ['name', 'subreddit', 'keyword', 'intervalMinutes', 'status', 'createdAt', 'userId'];
       return hasOnlyAllowedFields(allowedFields) &&
+             hasRequiredFields(requiredFields) &&
              validStringLength('name', 1, 100) &&
              validStringLength('subreddit', 1, 50) &&
              validStringLength('keyword', 1, 100) &&
-             validStringLength('leadDefinition', 1, 2000) &&
+             (!('leadDefinition' in request.resource.data) || validStringLength('leadDefinition', 1, 2000)) &&
+             (!('clientName' in request.resource.data) || validStringLength('clientName', 1, 100)) &&
+             (!('clientPhone' in request.resource.data) || validStringLength('clientPhone', 1, 50)) &&
+             (!('idealCustomerProfile' in request.resource.data) || validStringLength('idealCustomerProfile', 1, 2000)) &&
              request.resource.data.intervalMinutes is number &&
              request.resource.data.intervalMinutes > 0 &&
              request.resource.data.status in ['active', 'paused'] &&
@@ -105,20 +113,22 @@ service cloud.firestore {
     }
 
     function isValidLead() {
-      let allowedFields = ['scraperId', 'subreddit', 'keyword', 'postTitle', 'postUrl', 'postAuthor', 'postContent', 'score', 'reason', 'createdAt', 'userId'];
+      let allowedFields = ['scraperId', 'subreddit', 'keyword', 'postTitle', 'postUrl', 'postAuthor', 'postContent', 'score', 'reason', 'status', 'whatsappMessage', 'createdAt', 'userId'];
       let requiredFields = ['scraperId', 'subreddit', 'keyword', 'postTitle', 'postUrl', 'postAuthor', 'createdAt', 'userId'];
       
       return hasOnlyAllowedFields(allowedFields) &&
              hasRequiredFields(requiredFields) &&
-             request.resource.data.scraperId is string &&
-             request.resource.data.subreddit is string &&
-             request.resource.data.keyword is string &&
-             request.resource.data.postTitle is string &&
-             request.resource.data.postUrl is string &&
-             request.resource.data.postAuthor is string &&
-             (!('postContent' in request.resource.data) || request.resource.data.postContent is string) &&
-             (!('score' in request.resource.data) || request.resource.data.score is number) &&
-             (!('reason' in request.resource.data) || request.resource.data.reason is string) &&
+             validStringLength('scraperId', 1, 50) &&
+             validStringLength('subreddit', 1, 50) &&
+             validStringLength('keyword', 1, 100) &&
+             validStringLength('postTitle', 1, 500) &&
+             validStringLength('postUrl', 1, 500) &&
+             validStringLength('postAuthor', 1, 100) &&
+             (!('postContent' in request.resource.data) || validStringLength('postContent', 0, 10000)) &&
+             (!('score' in request.resource.data) || (request.resource.data.score is number && request.resource.data.score >= 1 && request.resource.data.score <= 10)) &&
+             (!('reason' in request.resource.data) || validStringLength('reason', 0, 2000)) &&
+             (!('status' in request.resource.data) || request.resource.data.status in ['new', 'sent', 'rejected']) &&
+             (!('whatsappMessage' in request.resource.data) || validStringLength('whatsappMessage', 0, 5000)) &&
              request.resource.data.createdAt is timestamp &&
              request.resource.data.userId == request.auth.uid;
     }
@@ -126,11 +136,6 @@ service cloud.firestore {
     // ===============================================================
     // Rules
     // ===============================================================
-
-    // Allow Firebase Admin SDK to perform all operations
-    match /{document=**} {
-      allow read, write: if request.auth == null;
-    }
 
     match /scrapers/{scraperId} {
       allow read: if isAuthenticated() && resource.data.userId == request.auth.uid;
