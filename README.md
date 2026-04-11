@@ -1,48 +1,138 @@
-# IntentFirstHunter
+# IntentFirstHunter: AI-Driven Intent Discovery Engine
 
-IntentFirstHunter is an automated lead generation platform that monitors Reddit for high-intent posts and uses Google's Gemini AI to score and filter them.
+IntentFirstHunter is a high-performance lead generation platform designed to move beyond simple keyword matching. It utilizes **Google’s Gemini 3 Flash AI** to scan social platforms (Reddit, Stack Overflow, Hacker News, Craigslist) for real-time "intent signals"—identifying users who are actively seeking solutions rather than just mentioning keywords.
 
-**Status: Stable Checkpoint**
-- ✅ Background Engine running on Node.js server
-- ✅ Firebase Admin SDK integration (Service Account auth)
-- ✅ Gemini AI lead scoring with fallback mechanisms
-- ✅ Recharts dashboard with minimalist, stable layout
+---
 
-## How It Works
+## 🏗️ System Architecture
 
-1. **Scrapers**: Users can create "Scrapers" that target specific subreddits and keywords. Each scraper runs on a defined interval (e.g., every 60 minutes).
-2. **Background Engine**: The Express backend runs a background engine (`server.ts`) that periodically checks if any active scrapers are due for a run.
-3. **RSS Fetching**: When a scraper runs, it hits the Express backend (`/api/reddit/:subreddit`), which fetches the latest posts from Reddit's RSS feed (`https://www.reddit.com/r/.../.rss`).
-4. **AI Lead Scoring**: The backend takes the fetched posts and sends them to the **Gemini AI** (`gemini-3-flash-preview`). The AI acts as an expert lead generation analyst, scoring each post from 1-10 based on the user's target keyword and the post's intent.
-5. **Filtering & Storage**: Only posts with a score of 7 or higher (warm/hot leads) are saved. The backend uses the Firebase Admin SDK to bypass client-side rules and save leads directly to Firestore.
-6. **Real-time Dashboard**: The user interface updates in real-time, displaying new leads, analytics, and charts.
+The application is built on a "Real-time Intelligence Loop" where background workers, AI models, and live dashboards operate in a continuous cycle.
 
-## File Structure & Details
+```mermaid
+graph TD
+    subgraph "The Internet"
+        R[Reddit RSS]
+        SO[Stack Overflow Feed]
+        HN[Hacker News Feed]
+        CL[Craigslist Feed]
+    end
 
-### Root Directory
-* **`server.ts`**: The Express backend server. It serves the Vite frontend, handles the core `/api/reddit/:subreddit` route, and runs the background scraping engine. It uses the `@google/genai` SDK for AI scoring and `firebase-admin` for database operations.
-* **`vite.config.ts`**: Configuration for Vite, including React and Tailwind plugins.
-* **`package.json`**: Defines project dependencies (React, Firebase, Tailwind, Recharts, Lucide, etc.) and scripts.
-* **`.env.example`**: Documents the required environment variables: `LEAD_SCORER_API_KEY`, `FIREBASE_SERVICE_ACCOUNT`, etc.
-* **`firebase-applet-config.json` & `firestore.rules`**: Firebase project configuration and security rules.
+    subgraph "Backend Engine (server.ts)"
+        CRON[Background Loop - 60s]
+        FETCHER[RSS Bypass Fetcher]
+        GENAI[Gemini 3 Flash AI]
+        ADMIN[Firebase Admin SDK]
+    end
 
-### `src/` Directory
-* **`main.tsx`**: The entry point for the React application.
-* **`App.tsx`**: Sets up React Router and wraps the application in the `AuthProvider` and `DataProvider`.
-* **`index.css`**: Global CSS file containing Tailwind imports, custom animations, and CSS variables for both light and dark mode themes.
-* **`types.ts`**: TypeScript interfaces defining the shape of `Scraper` and `Lead` objects.
-* **`firebase.ts`**: Initializes the Firebase app, Auth, and Firestore instances.
+    subgraph "Data & UI"
+        FS[(Cloud Firestore)]
+        VITE[Vite + React SPA]
+        DASH[Intelligence Dashboard]
+    end
 
-### `src/components/`
-* **`AuthProvider.tsx`**: Manages Firebase Authentication state.
-* **`DataProvider.tsx`**: Sets up real-time Firestore listeners (`onSnapshot`) for the current user's scrapers and leads.
-* **`Layout.tsx`**: The main application shell.
-* **`Sidebar.tsx`**: The left navigation menu.
-* **`Home.tsx`**: The main dashboard view. Displays high-level analytics, an area chart of lead generation, scraper status summaries, and a table of recent leads.
-* **`ScraperView.tsx`**: The detailed view for a specific scraper.
-* **`LeadsTable.tsx`**: A highly reusable table component for displaying leads.
-* **`AddScraperModal.tsx`**: A modal form that allows users to create a new scraper.
-* **`SettingsModal.tsx`**: A modal for user preferences.
-* **`ProfileModal.tsx`**: A simple modal displaying the logged-in user's profile information.
-* **`ConfirmModal.tsx`**: A reusable confirmation dialog.
-* **`PrivacyPolicy.tsx`**: A static page displaying the application's privacy policy.
+    CRON --> FETCHER
+    FETCHER --> R & SO & HN & CL
+    FETCHER -- "New Posts" --> GENAI
+    GENAI -- "Intent Scores & Pitches" --> ADMIN
+    ADMIN -- "Sync" --> FS
+    FS -- "onSnapshot" --> VITE
+    VITE --> DASH
+    DASH -- "User Actions" --> ADMIN
+```
+
+---
+
+## 🧠 The "Brain": AI Scrutiny Logic
+
+While traditional scrapers look for `keyword == "plumber"`, IntentFirstHunter looks for **Intent**.
+
+### How the Machine "Thinks"
+When a post is fetched, it is sent to **Gemini 3 Flash** in optimized batches. The machine is programmed to look for specific behavioral signals:
+1.  **Explicit Requests**: "Can anyone recommend a service for...?"
+2.  **Pain Points**: "I'm so frustrated with my current [Solution]..."
+3.  **Exploratory Questions**: "Does anyone know how to solve [Problem X]?"
+4.  **High-Intent Phrases**: "What is the best [X] for [Y]?"
+
+### Scoring Algorithm
+*   **1-3 (Cold)**: General discussion, news, or unrelated content.
+*   **4-6 (Warm)**: Vague interest or early-stage research.
+*   **7-10 (Hot)**: High-intent lead. The user is actively seeking a solution *now*.
+
+### Automated Pitch Generation
+For every lead with a score of 7+, the AI generates a **personalized WhatsApp pitch**. 
+- It contextually understands the user's problem.
+- It drafts a 2-sentence value proposition targeted at the business owner.
+- It leaves placeholders for the business owner to easily send the message via the WhatsApp API.
+
+---
+
+## ⚙️ The Backend Engine
+
+The backend is a robust Node.js server powered by **Express** and **Hono-style routing**, serving as a bridge between the browser and the raw internet.
+
+### 1. The RSS Bypass Technique
+Platforms like Reddit have strict IP blocking for standard scrapers. IntentFirstHunter bypasses this by:
+*   Using **RSS Feeds** instead of the JSON API.
+*   Routing requests through **rss2json** and standard RSS parsers to distribute request footprints.
+*   Implementing **Randomized Delays** (1s - 3s) between platform fetches to mimic human interaction.
+
+### 2. Background Persistence Loop
+The server runs a `setInterval` worker every 60 seconds.
+- It identifies "Active" scrapers.
+- It calculates the `nextRun` based on the user-defined interval.
+- It executes the `executeScraper` function, which handles the full pipeline: Fetch -> Batch -> Score -> Save.
+
+---
+
+## 🎨 The (Frontend) Dashboard
+
+The frontend is a **Vite-powered React SPA** built for speed and visual clarity.
+
+-   **State Management**: Uses a custom `DataProvider` with React Context. It maintains a **real-time WebSocket-like connection** to Firestore using the `onSnapshot` listener. As soon as the backend identifies a lead, it "pops" onto the user's screen without a refresh.
+-   **Data Visualization**: Uses **Recharts** to process raw lead data into trend lines (Lead Velocity) and distribution charts (Scraper Health).
+-   **Security**: Minimalist design with **Firebase Auth** guarding access, ensuring each user only sees their own intelligence data.
+
+---
+
+## 🚀 The User Flow: From Search to Sale
+
+### 1. Initializing the Engine
+When a user clicks **"Add Scraper"**, they aren't just setting up a search; they are configuring a digital hunter.
+- **Client Name**: Who is the lead for?
+- **Ideal Customer Profile**: What does a "perfect lead" look like to the AI?
+- **Target**: Which "hunting grounds" should the engine monitor?
+
+### 2. Identifying the Opportunity
+When a lead is found:
+- The backend writes the lead to Firestore.
+- The UI triggers an animation in the **"System Activity"** feed.
+- The **Lead Score** and **AI Reason** appear, explaining *why* the machine thinks this is a match.
+
+### 3. Closing the Deal
+Within the **Lead View**, the user can:
+- Review the raw post content.
+- See the AI's logic.
+- Click **"Send WhatsApp"**: This opens a pre-composed message in a new tab, ready for the business owner to hit "Send".
+
+---
+
+## 🛠️ Technical Stack
+
+-   **Frontend**: React 18, Vite, Tailwind CSS, Lucide icons.
+-   **Charts**: Recharts (High-performance SVG charting).
+-   **Backend**: Node.js, Express, Google Generative AI (Gemini Flash).
+-   **Database**: Google Firebase (Firestore + Authentication).
+-   **RSS Logic**: `rss-parser`, `node-fetch`.
+
+---
+
+## 📦 Getting Started
+
+1.  **Environment Variables**: Create a `.env` with:
+    ```env
+    LEAD_SCORER_API_KEY=your_gemini_api_key
+    FIREBASE_SERVICE_ACCOUNT=your_service_account_json
+    ```
+2.  **Install Dependencies**: `npm install`
+3.  **Run Development**: `npm run dev` (Starts both the backend engine and the Vite server).
+4.  **Production**: `npm run build && npm start`
