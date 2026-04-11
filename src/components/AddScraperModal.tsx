@@ -9,6 +9,7 @@ import { useData } from './DataProvider';
 import { collection, doc, setDoc, serverTimestamp, addDoc } from 'firebase/firestore';
 import { db, handleFirestoreError, OperationType } from '../firebase';
 import * as Icons from 'lucide-react';
+import { CountryCodeSelector } from './CountryCodeSelector';
 import { 
   Plus, 
   AlertCircle, 
@@ -78,6 +79,7 @@ export function AddScraperModal({
   const { scrapers } = useData();
   const [name, setName] = useState('');
   const [clientName, setClientName] = useState('');
+  const [countryCode, setCountryCode] = useState('+27');
   const [clientPhone, setClientPhone] = useState('');
   const [selectedPlatforms, setSelectedPlatforms] = useState<string[]>(['reddit']);
   const [target, setTarget] = useState('');
@@ -110,6 +112,7 @@ export function AddScraperModal({
       if (!initialData) {
         setName('');
         setClientName('');
+        setCountryCode('+27');
         setClientPhone('');
         setSelectedPlatforms(['reddit']);
         setTarget('');
@@ -365,7 +368,7 @@ export function AddScraperModal({
               ? `${name.trim()} (${platform}${individualTarget ? `: ${individualTarget}` : ''})` 
               : name.trim(),
             clientName: clientName.trim(),
-            clientPhone: clientPhone.trim(),
+            clientPhone: `${countryCode}${clientPhone.trim()}`.replace(/\+/g, ''),
             platform,
             target: platform === 'reddit' ? individualTarget.replace(/^r\//, '') : individualTarget,
             keyword,
@@ -472,14 +475,18 @@ export function AddScraperModal({
             </div>
             <div className="space-y-2">
               <Label htmlFor="clientPhone" className="text-slate-700 font-semibold">Client WhatsApp Number</Label>
-              <Input 
-                id="clientPhone" 
-                placeholder="e.g. 1234567890" 
-                value={clientPhone} 
-                onChange={(e) => setClientPhone(e.target.value)} 
-                required 
-                className="rounded-xl border-slate-200 focus-visible:ring-[#5a8c12]"
-              />
+              <div className="flex gap-2">
+                <CountryCodeSelector value={countryCode} onChange={setCountryCode} />
+                <Input 
+                  id="clientPhone" 
+                  placeholder="e.g. 712345678" 
+                  value={clientPhone} 
+                  onChange={(e) => setClientPhone(e.target.value.replace(/^0+/, ''))} 
+                  required 
+                  className="rounded-xl border-slate-200 focus-visible:ring-[#5a8c12]"
+                />
+              </div>
+              <p className="text-[10px] text-slate-500">Excluding leading zeros (e.g. 712345678)</p>
             </div>
           </div>
           <div className="space-y-2">

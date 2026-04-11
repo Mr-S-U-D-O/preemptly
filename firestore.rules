@@ -144,14 +144,14 @@ service cloud.firestore {
              (!('target' in request.resource.data) || validStringLength('target', 0, 100)) &&
              (!('city' in request.resource.data) || validStringLength('city', 1, 50)) &&
              (!('category' in request.resource.data) || validStringLength('category', 1, 50)) &&
-             validStringLength('keyword', 1, 100) &&
+             validStringLength('keyword', 1, 500) &&
              validStringLength('postTitle', 1, 500) &&
              validStringLength('postUrl', 1, 500) &&
              validStringLength('postAuthor', 1, 100) &&
              (!('postContent' in request.resource.data) || validStringLength('postContent', 0, 10000)) &&
              (!('score' in request.resource.data) || (request.resource.data.score is number && request.resource.data.score >= 1 && request.resource.data.score <= 10)) &&
              (!('reason' in request.resource.data) || validStringLength('reason', 0, 2000)) &&
-             (!('status' in request.resource.data) || request.resource.data.status in ['new', 'sent', 'rejected']) &&
+             (!('status' in request.resource.data) || request.resource.data.status in ['new', 'viewed', 'sent', 'rejected']) &&
              (!('whatsappMessage' in request.resource.data) || validStringLength('whatsappMessage', 0, 5000)) &&
              (!('email' in request.resource.data) || request.resource.data.email == null || validStringLength('email', 1, 200)) &&
              (!('phone' in request.resource.data) || request.resource.data.phone == null || validStringLength('phone', 1, 100)) &&

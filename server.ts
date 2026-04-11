@@ -623,7 +623,7 @@ async function executeScraper(scraper: any) {
     const existingLeadsSnapshot = await leadsRef
       .where('scraperId', '==', scraper.id)
       .orderBy('createdAt', 'desc')
-      .limit(100) // Look at the last 100 leads to check for duplicates
+      .limit(1000) // Look at the last 1000 leads to check for duplicates
       .get();
     
     const existingUrls = new Set(existingLeadsSnapshot.docs.map((doc: any) => doc.data().postUrl));
@@ -683,17 +683,17 @@ async function executeScraper(scraper: any) {
       - 7-10: High-intent lead. The user is actively seeking a solution right now.
       
       If the score is >= 7, you MUST draft a persuasive WhatsApp message to send to the client (the business owner). 
-      The goal is to sell this lead to them by highlighting why it's a perfect match for their business.
+      The goal is to summarize the lead and provide context so the recipient understands the value immediately.
       
       Use this structure:
-      "Hey ${scraper.clientName || 'there'}, I found a high-intent lead for you! 
+      "Hey ${scraper.clientName || 'there'}, I found a high-intent lead for you regarding \"[Snippet of Post Title]\"! 
       
-      [1-2 sentences explaining WHY this is a great match based on their Ideal Customer Profile]. 
+      [2-3 sentences providing deeper context into what the user is asking and WHY this is a perfect match for your business based on the Ideal Customer Profile]. 
       
       User: [username]
       Link: [URL]"
       
-      (Note: Leave [URL] exactly as the literal string "[URL]", we will replace it in the code).
+      (Note: Leave [URL] and [username] exactly as those literal strings, we will replace them in the code).
       
       Return ONLY a valid JSON array of objects. 
       Format: [{ 
