@@ -117,7 +117,7 @@ const ai = new GoogleGenAI({ apiKey: apiKey || 'dummy-key-to-prevent-crash' });
 
 async function startServer() {
   const app = express();
-  const PORT = 3000;
+  const PORT = process.env.PORT || 3000;
 
   // API routes FIRST
   app.get("/api/health", (req, res) => {
