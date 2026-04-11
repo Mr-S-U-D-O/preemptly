@@ -64,12 +64,10 @@ const databaseId = firebaseConfig.firestoreDatabaseId && firebaseConfig.firestor
   ? firebaseConfig.firestoreDatabaseId 
   : undefined;
 
-// Add this route to update rules
-const app = express();
-app.post("/api/admin/update-rules", async (req, res) => {
+// Rules update logic
+async function updateFirestoreRules(res: any) {
   try {
     const rules = readFileSync(path.join(process.cwd(), 'firestore.rules'), 'utf8');
-    const projectId = firebaseConfig.projectId;
     
     // Use the security rules API to update rules for the named database
     const rulesClient = getSecurityRules(getApp()) as any;
@@ -88,7 +86,7 @@ app.post("/api/admin/update-rules", async (req, res) => {
       details: error.details || "Check server logs for more details"
     });
   }
-});
+}
 
 console.log("[Firebase Admin] Using Database ID:", databaseId || "(default)");
 console.log("[Firebase Admin] Project ID:", firebaseConfig.projectId);
@@ -127,6 +125,10 @@ async function startServer() {
   // API routes FIRST
   app.get("/api/health", (req, res) => {
     res.json({ status: "ok" });
+  });
+
+  app.post("/api/admin/update-rules", async (req, res) => {
+    await updateFirestoreRules(res);
   });
 
   app.post("/api/suggest-keywords", express.json(), async (req, res) => {
