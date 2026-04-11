@@ -658,6 +658,7 @@ async function executeScraper(scraper: any) {
       const minimizedData = batch.map((post: any) => ({
         index: post.data.index,
         title: post.data.title,
+        author: post.data.author || 'the author',
         content: post.data.selftext.substring(0, 500) // Limit content length per post
       }));
 
@@ -770,7 +771,9 @@ async function executeScraper(scraper: any) {
         }
         
         let finalWhatsappMessage = scoreObj.whatsappMessage || `Hey ${scraper.clientName || 'there'}, I found a user by /u/${post.data.author} looking for something related to your business. Here is the link: [URL]`;
-        finalWhatsappMessage = finalWhatsappMessage.replace('[URL]', postUrl);
+        finalWhatsappMessage = finalWhatsappMessage
+          .replace(/\[URL\]/gi, postUrl)
+          .replace(/\[username\]/gi, post.data.author || 'the author');
         
         const newLeadRef = adminDb.collection('leads').doc();
         batchWrite.set(newLeadRef, {

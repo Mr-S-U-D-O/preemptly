@@ -28,6 +28,26 @@ export function ScraperView() {
   const scraper = scrapers.find(s => s.id === id);
   const scraperLeads = leads.filter(l => l.scraperId === id);
 
+  // Clear notifications when viewing the scraper
+  useEffect(() => {
+    const clearNotifications = async () => {
+      const newLeads = scraperLeads.filter(l => l.status === 'new' || !l.status);
+      if (newLeads.length === 0) return;
+
+      for (const lead of newLeads) {
+        try {
+          await updateDoc(doc(db, 'leads', lead.id), { status: 'viewed' });
+        } catch (error) {
+          console.error("Failed to mark lead as viewed:", error);
+        }
+      }
+    };
+
+    if (id && scraperLeads.length > 0) {
+      clearNotifications();
+    }
+  }, [id, scraperLeads.length]);
+
   // Countdown logic
   useEffect(() => {
     if (!scraper || scraper.status !== 'active') {
@@ -61,8 +81,8 @@ export function ScraperView() {
   }, [scraperLeads, searchQuery]);
 
   const sortedLeads = [...filteredLeads].sort((a, b) => {
-    const timeA = a.createdAt?.toMillis?.() || 0;
-    const timeB = b.createdAt?.toMillis?.() || 0;
+    const timeA = a.createdAt?.toMillis ? a.createdAt.toMillis() : 0;
+    const timeB = b.createdAt?.toMillis ? b.createdAt.toMillis() : 0;
     return timeB - timeA;
   });
 
@@ -101,7 +121,7 @@ export function ScraperView() {
     }
   };
 
-  const handleStatusChange = async (leadId: string, status: 'new' | 'sent' | 'rejected') => {
+  const handleStatusChange = async (leadId: string, status: 'new' | 'viewed' | 'sent' | 'rejected') => {
     try {
       await updateDoc(doc(db, 'leads', leadId), { status });
     } catch (error) {
@@ -137,10 +157,8 @@ export function ScraperView() {
       }
       
       console.log("Scraper run started successfully");
-      alert("Scraper run started in the background. New leads will appear shortly.");
     } catch (error) {
       console.error("Manual scan failed:", error);
-      alert("Failed to run scraper. Please check the logs.");
     } finally {
       setIsRetrying(false);
     }
@@ -236,7 +254,7 @@ export function ScraperView() {
             ))}
           </div>
         </div>
-        <div className="bg-white dark:bg-slate-900 p-6 rounded-2xl shadow-[0_4px_20px_rgba(0,0,0,0.03)] border-2 border-[#5a8c12] dark:border-[#5a8c12]/50">
+        <div className="bg-white dark:bg-slate-900 p-6 rounded-2xl shadow-[0_4px_20_rgba(0,0,0,0.03)] border-2 border-[#5a8c12] dark:border-[#5a8c12]/50">
           <p className="text-sm font-semibold text-slate-500 dark:text-slate-400 mb-1">Total Leads Found</p>
           <p className="text-xl font-bold text-slate-800 dark:text-slate-100">{scraperLeads.length}</p>
         </div>
@@ -394,10 +412,12 @@ export function ScraperView() {
                             <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold cursor-pointer transition-colors ${
                               lead.status === 'sent' ? 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400 hover:bg-blue-200' :
                               lead.status === 'rejected' ? 'bg-slate-100 text-slate-500 dark:bg-slate-800 dark:text-slate-400 hover:bg-slate-200' :
+                              lead.status === 'viewed' ? 'bg-slate-50 text-slate-400 dark:bg-slate-800/50 hover:bg-slate-100' :
                               'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400 hover:bg-amber-200'
                             }`}>
                               {lead.status === 'sent' && <CheckCircle2 size={12} />}
                               {lead.status === 'rejected' && <XCircle size={12} />}
+                              {lead.status === 'viewed' && <Clock size={12} className="opacity-50" />}
                               {(!lead.status || lead.status === 'new') && <Clock size={12} />}
                               {(!lead.status || lead.status === 'new') ? 'New' : lead.status.charAt(0).toUpperCase() + lead.status.slice(1)}
                             </span>
