@@ -1,4 +1,5 @@
 FROM node:20-slim
+ENV NODE_ENV=production
 
 WORKDIR /app
 
@@ -16,5 +17,4 @@ RUN npm run build
 EXPOSE 8080
 
 # Use tsx to run the server.ts directly in production
-# This simplifies the build process for this project
 CMD ["npm", "run", "start"]
