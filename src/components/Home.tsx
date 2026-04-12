@@ -2,6 +2,7 @@ import React, { useMemo, useState, useEffect } from 'react';
 import { useData } from './DataProvider';
 import { LeadsTable } from './LeadsTable';
 import { Button, buttonVariants } from '@/components/ui/button';
+import { cn } from '@/lib/utils';
 import {
   Activity,
   Database,
@@ -353,30 +354,39 @@ export function Home() {
           </h1>
         </div>
         <div className="flex items-center gap-3">
-          {/* Reset dropdown */}
+          {/* Reset dashboard dropdown */}
           <DropdownMenu>
             <DropdownMenuTrigger 
-              className={buttonVariants({ variant: "outline", size: "sm" }) + " flex items-center gap-2 cursor-default select-none outline-none text-xs uppercase tracking-widest font-bold shadow-sm"}
-            >
-              <RefreshCcw size={14} className="mr-1" /> 
-              Reset Dashboard
-            </DropdownMenuTrigger>
+              render={
+                <button 
+                  className={cn(
+                    buttonVariants({ variant: "outline", size: "sm" }), 
+                    "flex items-center gap-2 cursor-default select-none outline-none text-xs uppercase tracking-widest font-bold shadow-sm"
+                  )}
+                >
+                  <RefreshCcw size={14} className="mr-1" /> 
+                  Reset Dashboard
+                </button>
+              }
+            />
             
             <DropdownMenuContent align="end" className="w-52 rounded-2xl border-2 border-slate-100 dark:border-slate-800 p-2 bg-white dark:bg-slate-900 shadow-xl">
               <DropdownMenuLabel className="text-[10px] font-black uppercase tracking-widest text-slate-400 px-2 py-1.5">
                 Reset Options
               </DropdownMenuLabel>
               <DropdownMenuGroup>
-                {[
-                  { icon: Database, label: 'Reset Leads', type: 'leads' },
-                  { icon: Zap, label: 'Reset Scrapers', type: 'scrapers' },
-                  { icon: Activity, label: 'Reset Logs', type: 'logs' },
-                ].map(({ icon: Icon, label, type }) => (
-                  <DropdownMenuItem key={type} onClick={() => confirmReset(type as any)}
-                    className="rounded-xl focus:bg-red-50 focus:text-red-600 hover:bg-slate-50 cursor-pointer p-3 flex items-center outline-none">
-                    <Icon size={15} className="mr-3" /> <span className="font-bold text-sm text-slate-700">{label}</span>
-                  </DropdownMenuItem>
-                ))}
+                <DropdownMenuItem onClick={() => confirmReset('leads')}
+                  className="rounded-xl focus:bg-red-50 focus:text-red-600 hover:bg-slate-50 cursor-pointer p-3 flex items-center outline-none">
+                  <Database size={15} className="mr-3" /> <span className="font-bold text-sm text-slate-700">Reset Leads</span>
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => confirmReset('scrapers')}
+                  className="rounded-xl focus:bg-red-50 focus:text-red-600 hover:bg-slate-50 cursor-pointer p-3 flex items-center outline-none">
+                  <Zap size={15} className="mr-3" /> <span className="font-bold text-sm text-slate-700">Reset Scrapers</span>
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => confirmReset('logs')}
+                  className="rounded-xl focus:bg-red-50 focus:text-red-600 hover:bg-slate-50 cursor-pointer p-3 flex items-center outline-none">
+                  <Activity size={15} className="mr-3" /> <span className="font-bold text-sm text-slate-700">Reset Logs</span>
+                </DropdownMenuItem>
               </DropdownMenuGroup>
               <DropdownMenuSeparator className="my-2 border-t border-slate-100 dark:border-slate-800" />
               <DropdownMenuItem onClick={() => confirmReset('all')}
