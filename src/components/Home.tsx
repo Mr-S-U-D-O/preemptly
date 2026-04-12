@@ -361,14 +361,14 @@ export function Home() {
                   { icon: Zap, label: 'Reset Scrapers', type: 'scrapers' },
                   { icon: Activity, label: 'Reset Logs', type: 'logs' },
                 ].map(({ icon: Icon, label, type }) => (
-                  <DropdownMenuItem key={type} onClick={() => { setResetType(type as any); setTimeout(() => setResetModalOpen(true), 0); }}
+                  <DropdownMenuItem key={type} onClick={(e) => { e.preventDefault(); setResetType(type as any); setTimeout(() => setResetModalOpen(true), 150); }}
                     className="rounded-xl focus:bg-red-50 focus:text-red-600 cursor-pointer p-3">
                     <Icon size={15} className="mr-3" /> <span className="font-bold">{label}</span>
                   </DropdownMenuItem>
                 ))}
               </DropdownMenuGroup>
               <DropdownMenuSeparator className="my-2" />
-              <DropdownMenuItem onClick={() => { setResetType('all'); setTimeout(() => setResetModalOpen(true), 0); }}
+              <DropdownMenuItem onClick={(e) => { e.preventDefault(); setResetType('all'); setTimeout(() => setResetModalOpen(true), 150); }}
                 className="rounded-xl bg-red-50 dark:bg-red-900/20 text-red-600 focus:bg-red-100 cursor-pointer p-3">
                 <Trash2 size={15} className="mr-3" /> <span className="font-black">Reset ALL Data</span>
               </DropdownMenuItem>

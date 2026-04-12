@@ -196,9 +196,17 @@ service cloud.firestore {
       allow create: if isAuthenticated() && isValidLead();
       allow update: if isAuthenticated() && 
                     resource.data.userId == request.auth.uid && 
-                    isValidLead() &&
-                    request.resource.data.userId == resource.data.userId &&
-                    request.resource.data.createdAt == resource.data.createdAt;
+                    request.resource.data.userId == resource.data.userId && (
+                      (
+                        isValidLead() &&
+                        request.resource.data.createdAt == resource.data.createdAt
+                      ) ||
+                      // Lightweight bypass: partial UI updates
+                      request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status']) ||
+                      request.resource.data.diff(resource.data).affectedKeys().hasOnly(['pushedToPortal', 'status']) ||
+                      request.resource.data.diff(resource.data).affectedKeys().hasOnly(['clientViewCount']) ||
+                      request.resource.data.diff(resource.data).affectedKeys().hasOnly(['clientFeedback'])
+                    );
       allow delete: if isAuthenticated() && resource.data.userId == request.auth.uid;
     }
 
