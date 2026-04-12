@@ -19,6 +19,13 @@ export interface Scraper {
   lastErrorAt?: any;
   userId: string;
   icon?: string;
+  
+  // Client Portal Fields
+  portalToken?: string | null;
+  trialLimit?: number;
+  isPaid?: boolean;
+  totalPushedLeads?: number;
+  totalClientClicks?: number;
 }
 
 export interface Lead {
@@ -44,6 +51,11 @@ export interface Lead {
   company?: string;
   createdAt: any;
   userId: string;
+
+  // Tracking & Portal fields
+  pushedToPortal?: boolean;
+  clientViewCount?: number;
+  clientFeedback?: string;
 }
 
 export interface SystemLog {

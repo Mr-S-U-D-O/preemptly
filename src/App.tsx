@@ -6,6 +6,7 @@ import { Home } from './components/Home';
 import { ScraperView } from './components/ScraperView';
 import { PrivacyPolicy } from './components/PrivacyPolicy';
 import { LogsView } from './components/LogsView';
+import { ClientPortal } from './components/ClientPortal';
 import { TooltipProvider } from '@/components/ui/tooltip';
 
 export default function App() {
@@ -15,6 +16,10 @@ export default function App() {
         <TooltipProvider>
           <BrowserRouter>
             <Routes>
+              {/* Client Portal - no auth, no layout */}
+              <Route path="/portal/:token" element={<ClientPortal />} />
+
+              {/* Admin routes - authenticated with sidebar */}
               <Route path="/" element={<Layout />}>
                 <Route index element={<Home />} />
                 <Route path="scraper/:id" element={<ScraperView />} />

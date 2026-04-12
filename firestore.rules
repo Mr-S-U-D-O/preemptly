@@ -84,7 +84,7 @@ service cloud.firestore {
     // ===============================================================
 
     function isValidScraperCreate() {
-      let allowedFields = ['name', 'subreddit', 'platform', 'target', 'city', 'category', 'keyword', 'leadDefinition', 'clientName', 'clientPhone', 'idealCustomerProfile', 'intervalMinutes', 'status', 'createdAt', 'lastRunAt', 'userId', 'icon'];
+      let allowedFields = ['name', 'subreddit', 'platform', 'target', 'city', 'category', 'keyword', 'leadDefinition', 'clientName', 'clientPhone', 'idealCustomerProfile', 'intervalMinutes', 'status', 'createdAt', 'lastRunAt', 'userId', 'icon', 'portalToken', 'trialLimit', 'isPaid', 'totalPushedLeads', 'totalClientClicks'];
       let requiredFields = ['name', 'keyword', 'intervalMinutes', 'status', 'createdAt', 'userId'];
       
       return hasOnlyAllowedFields(allowedFields) &&
@@ -110,7 +110,7 @@ service cloud.firestore {
     }
 
     function isValidScraperUpdate() {
-      let allowedFields = ['name', 'subreddit', 'platform', 'target', 'city', 'category', 'keyword', 'leadDefinition', 'clientName', 'clientPhone', 'idealCustomerProfile', 'intervalMinutes', 'status', 'createdAt', 'lastRunAt', 'userId', 'icon'];
+      let allowedFields = ['name', 'subreddit', 'platform', 'target', 'city', 'category', 'keyword', 'leadDefinition', 'clientName', 'clientPhone', 'idealCustomerProfile', 'intervalMinutes', 'status', 'createdAt', 'lastRunAt', 'userId', 'icon', 'portalToken', 'trialLimit', 'isPaid', 'totalPushedLeads', 'totalClientClicks'];
       let requiredFields = ['name', 'keyword', 'intervalMinutes', 'status', 'createdAt', 'userId'];
       return hasOnlyAllowedFields(allowedFields) &&
              hasRequiredFields(requiredFields) &&
@@ -133,7 +133,7 @@ service cloud.firestore {
     }
 
     function isValidLead() {
-      let allowedFields = ['scraperId', 'subreddit', 'platform', 'target', 'city', 'category', 'keyword', 'postTitle', 'postUrl', 'postAuthor', 'postContent', 'score', 'reason', 'status', 'whatsappMessage', 'email', 'phone', 'location', 'company', 'createdAt', 'userId'];
+      let allowedFields = ['scraperId', 'subreddit', 'platform', 'target', 'city', 'category', 'keyword', 'postTitle', 'postUrl', 'postAuthor', 'postContent', 'score', 'reason', 'status', 'whatsappMessage', 'email', 'phone', 'location', 'company', 'createdAt', 'userId', 'pushedToPortal', 'clientViewCount', 'clientFeedback'];
       let requiredFields = ['scraperId', 'keyword', 'postTitle', 'postUrl', 'postAuthor', 'createdAt', 'userId'];
       
       return hasOnlyAllowedFields(allowedFields) &&

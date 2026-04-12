@@ -289,6 +289,149 @@ async function startServer() {
   });
 
 
+  // ===============================================================
+  // Client Portal API (Unauthenticated - uses Admin SDK)
+  // ===============================================================
+  
+  // GET /api/portal/:token - Fetch scraper info + pushed leads
+  app.get("/api/portal/:token", async (req, res) => {
+    try {
+      const { token } = req.params;
+      if (!token || token.length < 10) {
+        return res.status(400).json({ error: "Invalid portal token" });
+      }
+
+      // Find the scraper with this portalToken
+      const scrapersSnap = await adminDb.collection('scrapers')
+        .where('portalToken', '==', token)
+        .limit(1)
+        .get();
+
+      if (scrapersSnap.empty) {
+        return res.status(404).json({ error: "Portal not found" });
+      }
+
+      const scraperDoc = scrapersSnap.docs[0];
+      const scraper = { id: scraperDoc.id, ...scraperDoc.data() };
+
+      // Fetch only pushed leads for this scraper
+      const leadsSnap = await adminDb.collection('leads')
+        .where('scraperId', '==', scraper.id)
+        .where('pushedToPortal', '==', true)
+        .get();
+
+      const leads = leadsSnap.docs.map((d: any) => {
+        const data = d.data();
+        return {
+          id: d.id,
+          postTitle: data.postTitle,
+          postContent: data.postContent || '',
+          postUrl: data.postUrl,
+          postAuthor: data.postAuthor,
+          score: data.score,
+          reason: data.reason,
+          platform: data.platform,
+          createdAt: data.createdAt?.toDate?.()?.toISOString() || new Date().toISOString(),
+          clientViewCount: data.clientViewCount || 0,
+          clientFeedback: data.clientFeedback || '',
+        };
+      });
+
+      // Sort by createdAt desc
+      leads.sort((a: any, b: any) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+
+      res.json({
+        clientName: scraper.clientName || 'Client',
+        scraperName: scraper.name,
+        totalLeads: leads.length,
+        trialLimit: scraper.trialLimit || 10,
+        isPaid: scraper.isPaid || false,
+        leads,
+      });
+    } catch (error: any) {
+      console.error("[Portal API] Error fetching portal:", error);
+      res.status(500).json({ error: "Internal server error" });
+    }
+  });
+
+  // POST /api/portal/:token/click/:leadId - Track lead click
+  app.post("/api/portal/:token/click/:leadId", async (req, res) => {
+    try {
+      const { token, leadId } = req.params;
+
+      // Verify token maps to a valid scraper
+      const scrapersSnap = await adminDb.collection('scrapers')
+        .where('portalToken', '==', token)
+        .limit(1)
+        .get();
+
+      if (scrapersSnap.empty) {
+        return res.status(404).json({ error: "Portal not found" });
+      }
+
+      const scraperDoc = scrapersSnap.docs[0];
+      const scraperId = scraperDoc.id;
+
+      // Verify lead belongs to this scraper
+      const leadRef = adminDb.collection('leads').doc(leadId);
+      const leadSnap = await leadRef.get();
+      if (!leadSnap.exists || leadSnap.data().scraperId !== scraperId) {
+        return res.status(403).json({ error: "Unauthorized" });
+      }
+
+      // Increment per-lead click count
+      await leadRef.update({
+        clientViewCount: (leadSnap.data().clientViewCount || 0) + 1
+      });
+
+      // Increment aggregate scraper click count
+      const scraperRef = adminDb.collection('scrapers').doc(scraperId);
+      await scraperRef.update({
+        totalClientClicks: (scraperDoc.data().totalClientClicks || 0) + 1
+      });
+
+      res.json({ success: true });
+    } catch (error: any) {
+      console.error("[Portal API] Click tracking error:", error);
+      res.status(500).json({ error: "Internal server error" });
+    }
+  });
+
+  // POST /api/portal/:token/feedback/:leadId - Submit feedback
+  app.post("/api/portal/:token/feedback/:leadId", express.json(), async (req, res) => {
+    try {
+      const { token, leadId } = req.params;
+      const { feedback } = req.body;
+
+      if (!feedback || typeof feedback !== 'string' || feedback.length > 500) {
+        return res.status(400).json({ error: "Invalid feedback" });
+      }
+
+      const scrapersSnap = await adminDb.collection('scrapers')
+        .where('portalToken', '==', token)
+        .limit(1)
+        .get();
+
+      if (scrapersSnap.empty) {
+        return res.status(404).json({ error: "Portal not found" });
+      }
+
+      const scraperId = scrapersSnap.docs[0].id;
+
+      const leadRef = adminDb.collection('leads').doc(leadId);
+      const leadSnap = await leadRef.get();
+      if (!leadSnap.exists || leadSnap.data().scraperId !== scraperId) {
+        return res.status(403).json({ error: "Unauthorized" });
+      }
+
+      await leadRef.update({ clientFeedback: feedback });
+      res.json({ success: true });
+    } catch (error: any) {
+      console.error("[Portal API] Feedback error:", error);
+      res.status(500).json({ error: "Internal server error" });
+    }
+  });
+
   // Vite middleware for development
   if (process.env.NODE_ENV !== "production") {
     const vite = await createViteServer({

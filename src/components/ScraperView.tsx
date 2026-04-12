@@ -124,6 +124,72 @@ export function ScraperView() {
     }
   };
 
+  const handleDeployPortal = async () => {
+    const token = Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
+    try {
+      await updateDoc(doc(db, 'scrapers', scraper.id), {
+        portalToken: token,
+        trialLimit: scraper.trialLimit || 10,
+        isPaid: false,
+        totalPushedLeads: scraper.totalPushedLeads || 0
+      });
+    } catch (error) {
+      handleFirestoreError(error, OperationType.UPDATE, 'scrapers');
+    }
+  };
+
+  const handleKillPortal = async () => {
+    try {
+      await updateDoc(doc(db, 'scrapers', scraper.id), {
+        portalToken: null
+      });
+    } catch (error) {
+      handleFirestoreError(error, OperationType.UPDATE, 'scrapers');
+    }
+  };
+
+  const handleExtendTrial = async () => {
+    try {
+      await updateDoc(doc(db, 'scrapers', scraper.id), {
+        trialLimit: (scraper.trialLimit || 10) + 10
+      });
+    } catch (error) {
+      handleFirestoreError(error, OperationType.UPDATE, 'scrapers');
+    }
+  };
+
+  const handlePushToPortal = async (lead: any) => {
+    try {
+      // 1. Update Lead in Firestore
+      await updateDoc(doc(db, 'leads', lead.id), {
+        pushedToPortal: true,
+        status: 'sent'
+      });
+
+      // 2. Increment Scraper counter
+      await updateDoc(doc(db, 'scrapers', scraper.id), {
+        totalPushedLeads: (scraper.totalPushedLeads || 0) + 1
+      });
+
+      // 3. Open WhatsApp
+      const clientPhone = scraper.clientPhone || '';
+      const whatsappUrl = `https://web.whatsapp.com/send?phone=${clientPhone.replace(/[^0-9]/g, '')}&text=${encodeURIComponent(lead.whatsappMessage || '')}`;
+      window.open(whatsappUrl, '_blank');
+
+      // 4. Log the push
+      await addDoc(collection(db, 'logs'), {
+        type: 'lead_found',
+        scraperId: scraper.id,
+        scraperName: scraper.name,
+        message: `Lead pushed to ${scraper.clientName || 'client'} dashboard`,
+        createdAt: serverTimestamp(),
+        userId: user?.uid
+      });
+    } catch (error) {
+      console.error("Failed to push lead:", error);
+    }
+  };
+
   const handleDelete = async () => {
     try {
       // Delete all associated leads first to clean up the database
@@ -160,6 +226,46 @@ export function ScraperView() {
             </div>
           </div>
           <div className="flex flex-wrap items-center gap-3">
+            {scraper.portalToken ? (
+              <div className="flex items-center gap-2 bg-white dark:bg-slate-900 border-2 border-[#5a8c12] rounded-xl px-3 py-1.5 shadow-sm">
+                <div className="flex flex-col">
+                  <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest leading-none mb-1">Live Client Portal</span>
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs font-mono text-slate-600 dark:text-slate-300 bg-slate-50 dark:bg-slate-800 px-2 py-0.5 rounded border border-slate-100 dark:border-slate-700 max-w-[120px] truncate">
+                      {window.location.origin}/portal/{scraper.portalToken}
+                    </span>
+                    <Button 
+                      variant="ghost" 
+                      size="icon" 
+                      className="h-6 w-6 text-[#5a8c12]"
+                      onClick={() => {
+                        navigator.clipboard.writeText(`${window.location.origin}/portal/${scraper.portalToken}`);
+                        setCopiedId('portal-link');
+                        setTimeout(() => setCopiedId(null), 2000);
+                      }}
+                    >
+                      {copiedId === 'portal-link' ? <Check size={12} /> : <Copy size={12} />}
+                    </Button>
+                    <div className="h-4 w-px bg-slate-100 dark:bg-slate-800" />
+                    <Button 
+                      variant="ghost" 
+                      onClick={handleKillPortal}
+                      className="h-7 text-[10px] font-black uppercase text-red-500 hover:text-red-600 hover:bg-red-50 px-2"
+                    >
+                      Kill
+                    </Button>
+                  </div>
+                </div>
+              </div>
+            ) : (
+              <Button 
+                onClick={handleDeployPortal}
+                className="bg-[#5a8c12] hover:bg-[#4a730f] text-white gap-2 rounded-xl shadow-lg shadow-[#5a8c12]/20"
+              >
+                <Icons.Rocket size={16} /> Deploy Client Dashboard
+              </Button>
+            )}
+
             <Button 
               onClick={handleToggleStatus} 
               variant="outline" 
@@ -188,7 +294,7 @@ export function ScraperView() {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-6">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-6 gap-6">
         <div className="bg-white dark:bg-slate-900 p-6 rounded-2xl shadow-[0_4px_20px_rgba(0,0,0,0.03)] border-2 border-[#5a8c12] dark:border-[#5a8c12]/50">
           <div className="flex items-center gap-2 mb-1">
             {(() => {
@@ -236,16 +342,38 @@ export function ScraperView() {
           </p>
         </div>
         <div className="bg-white dark:bg-slate-900 p-6 rounded-2xl shadow-[0_4px_20px_rgba(0,0,0,0.03)] border-2 border-[#5a8c12] dark:border-[#5a8c12]/50">
-          <div className="flex items-center gap-2 mb-1">
-            <Activity size={14} className="text-slate-500 dark:text-slate-400" />
-            <p className="text-sm font-semibold text-slate-500 dark:text-slate-400">Next Auto-Run</p>
+          <div className="flex items-center justify-between mb-1">
+            <div className="flex items-center gap-2">
+              <Icons.ShieldCheck size={14} className="text-slate-500 dark:text-slate-400" />
+              <p className="text-sm font-semibold text-slate-500 dark:text-slate-400">Trial Usage</p>
+            </div>
+            {scraper.portalToken && (
+               <Button variant="ghost" className="h-5 px-1.5 text-[9px] font-black text-[#5a8c12] hover:bg-[#5a8c12]/10 uppercase tracking-widest" onClick={handleExtendTrial}>
+                 Extend +10
+               </Button>
+            )}
           </div>
-          <p className={`text-lg font-bold ${countdown !== null && countdown < 60 ? 'text-[#5a8c12] animate-pulse' : 'text-slate-800 dark:text-slate-100'}`}>
-            {countdown !== null ? (
-              countdown > 60 
-                ? `${Math.floor(countdown / 60)}m ${countdown % 60}s` 
-                : `${countdown}s`
-            ) : 'Paused'}
+          <p className="text-lg font-bold text-slate-800 dark:text-slate-100">
+            {scraper.totalPushedLeads || 0} / {scraper.trialLimit || 10}
+            <span className="text-[10px] text-slate-400 ml-2 font-medium">Leads Pushed</span>
+          </p>
+          <div className="w-full bg-slate-100 dark:bg-slate-800 h-1.5 rounded-full mt-2 overflow-hidden">
+            <div 
+              className={`h-full transition-all duration-500 ${
+                ((scraper.totalPushedLeads || 0) / (scraper.trialLimit || 10)) > 0.8 ? 'bg-amber-500' : 'bg-[#5a8c12]'
+              }`} 
+              style={{ width: `${Math.min(100, ((scraper.totalPushedLeads || 0) / (scraper.trialLimit || 10)) * 100)}%` }}
+            />
+          </div>
+        </div>
+        <div className="bg-white dark:bg-slate-900 p-6 rounded-2xl shadow-[0_4px_20px_rgba(0,0,0,0.03)] border-2 border-[#5a8c12] dark:border-[#5a8c12]/50">
+          <div className="flex items-center gap-2 mb-1">
+            <Icons.MousePointer2 size={14} className="text-slate-500 dark:text-slate-400" />
+            <p className="text-sm font-semibold text-slate-500 dark:text-slate-400">Total Engagement</p>
+          </div>
+          <p className="text-lg font-bold text-slate-800 dark:text-slate-100">
+            {scraper.totalClientClicks || 0}
+            <span className="text-[10px] text-slate-400 ml-2 font-medium uppercase tracking-widest">Clicks</span>
           </p>
         </div>
       </div>
@@ -284,12 +412,12 @@ export function ScraperView() {
               <TableHeader>
                 <TableRow className="bg-slate-50/50 dark:bg-slate-800/50">
                   <TableHead className="w-[120px]">Date</TableHead>
-                  <TableHead className="w-[100px]">Time</TableHead>
                   <TableHead className="w-[80px]">Score</TableHead>
                   <TableHead className="w-[150px]">User</TableHead>
                   <TableHead>Post Title & Content</TableHead>
                   <TableHead className="w-[120px]">Status</TableHead>
-                  <TableHead>Enrichment</TableHead>
+                  <TableHead className="w-[100px]">🚀 Push</TableHead>
+                  <TableHead className="w-[100px]">👁️ Activity</TableHead>
                   <TableHead className="text-right w-[120px]">Action</TableHead>
                 </TableRow>
               </TableHeader>
@@ -307,11 +435,11 @@ export function ScraperView() {
                   };
                   return (
                     <TableRow key={lead.id} className="hover:bg-slate-50/50 dark:hover:bg-slate-800/50">
-                      <TableCell className="font-medium text-slate-700 dark:text-slate-300 whitespace-nowrap">
-                        {format(dateObj, 'MMM dd, yyyy')}
-                      </TableCell>
-                      <TableCell className="text-slate-500 dark:text-slate-400 whitespace-nowrap">
-                        {format(dateObj, 'HH:mm')}
+                      <TableCell className="whitespace-nowrap">
+                        <div className="flex flex-col">
+                          <span className="font-bold text-slate-700 dark:text-slate-300">{format(dateObj, 'MMM dd')}</span>
+                          <span className="text-[10px] text-slate-400">{format(dateObj, 'HH:mm')}</span>
+                        </div>
                       </TableCell>
                       <TableCell>
                         {lead.score !== undefined ? (
@@ -374,99 +502,68 @@ export function ScraperView() {
                           )}
                         </div>
                       </TableCell>
-                      <TableCell>
+                      <TableCell className="text-right whitespace-nowrap">
                         <DropdownMenu>
                           <DropdownMenuTrigger className="outline-none">
-                            <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold cursor-pointer transition-colors ${
-                              lead.status === 'sent' ? 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400 hover:bg-blue-200' :
-                              lead.status === 'rejected' ? 'bg-slate-100 text-slate-500 dark:bg-slate-800 dark:text-slate-400 hover:bg-slate-200' :
-                              lead.status === 'viewed' ? 'bg-slate-50 text-slate-400 dark:bg-slate-800/50 hover:bg-slate-100' :
-                              'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400 hover:bg-amber-200'
+                            <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-black uppercase tracking-widest cursor-pointer transition-colors ${
+                              lead.status === 'sent' ? 'bg-blue-100 text-blue-700 dark:bg-blue-900/30' :
+                              lead.status === 'rejected' ? 'bg-slate-100 text-slate-500' :
+                              'bg-amber-100 text-amber-700'
                             }`}>
-                              {lead.status === 'sent' && <CheckCircle2 size={12} />}
-                              {lead.status === 'rejected' && <XCircle size={12} />}
-                              {lead.status === 'viewed' && <Clock size={12} className="opacity-50" />}
-                              {(!lead.status || lead.status === 'new') && <Clock size={12} />}
-                              {(!lead.status || lead.status === 'new') ? 'New' : lead.status.charAt(0).toUpperCase() + lead.status.slice(1)}
+                              {lead.status || 'new'}
                             </span>
                           </DropdownMenuTrigger>
                           <DropdownMenuContent align="end" className="w-32 rounded-xl">
-                            <DropdownMenuItem onClick={() => handleStatusChange(lead.id, 'new')} className="cursor-pointer">
-                              <Clock className="mr-2 h-4 w-4 text-amber-500" /> New
-                            </DropdownMenuItem>
-                            <DropdownMenuItem onClick={() => handleStatusChange(lead.id, 'sent')} className="cursor-pointer">
-                              <CheckCircle2 className="mr-2 h-4 w-4 text-blue-500" /> Sent
-                            </DropdownMenuItem>
-                            <DropdownMenuItem onClick={() => handleStatusChange(lead.id, 'rejected')} className="cursor-pointer">
-                              <XCircle className="mr-2 h-4 w-4 text-slate-500" /> Rejected
-                            </DropdownMenuItem>
+                            <DropdownMenuItem onClick={() => handleStatusChange(lead.id, 'new')} className="cursor-pointer font-bold text-xs uppercase">New</DropdownMenuItem>
+                            <DropdownMenuItem onClick={() => handleStatusChange(lead.id, 'sent')} className="cursor-pointer font-bold text-xs uppercase">Sent</DropdownMenuItem>
+                            <DropdownMenuItem onClick={() => handleStatusChange(lead.id, 'rejected')} className="cursor-pointer font-bold text-xs uppercase">Rejected</DropdownMenuItem>
                           </DropdownMenuContent>
                         </DropdownMenu>
                       </TableCell>
                       <TableCell>
-                        <div className="flex flex-col gap-1">
-                          {lead.email && (
-                            <div className="flex items-center gap-1 text-[10px] text-slate-600 dark:text-slate-400">
-                              <Icons.Mail size={10} /> {lead.email}
-                            </div>
-                          )}
-                          {lead.phone && (
-                            <div className="flex items-center gap-1 text-[10px] text-slate-600 dark:text-slate-400">
-                              <Icons.Phone size={10} /> {lead.phone}
-                            </div>
-                          )}
-                          {lead.location && (
-                            <div className="flex items-center gap-1 text-[10px] text-slate-600 dark:text-slate-400">
-                              <Icons.MapPin size={10} /> {lead.location}
-                            </div>
-                          )}
-                          {lead.company && (
-                            <div className="flex items-center gap-1 text-[10px] text-slate-600 dark:text-slate-400">
-                              <Icons.Briefcase size={10} /> {lead.company}
-                            </div>
-                          )}
-                          {!lead.email && !lead.phone && !lead.location && !lead.company && (
-                            <span className="text-[10px] text-slate-400 italic">No enrichment</span>
+                         <Button
+                           size="sm"
+                           onClick={() => handlePushToPortal(lead)}
+                           className={`h-8 rounded-lg gap-2 font-black text-[10px] uppercase tracking-widest ${
+                             lead.pushedToPortal 
+                               ? 'bg-blue-50 text-blue-600 hover:bg-blue-100 border border-blue-100' 
+                               : 'bg-[#5a8c12] hover:bg-[#4a730f] text-white'
+                           }`}
+                         >
+                           {lead.pushedToPortal ? <Icons.CheckCheck size={12} /> : <Icons.Zap size={12} />}
+                           {lead.pushedToPortal ? 'Pushed' : 'Push'}
+                         </Button>
+                      </TableCell>
+                      <TableCell>
+                        <div className="flex flex-col">
+                          <span className={`text-xs font-black ${lead.clientViewCount ? 'text-[#5a8c12]' : 'text-slate-300'}`}>
+                            {lead.clientViewCount || 0} CLICKS
+                          </span>
+                          {lead.clientFeedback && (
+                            <Tooltip>
+                              <TooltipTrigger render={<span className="text-[9px] text-amber-600 font-bold truncate max-w-[80px] cursor-help">💬 Feedback</span>} />
+                              <TooltipContent>{lead.clientFeedback}</TooltipContent>
+                            </Tooltip>
                           )}
                         </div>
                       </TableCell>
-                      <TableCell className="text-right">
+                      <TableCell className="text-right whitespace-nowrap">
                         <div className="flex items-center justify-end gap-2">
-                          {clientPhone && lead.whatsappMessage && (
-                            <>
-                              <a 
-                                href={whatsappUrl} 
-                                target="_blank" 
-                                rel="noopener noreferrer"
-                                className="inline-flex items-center justify-center w-8 h-8 rounded-full bg-green-100 text-green-600 hover:bg-green-200 dark:bg-green-900/30 dark:text-green-400 transition-colors"
-                                title="Open in WhatsApp Web"
-                              >
-                                <MessageCircle size={16} strokeWidth={1.5} />
-                              </a>
-                              <button
-                                onClick={() => handleCopyMessage(lead.whatsappMessage || '', lead.id)}
-                                className="inline-flex items-center justify-center w-8 h-8 rounded-full bg-slate-100 text-slate-600 hover:bg-slate-200 dark:bg-slate-800 dark:text-slate-400 transition-colors"
-                                title="Copy message to clipboard"
-                              >
-                                {copiedId === lead.id ? <Check size={14} className="text-green-600" /> : <Copy size={14} />}
-                              </button>
-                            </>
-                          )}
                           <a 
                             href={lead.postUrl} 
                             target="_blank" 
                             rel="noopener noreferrer"
-                            className="inline-flex items-center justify-center w-8 h-8 rounded-full hover:bg-[#5a8c12]/10 text-[#5a8c12] transition-colors"
-                            title="View on Reddit"
+                            className="inline-flex items-center justify-center w-8 h-8 rounded-full border border-slate-100 dark:border-slate-800 hover:bg-[#5a8c12]/10 text-[#5a8c12] transition-colors"
+                            title="View Source"
                           >
-                            <ExternalLink size={16} strokeWidth={1.5} />
+                            <ExternalLink size={14} />
                           </a>
                           <button
                             onClick={() => handleDeleteLead(lead.id)}
-                            className="inline-flex items-center justify-center w-8 h-8 rounded-full hover:bg-red-50 dark:hover:bg-red-900/20 text-red-500 transition-colors"
-                            title="Delete Lead"
+                            className="inline-flex items-center justify-center w-8 h-8 rounded-full border border-slate-100 dark:border-slate-800 hover:bg-red-50 text-red-500 transition-colors"
+                            title="Delete"
                           >
-                            <Trash2 size={16} strokeWidth={1.5} />
+                            <Trash2 size={14} />
                           </button>
                         </div>
                       </TableCell>
