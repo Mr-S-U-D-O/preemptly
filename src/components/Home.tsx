@@ -1,47 +1,61 @@
-import { useMemo, useState, useEffect } from 'react';
+import React, { useMemo, useState, useEffect } from 'react';
 import { useData } from './DataProvider';
 import { LeadsTable } from './LeadsTable';
 import { Button } from '@/components/ui/button';
-import { 
-  Activity, 
-  Database, 
-  AlertCircle, 
-  TrendingUp, 
-  Star, 
-  MapPin, 
-  Zap, 
-  Clock, 
-  Target, 
-  Plus, 
-  Pause, 
+import {
+  Activity,
+  Database,
+  AlertCircle,
+  TrendingUp,
+  Star,
+  MapPin,
+  Zap,
+  Clock,
+  Target,
+  Plus,
+  Pause,
   Play,
   RefreshCcw,
   Trash2,
   ChevronDown,
-  Briefcase
+  Briefcase,
+  AlertTriangle,
+  CheckCircle2,
+  XCircle,
+  MessageCircle,
+  BarChart3,
+  Hash,
+  Code,
+  MessageSquare
 } from 'lucide-react';
-import { 
-  XAxis, 
-  YAxis, 
-  CartesianGrid, 
-  Tooltip, 
-  ResponsiveContainer, 
-  Area, 
+import {
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip as RechartsTooltip,
+  ResponsiveContainer,
+  Area,
   AreaChart,
   BarChart,
   Bar,
   Cell,
   PieChart,
   Pie,
-  Legend
+  Legend,
+  RadialBarChart,
+  RadialBar,
+  LineChart,
+  Line,
+  ReferenceLine,
+  ComposedChart
 } from 'recharts';
 
-import { format, subDays, startOfDay } from 'date-fns';
+import { format, subDays, subMonths, startOfDay, startOfHour, isWithinInterval } from 'date-fns';
 import { useNavigate } from 'react-router-dom';
-import { 
-  DropdownMenu, 
-  DropdownMenuContent, 
-  DropdownMenuItem, 
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
   DropdownMenuTrigger,
   DropdownMenuSeparator,
   DropdownMenuLabel,
@@ -51,166 +65,252 @@ import { ConfirmModal } from './ConfirmModal';
 import { writeBatch, doc } from 'firebase/firestore';
 import { db } from '../firebase';
 
+// ─────────────────────────────────────────────────────────────
+// Palette
+// ─────────────────────────────────────────────────────────────
+const BRAND = '#5a8c12';
+const BRAND_LIGHT = '#7ab820';
+const SCRAPER_COLORS = ['#5a8c12', '#3b82f6', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899', '#06b6d4', '#10b981'];
+const PLATFORM_COLORS: Record<string, string> = {
+  reddit: '#FF4500',
+  hackernews: '#FF6600',
+  stackoverflow: '#F48024',
+  craigslist: '#6C3483',
+};
+
+// ─────────────────────────────────────────────────────────────
+// Tiny helpers
+// ─────────────────────────────────────────────────────────────
+function relativeTime(ms: number) {
+  const diff = Math.floor((Date.now() - ms) / 1000);
+  if (diff < 60) return 'just now';
+  if (diff < 3600) return `${Math.floor(diff / 60)}m ago`;
+  if (diff < 86400) return `${Math.floor(diff / 3600)}h ago`;
+  return `${Math.floor(diff / 86400)}d ago`;
+}
+
+function scoreColor(score: number) {
+  if (score >= 8) return '#22c55e';
+  if (score >= 6) return BRAND;
+  if (score >= 4) return '#f59e0b';
+  return '#ef4444';
+}
+
+// ─────────────────────────────────────────────────────────────
+// Custom tooltip (dark glassmorphic style)
+// ─────────────────────────────────────────────────────────────
+const DarkTooltip = ({ active, payload, label }: any) => {
+  if (!active || !payload?.length) return null;
+  return (
+    <div className="bg-slate-900 border border-slate-700 rounded-2xl px-4 py-3 shadow-2xl text-white min-w-[120px]">
+      <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-2">{label}</p>
+      {payload.map((p: any, i: number) => (
+        <div key={i} className="flex items-center gap-2 text-xs font-bold">
+          <span className="w-2 h-2 rounded-full" style={{ backgroundColor: p.color || p.stroke }} />
+          <span className="text-slate-300">{p.name}:</span>
+          <span className="text-white">{p.value}</span>
+        </div>
+      ))}
+    </div>
+  );
+};
+
+// ─────────────────────────────────────────────────────────────
+// Metric KPI card
+// ─────────────────────────────────────────────────────────────
+function KpiCard({
+  icon: Icon,
+  label,
+  value,
+  sub,
+  iconBg,
+  iconColor,
+  badge,
+  badgeColor,
+}: {
+  icon: any; label: string; value: string | number; sub?: string;
+  iconBg: string; iconColor: string; badge?: string; badgeColor?: string;
+}) {
+  return (
+    <div className="group bg-white dark:bg-slate-900 p-6 rounded-3xl shadow-sm border border-slate-200 dark:border-slate-800 hover:shadow-md hover:border-[#5a8c12]/40 transition-all duration-300">
+      <div className="flex items-start justify-between mb-4">
+        <div className={`w-11 h-11 rounded-2xl flex items-center justify-center ${iconBg}`}>
+          <Icon size={20} className={iconColor} />
+        </div>
+        {badge && (
+          <span className={`text-[10px] font-black px-2.5 py-1 rounded-full ${badgeColor || 'bg-slate-100 text-slate-500'}`}>
+            {badge}
+          </span>
+        )}
+      </div>
+      <p className="text-sm font-semibold text-slate-500 dark:text-slate-400">{label}</p>
+      <p className="text-3xl font-black text-slate-900 dark:text-white tracking-tighter mt-1">{value}</p>
+      {sub && <p className="text-xs text-slate-400 mt-1">{sub}</p>}
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────
+// Chart section wrapper
+// ─────────────────────────────────────────────────────────────
+function ChartCard({ title, subtitle, children, className = '', action }: {
+  title: string; subtitle: string; children: React.ReactNode; className?: string; action?: React.ReactNode | null;
+}) {
+  return (
+    <div className={`bg-white dark:bg-slate-900 rounded-3xl shadow-sm border border-slate-200 dark:border-slate-800 overflow-hidden ${className}`}>
+      <div className="px-8 pt-8 pb-6 flex items-start justify-between">
+        <div>
+          <h3 className="text-lg font-black text-slate-900 dark:text-white tracking-tight">{title}</h3>
+          <p className="text-sm text-slate-500 mt-0.5">{subtitle}</p>
+        </div>
+        {action}
+      </div>
+      <div className="px-6 pb-8">{children}</div>
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────
+// Main Component
+// ─────────────────────────────────────────────────────────────
 export function Home() {
   const { scrapers, leads, logs } = useData();
   const navigate = useNavigate();
   const [resetModalOpen, setResetModalOpen] = useState(false);
   const [resetType, setResetType] = useState<'leads' | 'scrapers' | 'logs' | 'all' | null>(null);
   const [mounted, setMounted] = useState(false);
+  const [timeRange, setTimeRange] = useState<'7d' | '30d' | 'all'>('7d');
 
-  useEffect(() => {
-    setMounted(true);
-  }, []);
+  useEffect(() => { setMounted(true); }, []);
 
+  // ── Reset handler ────────────────────────────────────────────
   const handleReset = async () => {
     if (!resetType) return;
-
     const batch = writeBatch(db);
-    
-    if (resetType === 'leads' || resetType === 'all') {
-      leads.forEach(lead => {
-        batch.delete(doc(db, 'leads', lead.id));
-      });
-    }
-    
-    if (resetType === 'scrapers' || resetType === 'all') {
-      scrapers.forEach(scraper => {
-        batch.delete(doc(db, 'scrapers', scraper.id));
-      });
-    }
-    
-    if (resetType === 'logs' || resetType === 'all') {
-      logs.forEach(log => {
-        batch.delete(doc(db, 'logs', log.id));
-      });
-    }
-
-    try {
-      await batch.commit();
-    } catch (error) {
-      console.error("Error resetting dashboard:", error);
-    }
+    if (resetType === 'leads' || resetType === 'all') leads.forEach(l => batch.delete(doc(db, 'leads', l.id)));
+    if (resetType === 'scrapers' || resetType === 'all') scrapers.forEach(s => batch.delete(doc(db, 'scrapers', s.id)));
+    if (resetType === 'logs' || resetType === 'all') logs.forEach(l => batch.delete(doc(db, 'logs', l.id)));
+    try { await batch.commit(); } catch (e) { console.error('Reset error:', e); }
   };
 
-  const getResetTitle = () => {
-    switch(resetType) {
-      case 'leads': return "Reset All Leads";
-      case 'scrapers': return "Reset All Scrapers";
-      case 'logs': return "Reset All Logs";
-      case 'all': return "Reset Entire Dashboard";
-      default: return "Reset Confirmation";
-    }
-  };
+  const getResetTitle = () => ({ leads: 'Reset All Leads', scrapers: 'Reset All Scrapers', logs: 'Reset All Logs', all: 'Reset Entire Dashboard' })[resetType!] || 'Reset';
+  const getResetDescription = () => ({
+    leads: 'Are you sure? All lead data will be permanently deleted.',
+    scrapers: 'This will stop all background monitoring permanently.',
+    logs: 'All system logs will be cleared.',
+    all: 'THIS WILL DELETE EVERYTHING. Your dashboard will be completely wiped.'
+  })[resetType!] || '';
 
-  const getResetDescription = () => {
-    switch(resetType) {
-      case 'leads': return "Are you sure you want to delete all leads? This action cannot be undone.";
-      case 'scrapers': return "Are you sure you want to delete all scrapers? This will also stop all background monitoring.";
-      case 'logs': return "Are you sure you want to clear all system logs?";
-      case 'all': return "This will delete ALL leads, scrapers, and logs. Your dashboard will be completely empty. Are you absolutely sure?";
-      default: return "";
-    }
-  };
-
-  // Process analytics
+  // ── Core KPI stats ──────────────────────────────────────────
   const stats = useMemo(() => {
-    const today = startOfDay(new Date()).getTime();
-    const leadsToday = leads.filter(l => l.createdAt && (l.createdAt.toMillis?.() || 0) >= today).length;
-    
+    const todayStart = startOfDay(new Date()).getTime();
+    const leadsToday = leads.filter(l => {
+      const ms = typeof l.createdAt?.toMillis === 'function' ? l.createdAt.toMillis() : 0;
+      return ms >= todayStart;
+    }).length;
+
     const scores = leads.map(l => l.score || 0).filter(s => s > 0);
     const avgScore = scores.length ? (scores.reduce((a, b) => a + b, 0) / scores.length).toFixed(1) : '0.0';
 
-    // Client Billing Stats
-    const clientStats = scrapers.reduce((acc, scraper) => {
-      const scraperLeads = leads.filter(l => l.scraperId === scraper.id);
-      const sentLeads = scraperLeads.filter(l => l.status === 'sent').length;
-      
-      if (!acc[scraper.clientName]) {
-        acc[scraper.clientName] = { found: 0, sent: 0, phone: scraper.clientPhone };
-      }
-      acc[scraper.clientName].found += scraperLeads.length;
-      acc[scraper.clientName].sent += sentLeads;
-      return acc;
-    }, {} as Record<string, { found: number, sent: number, phone: string }>);
+    const sentLeads = leads.filter(l => l.status === 'sent').length;
+    const newLeads = leads.filter(l => !l.status || l.status === 'new').length;
+    const rejectedLeads = leads.filter(l => l.status === 'rejected').length;
+    const highIntent = leads.filter(l => (l.score || 0) >= 8).length;
+    const conversionRate = leads.length > 0 ? Math.round((sentLeads / leads.length) * 100) : 0;
 
-    const clientStatsArray = Object.entries(clientStats).map(([name, data]: [string, { found: number, sent: number, phone: string }]) => ({
-      name,
-      ...data,
-      conversion: data.found > 0 ? Math.round((data.sent / data.found) * 100) : 0
-    })).sort((a, b) => b.sent - a.sent);
-
-    const targets = leads.reduce((acc, lead) => {
-      let target = 'Unknown';
-      if (lead.platform === 'craigslist') {
-        target = `${lead.city} (${lead.category})`;
-      } else {
-        target = lead.target || lead.subreddit || 'Unknown';
-        if (lead.platform === 'reddit' || !lead.platform) target = `r/${target}`;
-      }
-      acc[target] = (acc[target] || 0) + 1;
+    // Platform breakdown
+    const platformCounts = leads.reduce((acc, lead) => {
+      const p = lead.platform || 'reddit';
+      acc[p] = (acc[p] || 0) + 1;
       return acc;
     }, {} as Record<string, number>);
-    
-    const topTarget = Object.entries(targets).sort((a: [string, number], b: [string, number]) => b[1] - a[1])[0]?.[0] || 'N/A';
+    const platformData = (Object.entries(platformCounts) as [string, number][])
+      .map(([name, value]) => ({ name, value, color: PLATFORM_COLORS[name] || '#64748b' }))
+      .sort((a, b) => b.value - a.value);
 
-    const keywords = leads.reduce((acc, lead) => {
-      acc[lead.keyword] = (acc[lead.keyword] || 0) + 1;
+    // Top performing targets
+    const targetCounts = leads.reduce((acc, lead) => {
+      let t = lead.target || lead.subreddit || 'Unknown';
+      if (lead.platform === 'reddit' || !lead.platform) t = `r/${t}`;
+      if (lead.platform === 'craigslist') t = `${lead.city || '?'} (${lead.category || '?'})`;
+      if (lead.platform === 'hackernews') t = `HN:${lead.category || 'newest'}`;
+      acc[t] = (acc[t] || 0) + 1;
       return acc;
     }, {} as Record<string, number>);
+    const topTarget = (Object.entries(targetCounts) as [string, number][]).sort((a, b) => b[1] - a[1])[0]?.[0] || 'N/A';
+    const topTargetsData = (Object.entries(targetCounts) as [string, number][])
+      .sort((a, b) => b[1] - a[1]).slice(0, 6)
+      .map(([name, value]) => ({ name, value }));
 
-    const topKeywordsData = Object.entries(keywords)
-      .map(([name, value]) => ({ name, value: value as number }))
-      .sort((a: { value: number }, b: { value: number }) => b.value - a.value)
-      .slice(0, 5);
+    // Score distribution buckets
+    const scoreBuckets = [
+      { range: '1–3', min: 1, max: 3, color: '#ef4444', label: 'Low' },
+      { range: '4–6', min: 4, max: 6, color: '#f59e0b', label: 'Medium' },
+      { range: '7–8', min: 7, max: 8, color: BRAND, label: 'High' },
+      { range: '9–10', min: 9, max: 10, color: '#22c55e', label: 'Elite' },
+    ].map(bucket => ({
+      ...bucket,
+      count: leads.filter(l => (l.score || 0) >= bucket.min && (l.score || 0) <= bucket.max).length
+    }));
 
-    return { leadsToday, avgScore, topTarget, topKeywordsData, clientStatsArray };
+    // Client stats
+    type ClientStat = { found: number; sent: number; phone: string };
+    const clientMap = scrapers.reduce<Record<string, ClientStat>>((acc, s) => {
+      const sl = leads.filter(l => l.scraperId === s.id);
+      const key = s.clientName || 'Unknown';
+      if (!acc[key]) acc[key] = { found: 0, sent: 0, phone: s.clientPhone || '' };
+      acc[key].found += sl.length;
+      acc[key].sent += sl.filter(l => l.status === 'sent').length;
+      return acc;
+    }, {});
+    const clientMapTyped = clientMap as Record<string, ClientStat>;
+    const clientStatsArray = (Object.entries(clientMapTyped) as [string, ClientStat][])
+      .map(([name, d]) => ({ name, found: d.found, sent: d.sent, phone: d.phone, rate: d.found > 0 ? Math.round((d.sent / d.found) * 100) : 0 }))
+      .sort((a, b) => b.sent - a.sent);
+
+    return {
+      leadsToday, avgScore, topTarget, topTargetsData, clientStatsArray,
+      sentLeads, newLeads, rejectedLeads, highIntent, conversionRate,
+      platformData, scoreBuckets
+    };
   }, [leads, scrapers]);
 
-  // Process chart data for multiple scrapers
+  // ── Time-series chart data ──────────────────────────────────
   const chartData = useMemo(() => {
-    const last7Days = Array.from({ length: 7 }).map((_, i) => {
-      const d = subDays(new Date(), 6 - i);
-      const dayData: any = {
-        date: format(d, 'MMM dd'),
-        total: 0,
-        rawDate: d
-      };
-      // Initialize each scraper's count for this day
-      scrapers.forEach(s => {
-        dayData[s.name] = 0;
+    const days = timeRange === '7d' ? 7 : timeRange === '30d' ? 30 : 60;
+    return Array.from({ length: days }).map((_, i) => {
+      const d = subDays(new Date(), days - 1 - i);
+      const dayStart = startOfDay(d).getTime();
+      const dayEnd = dayStart + 86400000;
+      const dayLeads = leads.filter(l => {
+        const ms = l.createdAt?.toMillis?.() || 0;
+        return ms >= dayStart && ms < dayEnd;
       });
-      return dayData;
+      const entry: any = {
+        date: format(d, days <= 7 ? 'EEE' : days <= 30 ? 'MMM d' : 'MMM d'),
+        total: dayLeads.length,
+        highIntent: dayLeads.filter(l => (l.score || 0) >= 8).length,
+        sent: dayLeads.filter(l => l.status === 'sent').length,
+      };
+      scrapers.forEach(s => { entry[s.name] = dayLeads.filter(l => l.scraperId === s.id).length; });
+      return entry;
     });
+  }, [leads, scrapers, timeRange]);
 
-    leads.forEach(lead => {
-      if (!lead.createdAt) return;
-      const leadDate = new Date(lead.createdAt.toMillis?.() || 0);
-      const formatted = format(leadDate, 'MMM dd');
-      const day = last7Days.find(d => d.date === formatted);
-      if (day) {
-        day.total += 1;
-        const scraper = scrapers.find(s => s.id === lead.scraperId);
-        if (scraper) {
-          day[scraper.name] = (day[scraper.name] || 0) + 1;
-        }
-      }
-    });
-
-    return last7Days;
-  }, [leads, scrapers]);
-
+  // ── Scraper health ──────────────────────────────────────────
   const activeScrapers = scrapers.filter(s => s.status === 'active').length;
-  const failedJobs = logs.filter(l => l.type === 'scraper_error' && l.createdAt && (Date.now() - (l.createdAt.toMillis?.() || 0)) < 86400000).length;
-  
-  const pieData = [
-    { name: 'Active', value: activeScrapers, color: '#5a8c12' },
-    { name: 'Paused', value: scrapers.length - activeScrapers, color: '#94a3b8' },
-    { name: 'Failed', value: failedJobs, color: '#ef4444' },
-  ].filter(d => d.value > 0);
+  const erroredScrapers = scrapers.filter(s => s.lastError && s.lastErrorAt &&
+    (Date.now() - (s.lastErrorAt?.toMillis?.() || 0)) < 3600000 * 3
+  );
+  const failedJobs24h = logs.filter(l => l.type === 'scraper_error' && (Date.now() - (l.createdAt?.toMillis?.() || 0)) < 86400000).length;
 
-  const SCRAPER_COLORS = [
-    '#008cff', '#3b82f6', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899', '#06b6d4', '#10b981'
-  ];
+  const scraperPerformance = scrapers.map(s => ({
+    name: s.name.length > 16 ? s.name.substring(0, 16) + '…' : s.name,
+    leads: leads.filter(l => l.scraperId === s.id).length,
+    sent: leads.filter(l => l.scraperId === s.id && l.status === 'sent').length,
+    status: s.status,
+    hasError: !!erroredScrapers.find(e => e.id === s.id),
+  })).sort((a, b) => b.leads - a.leads);
 
   const getLogIcon = (type: string) => {
     switch (type) {
@@ -224,374 +324,490 @@ export function Home() {
     }
   };
 
+  const getPlatformIcon = (platform?: string) => {
+    switch (platform) {
+      case 'reddit': return <MessageSquare size={12} />;
+      case 'hackernews': return <Hash size={12} />;
+      case 'stackoverflow': return <Code size={12} />;
+      case 'craigslist': return <MapPin size={12} />;
+      default: return <MessageSquare size={12} />;
+    }
+  };
+
   return (
-    <div className="max-w-7xl mx-auto space-y-6 pb-12">
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
+    <div className="max-w-7xl mx-auto space-y-8 pb-16">
+
+      {/* ── Page Header ── */}
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
-          <span className="text-xs text-slate-500 dark:text-slate-400 font-medium mb-1 uppercase tracking-wider">Overview</span>
-          <h1 className="text-2xl font-black text-slate-900 dark:text-slate-100 tracking-tight">Intelligence Dashboard</h1>
+          <span className="text-[10px] text-slate-400 font-black uppercase tracking-widest">Overview</span>
+          <h1 className="text-2xl font-black text-slate-900 dark:text-slate-100 tracking-tight mt-0.5">
+            Intelligence Dashboard
+          </h1>
         </div>
         <div className="flex items-center gap-3">
+          {/* Reset dropdown */}
           <DropdownMenu>
-            <DropdownMenuTrigger className="inline-flex items-center justify-center rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 px-4 py-2 text-slate-600 dark:text-slate-300 font-bold text-xs uppercase tracking-widest hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors shadow-sm">
-              <RefreshCcw size={14} className="mr-2" />
-              Reset Dashboard
-              <ChevronDown size={14} className="ml-2 opacity-50" />
+            <DropdownMenuTrigger className="inline-flex items-center gap-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 px-4 py-2.5 text-slate-600 dark:text-slate-300 font-bold text-xs uppercase tracking-widest hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors shadow-sm">
+              <RefreshCcw size={13} /> Reset <ChevronDown size={12} className="opacity-50" />
             </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-56 rounded-2xl border-2 border-slate-100 dark:border-slate-800 p-2">
+            <DropdownMenuContent align="end" className="w-52 rounded-2xl border-2 border-slate-100 dark:border-slate-800 p-2">
+              <DropdownMenuLabel className="text-[10px] font-black uppercase tracking-widest text-slate-400 px-2 py-1.5">
+                Reset Options
+              </DropdownMenuLabel>
               <DropdownMenuGroup>
-                <DropdownMenuLabel className="text-[10px] font-black uppercase tracking-widest text-slate-400 px-2 py-1.5">Reset Options</DropdownMenuLabel>
-                <DropdownMenuItem 
-                  onClick={() => { setResetType('leads'); setResetModalOpen(true); }}
-                  className="rounded-xl focus:bg-red-50 focus:text-red-600 cursor-pointer p-3"
-                >
-                  <Database size={16} className="mr-3" />
-                  <span className="font-bold">Reset Leads</span>
-                </DropdownMenuItem>
-                <DropdownMenuItem 
-                  onClick={() => { setResetType('scrapers'); setResetModalOpen(true); }}
-                  className="rounded-xl focus:bg-red-50 focus:text-red-600 cursor-pointer p-3"
-                >
-                  <Zap size={16} className="mr-3" />
-                  <span className="font-bold">Reset Scrapers</span>
-                </DropdownMenuItem>
-                <DropdownMenuItem 
-                  onClick={() => { setResetType('logs'); setResetModalOpen(true); }}
-                  className="rounded-xl focus:bg-red-50 focus:text-red-600 cursor-pointer p-3"
-                >
-                  <Activity size={16} className="mr-3" />
-                  <span className="font-bold">Reset Logs</span>
-                </DropdownMenuItem>
+                {[
+                  { icon: Database, label: 'Reset Leads', type: 'leads' },
+                  { icon: Zap, label: 'Reset Scrapers', type: 'scrapers' },
+                  { icon: Activity, label: 'Reset Logs', type: 'logs' },
+                ].map(({ icon: Icon, label, type }) => (
+                  <DropdownMenuItem key={type} onClick={() => { setResetType(type as any); setResetModalOpen(true); }}
+                    className="rounded-xl focus:bg-red-50 focus:text-red-600 cursor-pointer p-3">
+                    <Icon size={15} className="mr-3" /> <span className="font-bold">{label}</span>
+                  </DropdownMenuItem>
+                ))}
               </DropdownMenuGroup>
-              <DropdownMenuSeparator className="my-2 bg-slate-100 dark:bg-slate-800" />
-              <DropdownMenuGroup>
-                <DropdownMenuItem 
-                  onClick={() => { setResetType('all'); setResetModalOpen(true); }}
-                  className="rounded-xl bg-red-50 dark:bg-red-900/20 text-red-600 focus:bg-red-100 focus:text-red-700 cursor-pointer p-3"
-                >
-                  <Trash2 size={16} className="mr-3" />
-                  <span className="font-black">Reset All Data</span>
-                </DropdownMenuItem>
-              </DropdownMenuGroup>
+              <DropdownMenuSeparator className="my-2" />
+              <DropdownMenuItem onClick={() => { setResetType('all'); setResetModalOpen(true); }}
+                className="rounded-xl bg-red-50 dark:bg-red-900/20 text-red-600 focus:bg-red-100 cursor-pointer p-3">
+                <Trash2 size={15} className="mr-3" /> <span className="font-black">Reset ALL Data</span>
+              </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
 
-          <div className="flex items-center gap-2 px-4 py-2 bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm">
-            <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse"></div>
-            <span className="text-xs font-bold text-slate-600 dark:text-slate-300 uppercase tracking-tighter">System Live</span>
+          {/* System status */}
+          <div className={`flex items-center gap-2 px-4 py-2.5 rounded-xl border shadow-sm transition-colors ${
+            erroredScrapers.length > 0
+              ? 'bg-red-50 dark:bg-red-900/20 border-red-200 dark:border-red-800'
+              : 'bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800'
+          }`}>
+            <div className={`w-2 h-2 rounded-full animate-pulse ${erroredScrapers.length > 0 ? 'bg-red-500' : 'bg-green-500'}`} />
+            <span className={`text-xs font-bold uppercase tracking-tighter ${erroredScrapers.length > 0 ? 'text-red-600 dark:text-red-400' : 'text-slate-600 dark:text-slate-300'}`}>
+              {erroredScrapers.length > 0 ? `${erroredScrapers.length} Error${erroredScrapers.length > 1 ? 's' : ''}` : 'System Live'}
+            </span>
           </div>
         </div>
       </div>
 
-      <ConfirmModal 
-        open={resetModalOpen}
-        onOpenChange={setResetModalOpen}
-        title={getResetTitle()}
-        description={getResetDescription()}
-        onConfirm={handleReset}
-        confirmText="Yes, Reset"
+      <ConfirmModal
+        open={resetModalOpen} onOpenChange={setResetModalOpen}
+        title={getResetTitle()} description={getResetDescription()}
+        onConfirm={handleReset} confirmText="Yes, Reset"
       />
-      
-      {/* Primary KPIs */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-        <div className="group bg-white dark:bg-slate-900 p-6 rounded-3xl shadow-sm border border-slate-200 dark:border-slate-800 hover:border-[#5a8c12] transition-all">
-          <div className="flex items-center justify-between mb-4">
-            <div className="w-10 h-10 rounded-2xl bg-[#5a8c12]/10 text-[#5a8c12] flex items-center justify-center">
-              <Database size={20} />
-            </div>
-            <span className="text-xs font-bold text-green-600 bg-green-50 dark:bg-green-900/20 px-2 py-1 rounded-lg">+{stats.leadsToday} today</span>
-          </div>
-          <p className="text-sm font-medium text-slate-500 dark:text-slate-400">Total Leads</p>
-          <p className="text-3xl font-black text-slate-900 dark:text-white tracking-tighter">{leads.length}</p>
-        </div>
 
-        <div className="group bg-white dark:bg-slate-900 p-6 rounded-3xl shadow-sm border border-slate-200 dark:border-slate-800 hover:border-[#5a8c12] transition-all">
-          <div className="flex items-center justify-between mb-4">
-            <div className="w-10 h-10 rounded-2xl bg-amber-500/10 text-amber-600 flex items-center justify-center">
-              <Star size={20} />
+      {/* ── Error Alerts for failed scrapers ── */}
+      {erroredScrapers.length > 0 && (
+        <div className="space-y-2">
+          {erroredScrapers.map(s => (
+            <div key={s.id} className="flex items-start gap-3 p-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-2xl">
+              <AlertTriangle size={16} className="text-red-500 shrink-0 mt-0.5" />
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-bold text-red-700 dark:text-red-400">
+                  Scraper "{s.name}" failed
+                </p>
+                <p className="text-xs text-red-500 dark:text-red-500/80 mt-0.5 truncate">{s.lastError}</p>
+              </div>
+              <span className="text-[10px] text-red-400 whitespace-nowrap font-medium">
+                {s.lastErrorAt ? relativeTime(s.lastErrorAt.toMillis?.() || 0) : ''}
+              </span>
             </div>
-            <span className="text-xs font-bold text-amber-600 bg-amber-50 dark:bg-amber-900/20 px-2 py-1 rounded-lg">Avg Intent</span>
-          </div>
-          <p className="text-sm font-medium text-slate-500 dark:text-slate-400">Intent Score</p>
-          <p className="text-3xl font-black text-slate-900 dark:text-white tracking-tighter">{stats.avgScore}<span className="text-sm text-slate-400 font-normal">/10</span></p>
+          ))}
         </div>
+      )}
 
-        <div className="group bg-white dark:bg-slate-900 p-6 rounded-3xl shadow-sm border border-slate-200 dark:border-slate-800 hover:border-[#5a8c12] transition-all">
-          <div className="flex items-center justify-between mb-4">
-            <div className="w-10 h-10 rounded-2xl bg-blue-500/10 text-blue-600 flex items-center justify-center">
-              <MapPin size={20} />
-            </div>
-            <span className="text-xs font-bold text-blue-600 bg-blue-50 dark:bg-blue-900/20 px-2 py-1 rounded-lg">Top Source</span>
-          </div>
-          <p className="text-sm font-medium text-slate-500 dark:text-slate-400">Best Target</p>
-          <p className="text-2xl font-black text-slate-900 dark:text-white tracking-tighter truncate" title={stats.topTarget}>{stats.topTarget}</p>
-        </div>
-
-        <div className="group bg-white dark:bg-slate-900 p-6 rounded-3xl shadow-sm border border-slate-200 dark:border-slate-800 hover:border-[#5a8c12] transition-all">
-          <div className="flex items-center justify-between mb-4">
-            <div className="w-10 h-10 rounded-2xl bg-[#5a8c12]/10 text-[#5a8c12] flex items-center justify-center">
-              <Zap size={20} />
-            </div>
-            <span className="text-xs font-bold text-[#5a8c12] bg-[#5a8c12]/10 px-2 py-1 rounded-lg">Active</span>
-          </div>
-          <p className="text-sm font-medium text-slate-500 dark:text-slate-400">Running Scrapers</p>
-          <p className="text-3xl font-black text-slate-900 dark:text-white tracking-tighter">{activeScrapers}<span className="text-sm text-slate-400 font-normal">/{scrapers.length}</span></p>
-        </div>
+      {/* ── Primary KPIs ── */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-5">
+        <KpiCard
+          icon={Database} label="Total Leads" value={leads.length}
+          iconBg="bg-[#5a8c12]/10" iconColor="text-[#5a8c12]"
+          badge={`+${stats.leadsToday} today`}
+          badgeColor="bg-green-50 text-green-700 dark:bg-green-900/20 dark:text-green-400"
+        />
+        <KpiCard
+          icon={Star} label="Avg Intent Score" value={`${stats.avgScore}/10`}
+          iconBg="bg-amber-500/10" iconColor="text-amber-500"
+          badge={`${stats.highIntent} elite`}
+          badgeColor="bg-amber-50 text-amber-600 dark:bg-amber-900/20 dark:text-amber-400"
+          sub={`${stats.highIntent} leads scored 8+`}
+        />
+        <KpiCard
+          icon={CheckCircle2} label="Sent to Clients" value={stats.sentLeads}
+          iconBg="bg-blue-500/10" iconColor="text-blue-500"
+          badge={`${stats.conversionRate}% rate`}
+          badgeColor="bg-blue-50 text-blue-600 dark:bg-blue-900/20 dark:text-blue-400"
+          sub={`${stats.newLeads} new awaiting action`}
+        />
+        <KpiCard
+          icon={Zap} label="Active Scrapers" value={`${activeScrapers}/${scrapers.length}`}
+          iconBg="bg-[#5a8c12]/10" iconColor="text-[#5a8c12]"
+          badge={failedJobs24h > 0 ? `${failedJobs24h} error${failedJobs24h > 1 ? 's' : ''}` : 'Healthy'}
+          badgeColor={failedJobs24h > 0
+            ? 'bg-red-50 text-red-600 dark:bg-red-900/20 dark:text-red-400'
+            : 'bg-[#5a8c12]/10 text-[#5a8c12]'}
+          sub={`${scrapers.length - activeScrapers} paused`}
+        />
       </div>
 
-      {/* Main Charts Section */}
+      {/* ── Lead Velocity + Platform Donut ── */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Lead Generation Area Chart */}
-        <div className="bg-white dark:bg-slate-900 p-8 rounded-3xl shadow-sm border border-slate-200 dark:border-slate-800 lg:col-span-2">
-          <div className="flex items-center justify-between mb-8">
-            <div>
-              <h3 className="text-lg font-bold text-slate-900 dark:text-white tracking-tight">Lead Generation Velocity</h3>
-              <p className="text-sm text-slate-500">Breakdown of leads found by each scraper over the last 7 days</p>
+        <ChartCard
+          className="lg:col-span-2"
+          title="Lead Generation Velocity"
+          subtitle="Leads found per day, broken down by scraper"
+          action={
+            <div className="flex items-center gap-1 bg-slate-100 dark:bg-slate-800 p-1 rounded-xl">
+              {(['7d', '30d', 'all'] as const).map(r => (
+                <button key={r} onClick={() => setTimeRange(r)}
+                  className={`px-3 py-1 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all ${
+                    timeRange === r
+                      ? 'bg-white dark:bg-slate-700 text-slate-900 dark:text-white shadow-sm'
+                      : 'text-slate-500 dark:text-slate-400 hover:text-slate-700'
+                  }`}>
+                  {r === 'all' ? '60D' : r.toUpperCase()}
+                </button>
+              ))}
             </div>
-          </div>
-          <div className="overflow-hidden border border-slate-200 rounded-xl bg-white w-full flex justify-center items-center" style={{ minHeight: '320px' }}>
-            {!mounted ? (
-              <div className="h-full w-full animate-pulse bg-slate-100 dark:bg-slate-800 rounded-2xl"></div>
-            ) : chartData && chartData.length > 0 ? (
-              <AreaChart width={800} height={300} data={chartData} margin={{ top: 10, right: 30, left: 0, bottom: 0 }}>
-                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" className="dark:stroke-slate-800" />
-                <XAxis dataKey="date" axisLine={false} tickLine={false} tick={{ fill: '#94a3b8', fontSize: 11, fontWeight: 600 }} dy={10} />
-                <YAxis axisLine={false} tickLine={false} tick={{ fill: '#94a3b8', fontSize: 11, fontWeight: 600 }} />
-                <Tooltip 
-                  contentStyle={{ 
-                    borderRadius: '16px', 
-                    border: 'none', 
-                    boxShadow: '0 10px 25px -5px rgba(0,0,0,0.1)',
-                    backgroundColor: '#0f172a',
-                    color: '#fff'
-                  }}
-                  itemStyle={{ color: '#fff' }}
+          }
+        >
+          {!mounted ? (
+            <div className="h-64 bg-slate-100 dark:bg-slate-800 rounded-2xl animate-pulse" />
+          ) : (
+            <ResponsiveContainer width="100%" height={280}>
+              <AreaChart data={chartData} margin={{ top: 5, right: 5, left: -20, bottom: 0 }}>
+                <defs>
+                  {scrapers.map((s, i) => (
+                    <linearGradient key={s.id} id={`grad-${i}`} x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="5%" stopColor={SCRAPER_COLORS[i % SCRAPER_COLORS.length]} stopOpacity={0.3} />
+                      <stop offset="95%" stopColor={SCRAPER_COLORS[i % SCRAPER_COLORS.length]} stopOpacity={0} />
+                    </linearGradient>
+                  ))}
+                  <linearGradient id="grad-total" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="5%" stopColor={BRAND} stopOpacity={0.2} />
+                    <stop offset="95%" stopColor={BRAND} stopOpacity={0} />
+                  </linearGradient>
+                </defs>
+                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
+                <XAxis dataKey="date" axisLine={false} tickLine={false} tick={{ fill: '#94a3b8', fontSize: 11, fontWeight: 700 }} dy={8} />
+                <YAxis axisLine={false} tickLine={false} tick={{ fill: '#94a3b8', fontSize: 11, fontWeight: 700 }} allowDecimals={false} />
+                <RechartsTooltip content={<DarkTooltip />} />
+                <Legend iconType="circle" iconSize={8} wrapperStyle={{ paddingTop: '16px' }}
+                  formatter={(v) => <span className="text-[10px] font-bold text-slate-500">{v}</span>}
                 />
-                <Legend 
-                  iconType="circle" 
-                  wrapperStyle={{ paddingTop: '20px' }} 
-                  formatter={(value) => (
-                    <span className="text-[10px] font-bold text-slate-500 truncate max-w-[100px] inline-block align-middle" title={value}>
-                      {value}
-                    </span>
-                  )}
-                />
-                {scrapers.map((scraper, index) => (
-                  <Area 
-                    key={scraper.id}
-                    type="monotone" 
-                    dataKey={scraper.name} 
-                    stroke={SCRAPER_COLORS[index % SCRAPER_COLORS.length]} 
-                    strokeWidth={3} 
-                    fillOpacity={0.1} 
-                    fill={SCRAPER_COLORS[index % SCRAPER_COLORS.length]} 
-                    stackId="1"
+                {scrapers.length > 1
+                  ? scrapers.map((s, i) => (
+                    <Area key={s.id} type="monotone" dataKey={s.name}
+                      stroke={SCRAPER_COLORS[i % SCRAPER_COLORS.length]}
+                      strokeWidth={2} fill={`url(#grad-${i})`} stackId="1"
+                    />
+                  ))
+                  : <Area type="monotone" dataKey="total" name="Total Leads"
+                    stroke={BRAND} strokeWidth={2.5} fill="url(#grad-total)"
                   />
-                ))}
+                }
               </AreaChart>
-            ) : (
-              <div className="flex items-center justify-center h-full text-slate-400">No chart data available</div>
-            )}
-          </div>
-        </div>
-        
-        {/* Scraper Health & Distribution */}
-        <div className="bg-white dark:bg-slate-900 p-8 rounded-3xl shadow-sm border border-slate-200 dark:border-slate-800 flex flex-col">
-          <h3 className="text-lg font-bold text-slate-900 dark:text-white tracking-tight mb-2">Scraper Health</h3>
-          <p className="text-sm text-slate-500 mb-8">Real-time status distribution</p>
-          
-          <div className="flex-1 flex flex-col items-center justify-center">
-            <div className="overflow-hidden border border-slate-200 rounded-xl bg-white w-full flex justify-center items-center relative" style={{ minHeight: '200px' }}>
-              {!mounted ? (
-                <div className="h-full w-full animate-pulse bg-slate-100 dark:bg-slate-800 rounded-full"></div>
-              ) : pieData && pieData.length > 0 ? (
-                <PieChart width={200} height={200}>
-                  <Pie
-                    data={pieData}
-                    cx="50%"
-                    cy="50%"
-                    innerRadius={60}
-                    outerRadius={80}
-                    paddingAngle={8}
-                    dataKey="value"
-                  >
-                    {pieData.map((entry, index) => (
-                      <Cell key={`cell-${index}`} fill={entry.color} stroke="none" />
+            </ResponsiveContainer>
+          )}
+        </ChartCard>
+
+        {/* Platform breakdown donut */}
+        <ChartCard title="Platform Mix" subtitle="Lead sources by platform">
+          {!mounted || stats.platformData.length === 0 ? (
+            <div className="h-64 flex items-center justify-center text-slate-400 text-sm italic">No platform data yet</div>
+          ) : (
+            <div className="flex flex-col items-center gap-4">
+              <ResponsiveContainer width="100%" height={180}>
+                <PieChart>
+                  <Pie data={stats.platformData} cx="50%" cy="50%" innerRadius={52} outerRadius={75}
+                    paddingAngle={6} dataKey="value" stroke="none">
+                    {stats.platformData.map((entry, i) => (
+                      <Cell key={i} fill={entry.color} />
                     ))}
                   </Pie>
+                  <RechartsTooltip content={<DarkTooltip />} />
                 </PieChart>
-              ) : (
-                <div className="flex items-center justify-center h-full text-slate-400">No health data</div>
-              )}
-              <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
-                <span className="text-3xl font-black text-slate-900 dark:text-white">{scrapers.length}</span>
-                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Total</span>
+              </ResponsiveContainer>
+              <div className="w-full space-y-2">
+                {stats.platformData.map(p => (
+                  <div key={p.name} className="flex items-center gap-3">
+                    <div className="w-2.5 h-2.5 rounded-full shrink-0" style={{ backgroundColor: p.color }} />
+                    <div className="flex items-center gap-1 text-xs font-semibold text-slate-600 dark:text-slate-400 flex-1">
+                      {getPlatformIcon(p.name)}
+                      <span className="capitalize">{p.name}</span>
+                    </div>
+                    <span className="text-sm font-black text-slate-900 dark:text-white">{p.value}</span>
+                    <span className="text-[10px] text-slate-400 font-medium w-8 text-right">
+                      {leads.length > 0 ? Math.round((p.value / leads.length) * 100) : 0}%
+                    </span>
+                  </div>
+                ))}
               </div>
             </div>
+          )}
+        </ChartCard>
+      </div>
 
-            <div className="w-full space-y-3 mt-8">
-              {pieData.map((item) => (
-                <div key={item.name} className="flex items-center justify-between p-3 rounded-2xl bg-slate-50 dark:bg-slate-800/50">
-                  <div className="flex items-center gap-3">
-                    <div className="w-2 h-2 rounded-full" style={{ backgroundColor: item.color }}></div>
-                    <span className="text-xs font-bold text-slate-600 dark:text-slate-300 uppercase tracking-wider">{item.name}</span>
+      {/* ── Lead Quality Heatmap + Status Funnel ── */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {/* Score distribution */}
+        <ChartCard title="Lead Quality Distribution" subtitle="Volume of leads across intent score brackets">
+          {!mounted ? (
+            <div className="h-48 bg-slate-100 dark:bg-slate-800 rounded-2xl animate-pulse" />
+          ) : (
+            <div className="space-y-3 mt-2">
+              {stats.scoreBuckets.map(bucket => (
+                <div key={bucket.range} className="flex items-center gap-4">
+                  <div className="w-12 text-right text-xs font-black text-slate-500 shrink-0">{bucket.range}</div>
+                  <div className="flex-1 h-8 bg-slate-100 dark:bg-slate-800 rounded-lg overflow-hidden relative">
+                    <div
+                      className="h-full rounded-lg transition-all duration-700 relative flex items-center justify-end pr-3"
+                      style={{
+                        width: leads.length > 0 ? `${Math.max(4, (bucket.count / leads.length) * 100)}%` : '4%',
+                        backgroundColor: bucket.color + '33',
+                        borderRight: `3px solid ${bucket.color}`
+                      }}
+                    >
+                      <span className="text-xs font-black" style={{ color: bucket.color }}>
+                        {bucket.count}
+                      </span>
+                    </div>
                   </div>
-                  <span className="text-sm font-black text-slate-900 dark:text-white">{item.value}</span>
+                  <div className="w-16 text-xs font-bold shrink-0" style={{ color: bucket.color }}>
+                    {bucket.label}
+                  </div>
+                </div>
+              ))}
+              {leads.length === 0 && (
+                <div className="text-center py-6 text-slate-400 text-sm italic">No data yet</div>
+              )}
+            </div>
+          )}
+        </ChartCard>
+
+        {/* Outreach status funnel */}
+        <ChartCard title="Outreach Status Funnel" subtitle="Lead lifecycle from discovery to delivery">
+          <div className="space-y-4 mt-2">
+            {[
+              { label: 'Discovered', value: leads.length, color: '#64748b', pct: 100, icon: Database },
+              { label: 'High Intent (8+)', value: stats.highIntent, color: BRAND, pct: leads.length ? Math.round((stats.highIntent / leads.length) * 100) : 0, icon: Star },
+              { label: 'New (Actionable)', value: stats.newLeads, color: '#f59e0b', pct: leads.length ? Math.round((stats.newLeads / leads.length) * 100) : 0, icon: Clock },
+              { label: 'Sent to Client', value: stats.sentLeads, color: '#3b82f6', pct: leads.length ? Math.round((stats.sentLeads / leads.length) * 100) : 0, icon: MessageCircle },
+              { label: 'Rejected', value: stats.rejectedLeads, color: '#ef4444', pct: leads.length ? Math.round((stats.rejectedLeads / leads.length) * 100) : 0, icon: XCircle },
+            ].map(({ label, value, color, pct, icon: Icon }) => (
+              <div key={label} className="flex items-center gap-4">
+                <div className="w-7 h-7 rounded-lg flex items-center justify-center shrink-0" style={{ backgroundColor: color + '20' }}>
+                  <Icon size={13} style={{ color }} />
+                </div>
+                <div className="flex-1">
+                  <div className="flex justify-between items-center mb-1.5">
+                    <span className="text-xs font-bold text-slate-700 dark:text-slate-300">{label}</span>
+                    <div className="flex items-center gap-2">
+                      <span className="text-[10px] font-bold text-slate-400">{pct}%</span>
+                      <span className="text-sm font-black text-slate-900 dark:text-white w-8 text-right">{value}</span>
+                    </div>
+                  </div>
+                  <div className="h-1.5 bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden">
+                    <div
+                      className="h-full rounded-full transition-all duration-700"
+                      style={{ width: `${pct}%`, backgroundColor: color }}
+                    />
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </ChartCard>
+      </div>
+
+      {/* ── Scraper Leaderboard + High-Intent Trend ── */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        {/* Scraper performance leaderboard */}
+        <ChartCard
+          className="lg:col-span-2"
+          title="Scraper Performance Leaderboard"
+          subtitle="Ranked by total leads found — error state shown in red"
+        >
+          {!mounted ? (
+            <div className="h-48 bg-slate-100 dark:bg-slate-800 rounded-2xl animate-pulse" />
+          ) : scraperPerformance.length > 0 ? (
+            <ResponsiveContainer width="100%" height={Math.max(240, scraperPerformance.length * 52)}>
+              <BarChart data={scraperPerformance} layout="vertical" margin={{ top: 0, right: 60, left: 0, bottom: 0 }}>
+                <XAxis type="number" hide />
+                <YAxis dataKey="name" type="category" axisLine={false} tickLine={false}
+                  tick={{ fill: '#64748b', fontSize: 11, fontWeight: 700 }} width={110}
+                />
+                <RechartsTooltip content={<DarkTooltip />} />
+                <Bar dataKey="leads" name="Total" radius={[0, 6, 6, 0]} barSize={16}>
+                  {scraperPerformance.map((entry, i) => (
+                    <Cell key={i} fill={entry.hasError ? '#ef4444' : SCRAPER_COLORS[i % SCRAPER_COLORS.length]} fillOpacity={entry.status === 'paused' ? 0.35 : 1} />
+                  ))}
+                </Bar>
+                <Bar dataKey="sent" name="Sent" radius={[0, 6, 6, 0]} barSize={8} fill="#3b82f6" fillOpacity={0.7} />
+              </BarChart>
+            </ResponsiveContainer>
+          ) : (
+            <div className="h-36 flex items-center justify-center text-slate-400 text-sm italic">
+              No scrapers deployed yet
+            </div>
+          )}
+          {/* Legend */}
+          {scraperPerformance.length > 0 && (
+            <div className="flex items-center gap-6 mt-3 border-t border-slate-100 dark:border-slate-800 pt-4">
+              {[
+                { label: 'Total Leads', color: BRAND, opacity: 1 },
+                { label: 'Sent to Client', color: '#3b82f6', opacity: 0.7 },
+                { label: 'Has Error', color: '#ef4444', opacity: 1 },
+                { label: 'Paused', color: '#94a3b8', opacity: 0.35 },
+              ].map(({ label, color, opacity }) => (
+                <div key={label} className="flex items-center gap-1.5">
+                  <div className="w-3 h-3 rounded-sm" style={{ backgroundColor: color, opacity }} />
+                  <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">{label}</span>
                 </div>
               ))}
             </div>
-          </div>
-        </div>
+          )}
+        </ChartCard>
+
+        {/* Top targets bar */}
+        <ChartCard title="Top Targets" subtitle="Locations generating the most leads">
+          {!mounted || stats.topTargetsData.length === 0 ? (
+            <div className="h-48 flex items-center justify-center text-slate-400 text-sm italic">No target data yet</div>
+          ) : (
+            <div className="space-y-3">
+              {stats.topTargetsData.map((t, i) => (
+                <div key={t.name} className="flex items-center gap-3">
+                  <span className="text-[10px] font-black text-slate-400 w-4 shrink-0">{i + 1}</span>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex justify-between items-center mb-1">
+                      <span className="text-xs font-bold text-slate-700 dark:text-slate-300 truncate max-w-[130px]" title={t.name}>
+                        {t.name}
+                      </span>
+                      <span className="text-xs font-black text-slate-900 dark:text-white shrink-0 ml-2">{t.value}</span>
+                    </div>
+                    <div className="h-1.5 bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden">
+                      <div
+                        className="h-full rounded-full transition-all duration-500"
+                        style={{
+                          width: `${(t.value / stats.topTargetsData[0].value) * 100}%`,
+                          backgroundColor: SCRAPER_COLORS[i % SCRAPER_COLORS.length]
+                        }}
+                      />
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </ChartCard>
       </div>
 
-      {/* Secondary Analytics */}
+      {/* ── Client Delivery Board + Activity Feed ── */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Client Delivery Stats */}
-        <div className="bg-white dark:bg-slate-900 p-8 rounded-3xl shadow-sm border border-slate-200 dark:border-slate-800 lg:col-span-2">
-          <div className="flex items-center justify-between mb-8">
-            <div>
-              <h3 className="text-lg font-bold text-slate-900 dark:text-white tracking-tight">Client Delivery & Billing</h3>
-              <p className="text-sm text-slate-500">Track how many leads you've successfully delivered to each business</p>
-            </div>
-          </div>
-          
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {stats.clientStatsArray.map((client) => (
-              <div key={client.name} className="p-5 rounded-2xl bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-800 flex flex-col gap-4">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-xl bg-[#5a8c12]/10 text-[#5a8c12] flex items-center justify-center">
-                      <Briefcase size={20} />
+        {/* Client delivery */}
+        <ChartCard
+          className="lg:col-span-2"
+          title="Client Delivery Board"
+          subtitle="Track lead delivery performance for each business"
+        >
+          {stats.clientStatsArray.length === 0 ? (
+            <div className="py-10 text-center text-slate-400 text-sm italic">No client data available yet.</div>
+          ) : (
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              {stats.clientStatsArray.map((client, i) => (
+                <div key={client.name}
+                  className="p-5 rounded-2xl border border-slate-100 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/40 flex flex-col gap-3">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <div className="w-9 h-9 rounded-xl flex items-center justify-center text-white text-sm font-black"
+                        style={{ backgroundColor: SCRAPER_COLORS[i % SCRAPER_COLORS.length] }}>
+                        {client.name.charAt(0)}
+                      </div>
+                      <div className="min-w-0">
+                        <h4 className="font-black text-sm text-slate-900 dark:text-white truncate">{client.name}</h4>
+                        <p className="text-[10px] text-slate-500 font-mono">{client.phone || 'No phone'}</p>
+                      </div>
                     </div>
-                    <div>
-                      <h4 className="font-bold text-slate-900 dark:text-white">{client.name}</h4>
-                      <p className="text-[10px] text-slate-500 font-mono">{client.phone}</p>
+                    <div className="text-right shrink-0">
+                      <span className="text-2xl font-black tracking-tighter" style={{ color: SCRAPER_COLORS[i % SCRAPER_COLORS.length] }}>
+                        {client.sent}
+                      </span>
+                      <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Sent</p>
                     </div>
                   </div>
-                  <div className="text-right">
-                    <span className="text-2xl font-black text-[#5a8c12] tracking-tighter">{client.sent}</span>
-                    <p className="text-[10px] text-slate-400 uppercase font-bold tracking-widest">Leads Sent</p>
+                  <div>
+                    <div className="flex justify-between text-[10px] font-bold uppercase tracking-widest text-slate-400 mb-1.5">
+                      <span>Delivery Rate</span>
+                      <span>{client.rate}%</span>
+                    </div>
+                    <div className="h-1.5 bg-slate-200 dark:bg-slate-700 rounded-full overflow-hidden">
+                      <div className="h-full rounded-full transition-all duration-700"
+                        style={{ width: `${client.rate}%`, backgroundColor: SCRAPER_COLORS[i % SCRAPER_COLORS.length] }} />
+                    </div>
+                    <p className="text-[10px] text-slate-400 mt-1.5 italic">
+                      {client.found} total leads found for this client
+                    </p>
                   </div>
                 </div>
-                
-                <div className="space-y-2">
-                  <div className="flex justify-between text-[10px] font-bold uppercase tracking-widest text-slate-500">
-                    <span>Delivery Rate</span>
-                    <span>{client.conversion}%</span>
-                  </div>
-                  <div className="h-2 w-full bg-slate-200 dark:bg-slate-700 rounded-full overflow-hidden">
-                    <div 
-                      className="h-full bg-[#5a8c12] transition-all duration-1000" 
-                      style={{ width: `${client.conversion}%` }}
-                    ></div>
-                  </div>
-                  <p className="text-[10px] text-slate-400 italic">
-                    {client.found} total opportunities identified for this client
-                  </p>
-                </div>
-              </div>
-            ))}
-            {stats.clientStatsArray.length === 0 && (
-              <div className="col-span-2 text-center py-12 text-slate-400 text-sm italic">
-                No client data available yet.
-              </div>
-            )}
-          </div>
-        </div>
-
-        {/* Top Keywords Bar Chart */}
-        <div className="bg-white dark:bg-slate-900 p-8 rounded-3xl shadow-sm border border-slate-200 dark:border-slate-800">
-          <h3 className="text-lg font-bold text-slate-900 dark:text-white tracking-tight mb-2">Top Keywords</h3>
-          <p className="text-sm text-slate-500 mb-8">Highest performing search terms</p>
-          <div className="overflow-hidden border border-slate-200 rounded-xl bg-white w-full flex justify-center items-center" style={{ minHeight: '250px' }}>
-            {!mounted ? (
-              <div className="h-full w-full animate-pulse bg-slate-100 dark:bg-slate-800 rounded-2xl"></div>
-            ) : stats.topKeywordsData && stats.topKeywordsData.length > 0 ? (
-              <BarChart width={300} height={250} data={stats.topKeywordsData} layout="vertical" margin={{ left: -20 }}>
-                <XAxis type="number" hide />
-                <YAxis dataKey="name" type="category" axisLine={false} tickLine={false} tick={{ fill: '#64748b', fontSize: 12, fontWeight: 600 }} width={100} />
-                <Tooltip 
-                  cursor={{ fill: 'transparent' }}
-                  contentStyle={{ borderRadius: '12px', border: 'none', backgroundColor: '#0f172a', color: '#fff' }}
-                />
-                <Bar dataKey="value" fill="#008cff" radius={[0, 4, 4, 0]} barSize={20} />
-              </BarChart>
-            ) : (
-              <div className="flex items-center justify-center h-full text-slate-400">No keyword data</div>
-            )}
-          </div>
-        </div>
-
-        {/* Recent Activity Feed */}
-        <div className="bg-white dark:bg-slate-900 p-8 rounded-3xl shadow-sm border border-slate-200 dark:border-slate-800 lg:col-span-2">
-          <div className="flex items-center justify-between mb-8">
-            <div>
-              <h3 className="text-lg font-bold text-slate-900 dark:text-white tracking-tight">System Activity</h3>
-              <p className="text-sm text-slate-500">Latest events and lead detections</p>
+              ))}
             </div>
-            <Button 
-              variant="ghost" 
-              onClick={() => navigate('/logs')}
-              className="text-xs font-bold text-[#5a8c12] uppercase tracking-widest hover:bg-[#5a8c12]/10"
-            >
-              View Log
-            </Button>
-          </div>
-          
-          <div className="space-y-6">
-            {logs.slice(0, 5).map((log) => (
-              <div key={log.id} className="flex items-start gap-4 group">
-                <div className="mt-1 w-8 h-8 rounded-lg bg-slate-100 dark:bg-slate-800 flex items-center justify-center shrink-0">
+          )}
+        </ChartCard>
+
+        {/* Activity feed */}
+        <ChartCard
+          title="System Activity"
+          subtitle="Latest scraper events & detections"
+          action={
+            <button onClick={() => navigate('/logs')}
+              className="text-[10px] font-black uppercase tracking-widest text-[#5a8c12] hover:underline">
+              View All
+            </button>
+          }
+        >
+          <div className="space-y-0">
+            {logs.slice(0, 8).map((log, i) => (
+              <div key={log.id}
+                className={`flex items-start gap-3 py-3 ${i < logs.slice(0, 8).length - 1 ? 'border-b border-slate-100 dark:border-slate-800' : ''}`}>
+                <div className="w-7 h-7 rounded-lg bg-slate-100 dark:bg-slate-800 flex items-center justify-center shrink-0 mt-0.5">
                   {getLogIcon(log.type)}
                 </div>
-                <div className="flex-1 border-b border-slate-100 dark:border-slate-800 pb-4 group-last:border-0">
-                  <div className="flex items-center justify-between mb-1">
-                    <span className="text-sm font-bold text-slate-900 dark:text-white truncate max-w-[200px] sm:max-w-md">
-                      {log.scraperName ? `${log.scraperName}: ` : ''}{log.message}
-                    </span>
-                    <span className="text-[10px] font-bold text-slate-400 uppercase whitespace-nowrap ml-2">
-                      {log.createdAt ? formatDistanceToNow(log.createdAt.toMillis()) : 'Just now'}
-                    </span>
-                  </div>
-                  {log.details && (
-                    <p className="text-[10px] text-slate-500 dark:text-slate-400 font-mono mt-1">
-                      {log.details}
-                    </p>
+                <div className="flex-1 min-w-0">
+                  <p className="text-xs font-bold text-slate-800 dark:text-slate-200 truncate"
+                    title={log.message}>
+                    {log.message}
+                  </p>
+                  {log.scraperName && (
+                    <p className="text-[10px] text-slate-400 truncate">{log.scraperName}</p>
                   )}
                 </div>
+                <span className="text-[10px] text-slate-400 font-medium whitespace-nowrap shrink-0">
+                  {log.createdAt ? relativeTime(log.createdAt.toMillis?.() || 0) : ''}
+                </span>
               </div>
             ))}
             {logs.length === 0 && (
-              <div className="text-center py-12 text-slate-400 text-sm italic">No recent activity detected.</div>
+              <div className="py-10 text-center text-slate-400 text-sm italic">No activity yet.</div>
             )}
           </div>
-        </div>
+        </ChartCard>
       </div>
 
-      {/* Leads Table Section */}
-      <div className="bg-white dark:bg-slate-900 rounded-[32px] shadow-sm border border-slate-200 dark:border-slate-800 overflow-hidden">
-        <div className="p-8 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between">
-          <div className="flex items-center gap-4">
-            <div className="w-12 h-12 rounded-2xl bg-[#5a8c12] text-white flex items-center justify-center shadow-lg shadow-[#5a8c12]/20">
-              <Database size={24} strokeWidth={1.5} />
-            </div>
-            <div>
-              <h2 className="text-xl font-black text-slate-900 dark:text-white tracking-tight">Recent Leads</h2>
-              <p className="text-sm text-slate-500">Manage and export your latest high-intent opportunities</p>
-            </div>
+      {/* ── Full Leads Table ── */}
+      <div className="bg-white dark:bg-slate-900 rounded-3xl shadow-sm border border-slate-200 dark:border-slate-800 overflow-hidden">
+        <div className="p-8 border-b border-slate-100 dark:border-slate-800 flex items-center gap-4">
+          <div className="w-12 h-12 rounded-2xl bg-[#5a8c12] text-white flex items-center justify-center shadow-lg shadow-[#5a8c12]/20">
+            <Database size={22} strokeWidth={1.5} />
+          </div>
+          <div>
+            <h2 className="text-xl font-black text-slate-900 dark:text-white tracking-tight">All Leads</h2>
+            <p className="text-sm text-slate-500">Manage and export every high-intent opportunity discovered</p>
+          </div>
+          <div className="ml-auto flex items-center gap-2 text-xs font-bold text-slate-500">
+            <TrendingUp size={14} className="text-[#5a8c12]" />
+            {leads.length.toLocaleString()} total
           </div>
         </div>
         <LeadsTable leads={leads} scrapers={scrapers} />
       </div>
     </div>
   );
-}
-
-// Helper for relative time in the activity feed
-function formatDistanceToNow(date: number) {
-  const diff = Math.floor((Date.now() - date) / 1000);
-  if (diff < 60) return 'just now';
-  if (diff < 3600) return `${Math.floor(diff / 60)}m ago`;
-  if (diff < 86400) return `${Math.floor(diff / 3600)}h ago`;
-  return `${Math.floor(diff / 86400)}d ago`;
 }

@@ -5,11 +5,22 @@ dotenv.config();
 import { createServer as createViteServer } from "vite";
 import path from "path";
 import { readFileSync } from 'fs';
+import { createHash } from 'crypto';
 import { GoogleGenAI } from '@google/genai';
 import { initializeApp, getApps, getApp, applicationDefault, cert } from 'firebase-admin/app';
 import { getFirestore, FieldValue } from 'firebase-admin/firestore';
 import { getSecurityRules } from 'firebase-admin/security-rules';
 import Parser from 'rss-parser';
+
+/**
+ * Phase 1.2: Generates a deterministic, collision-resistant document ID for
+ * each lead based on a SHA-256 hash of its URL and scraperId.
+ * This replaces the expensive 1000-lead lookback query for deduplication.
+ * Using setDoc with the same ID is idempotent — duplicates are silently skipped.
+ */
+function generateLeadId(postUrl: string, scraperId: string): string {
+  return createHash('sha256').update(`${scraperId}::${postUrl}`).digest('hex').substring(0, 40);
+}
 
 const parser = new Parser({
   headers: {
@@ -595,19 +606,11 @@ async function executeScraper(scraper: any) {
     if (!rawPosts || rawPosts.length === 0) return;
 
     const keywords = (scraper.keyword || '').toLowerCase().split(',').map((k: string) => k.trim()).filter((k: string) => k !== '');
-    
-    // Pre-fetch existing leads for this scraper to avoid N+1 queries
-    const leadsRef = adminDb.collection('leads');
-    const existingLeadsSnapshot = await leadsRef
-      .where('scraperId', '==', scraper.id)
-      .orderBy('createdAt', 'desc')
-      .limit(1000) // Look at the last 1000 leads to check for duplicates
-      .get();
-    
-    const existingUrls = new Set(existingLeadsSnapshot.docs.map((doc: any) => doc.data().postUrl));
 
-    // Filter out posts we already have
-    const newPosts = rawPosts.filter((post: any) => {
+    // Phase 1.2: Build the full postUrl for each raw post, then generate deterministic
+    // document IDs. We check Firestore with a single .getAll() batched read instead
+    // of a 1000-lead query scan, making deduplication O(N posts) not O(existing leads).
+    const rawPostsWithUrls = rawPosts.map((post: any) => {
       let postUrl = '';
       if (scraper.platform === 'stackoverflow') {
         postUrl = `https://stackoverflow.com${post.data.permalink}`;
@@ -618,8 +621,18 @@ async function executeScraper(scraper: any) {
       } else {
         postUrl = `https://www.reddit.com${post.data.permalink}`;
       }
-      return !existingUrls.has(postUrl);
+      const leadId = generateLeadId(postUrl, scraper.id);
+      return { ...post, postUrl, leadId };
     });
+
+    // Batch-check existence: getAll() returns stubs for missing docs (cheap read)
+    const leadsRef = adminDb.collection('leads');
+    const docRefs = rawPostsWithUrls.map((p: any) => leadsRef.doc(p.leadId));
+    const existingDocs = docRefs.length > 0 ? await adminDb.getAll(...docRefs) : [];
+    const existingIds = new Set(existingDocs.filter((d: any) => d.exists).map((d: any) => d.id));
+
+    // Only posts whose hash-ID does not yet exist in Firestore are truly new
+    const newPosts = rawPostsWithUrls.filter((post: any) => !existingIds.has(post.leadId));
 
     if (newPosts.length === 0) {
       console.log(`[Background Engine] No new posts found for ${scraper.name}`);
@@ -737,24 +750,18 @@ async function executeScraper(scraper: any) {
       const isAiLead = scoreObj.isLead === true || scoreObj.score >= 7;
 
       if (hasKeyword || isAiLead) {
-        let postUrl = '';
-        if (scraper.platform === 'stackoverflow') {
-          postUrl = `https://stackoverflow.com${post.data.permalink}`;
-        } else if (scraper.platform === 'hackernews') {
-          postUrl = `https://news.ycombinator.com${post.data.permalink}`;
-        } else if (scraper.platform === 'craigslist') {
-          postUrl = post.data.permalink; // Craigslist links are absolute
-        } else {
-          postUrl = `https://www.reddit.com${post.data.permalink}`;
-        }
-        
+        // Phase 1.2: Use the pre-computed hash ID for the document — guarantees
+        // idempotency; a second write of the same post is a no-op.
+        const postUrl = post.postUrl;
+        const leadDocRef = adminDb.collection('leads').doc(post.leadId);
+
         let finalWhatsappMessage = scoreObj.whatsappMessage || `Hey ${scraper.clientName || 'there'}, I found a user by /u/${post.data.author} looking for something related to your business. Here is the link: [URL]`;
         finalWhatsappMessage = finalWhatsappMessage
           .replace(/\[URL\]/gi, postUrl)
           .replace(/\[username\]/gi, post.data.author || 'the author');
         
-        const newLeadRef = adminDb.collection('leads').doc();
-        batchWrite.set(newLeadRef, {
+        // Use set() with the deterministic ID — duplicates are overwritten harmlessly
+        batchWrite.set(leadDocRef, {
           scraperId: scraper.id,
           platform: scraper.platform || 'reddit',
           target: scraper.target || scraper.subreddit || '',
@@ -776,7 +783,7 @@ async function executeScraper(scraper: any) {
           company: scoreObj.enrichment?.company || null,
           createdAt: FieldValue.serverTimestamp(),
           userId: scraper.userId
-        });
+        }, { merge: false });
         newLeadsCount++;
         batchOperations++;
 
@@ -806,8 +813,33 @@ async function executeScraper(scraper: any) {
       });
     }
 
-  } catch (error) {
-    console.error(`[Background Engine] Error running scraper ${scraper.name}:`, error);
+  } catch (error: any) {
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    console.error(`[Background Engine] Error running scraper ${scraper.name}:`, errorMessage);
+
+    // Phase 1.3: Persist error state to Firestore so the dashboard can surface it.
+    // The scraper document is tagged with a `lastError` and `lastErrorAt` field;
+    // the UI reads these to show an error badge on problematic scrapers.
+    try {
+      const scraperRef = adminDb.collection('scrapers').doc(scraper.id);
+      await scraperRef.update({
+        lastError: errorMessage.substring(0, 500),
+        lastErrorAt: FieldValue.serverTimestamp()
+      });
+
+      // Write a structured error log visible in the Activity Feed
+      await adminDb.collection('logs').add({
+        type: 'scraper_error',
+        scraperId: scraper.id,
+        scraperName: scraper.name,
+        message: `Scraper failed: ${errorMessage.substring(0, 200)}`,
+        details: `Platform: ${scraper.platform || 'reddit'} | Target: ${scraper.target || scraper.subreddit || 'N/A'}`,
+        createdAt: FieldValue.serverTimestamp(),
+        userId: scraper.userId
+      });
+    } catch (logErr) {
+      console.error(`[Background Engine] Failed to log error for scraper ${scraper.id}:`, logErr);
+    }
   }
 }
 

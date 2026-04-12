@@ -15,6 +15,8 @@ export interface Scraper {
   status: 'active' | 'paused';
   createdAt: any;
   lastRunAt?: any;
+  lastError?: string | null;
+  lastErrorAt?: any;
   userId: string;
   icon?: string;
 }
@@ -34,7 +36,7 @@ export interface Lead {
   postContent?: string;
   score?: number;
   reason?: string;
-  status?: 'new' | 'sent' | 'rejected';
+  status?: 'new' | 'viewed' | 'sent' | 'rejected';
   whatsappMessage?: string;
   email?: string;
   phone?: string;
