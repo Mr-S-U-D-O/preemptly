@@ -179,17 +179,22 @@ async function startServer() {
         return res.status(500).json({ error: "Gemini API key not configured" });
       }
 
-      const prompt = `You are an expert marketing strategist.
+      const prompt = `You are an expert marketing strategist and lead generation specialist.
       
       CLIENT: ${clientName || 'A business'}
       IDEAL CUSTOMER PROFILE: ${idealCustomerProfile || 'General commercial intent'}
-      PLATFORMS: ${platforms?.join(', ') || 'Reddit'}
+      SELECTED PLATFORMS: ${platforms?.join(', ') || 'Reddit'}
       
-      Based on this profile, suggest 10-15 specific "Targets" where these ideal customers are likely to hang out or post.
+      Based on this profile, suggest 10-15 specific "Targets" WHERE these ideal customers hang out. 
       
-      - For Reddit: Suggest specific subreddits (e.g., "Entrepreneur", "reactjs", "smallbusiness").
-      - For Stack Overflow: Suggest specific tags (e.g., "javascript", "python", "css").
-      - For Craigslist/Hacker News: Suggest general search terms or categories.
+      CRITICAL: You MUST ONLY suggest targets for the platforms listed in "SELECTED PLATFORMS". 
+      - If Reddit is selected: Suggest subreddits (e.g., "Entrepreneur", "reactjs").
+      - If Stack Overflow is selected: Suggest tags (e.g., "javascript", "python").
+      - If Craigslist is selected: Suggest specific search keywords (e.g., "plumbing needed", "hiring web designer").
+      - If Hacker News is selected: Suggest categories (e.g., "ask", "show").
+      
+      DO NOT suggest subreddits if Reddit is not in the platform list. 
+      DO NOT suggest Craigslist terms if Craigslist is not selected.
       
       Return ONLY a valid JSON array of strings.
       Format: ["target1", "target2", ...]`;
@@ -926,7 +931,7 @@ async function executeScraper(scraper: any) {
           company: scoreObj.enrichment?.company || null,
           createdAt: FieldValue.serverTimestamp(),
           userId: scraper.userId
-        }, { merge: false });
+        }, { merge: true });
         newLeadsCount++;
         batchOperations++;
 

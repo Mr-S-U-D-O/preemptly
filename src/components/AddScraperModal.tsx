@@ -362,6 +362,12 @@ export function AddScraperModal({
           // Skip empty targets for platforms that require them
           if (!individualTarget && (platform === 'reddit' || platform === 'stackoverflow')) continue;
 
+          // Check if this client already has a portal token in any existing scraper
+          const existingClientScraper = scrapers.find(s => s.clientName === clientName.trim() && s.portalToken);
+          const portalToken = existingClientScraper ? existingClientScraper.portalToken : null;
+          const trialLimit = existingClientScraper ? (existingClientScraper.trialLimit || 10) : 10;
+          const isPaid = existingClientScraper ? (existingClientScraper.isPaid || false) : false;
+
           const newScraperRef = doc(collection(db, 'scrapers'));
           const scraperData: any = {
             name: (selectedPlatforms.length > 1 || finalTargets.length > 1) 
@@ -376,6 +382,9 @@ export function AddScraperModal({
             intervalMinutes: parseInt(interval, 10),
             status: 'active',
             icon,
+            portalToken,
+            trialLimit,
+            isPaid,
             createdAt: serverTimestamp(),
             userId: user.uid
           };

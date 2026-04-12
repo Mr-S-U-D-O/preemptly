@@ -6,7 +6,7 @@ import * as Icons from 'lucide-react';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { doc, deleteDoc, collection, query, where, getDocs, setDoc, serverTimestamp, updateDoc, addDoc } from 'firebase/firestore';
+import { doc, deleteDoc, collection, query, where, getDocs, setDoc, serverTimestamp, updateDoc, addDoc, writeBatch } from 'firebase/firestore';
 import { db, handleFirestoreError, OperationType } from '../firebase';
 import { useState, useMemo, useEffect } from 'react';
 import { useAuth } from './AuthProvider';
@@ -28,25 +28,14 @@ export function ScraperView() {
   const scraper = scrapers.find(s => s.id === id);
   const scraperLeads = leads.filter(l => l.scraperId === id);
 
-  // Clear notifications when viewing the scraper
+  // Search/Filter state
+  const [localLeads, setLocalLeads] = useState<any[]>([]);
+  const [isDeploying, setIsDeploying] = useState(false);
+
+  // Sync leads when data provider updates
   useEffect(() => {
-    const clearNotifications = async () => {
-      const newLeads = scraperLeads.filter(l => l.status === 'new' || !l.status);
-      if (newLeads.length === 0) return;
-
-      for (const lead of newLeads) {
-        try {
-          await updateDoc(doc(db, 'leads', lead.id), { status: 'viewed' });
-        } catch (error) {
-          console.error("Failed to mark lead as viewed:", error);
-        }
-      }
-    };
-
-    if (id && scraperLeads.length > 0) {
-      clearNotifications();
-    }
-  }, [id, scraperLeads.length]);
+    setLocalLeads(scraperLeads);
+  }, [scraperLeads]);
 
   // Countdown logic
   useEffect(() => {
@@ -125,33 +114,81 @@ export function ScraperView() {
   };
 
   const handleDeployPortal = async () => {
+    if (!scraper.clientName) return;
+    setIsDeploying(true);
     const token = Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
     try {
-      await updateDoc(doc(db, 'scrapers', scraper.id), {
-        portalToken: token,
-        trialLimit: scraper.trialLimit || 10,
-        isPaid: false,
-        totalPushedLeads: scraper.totalPushedLeads || 0
+      const sameClientScrapers = scrapers.filter(s => s.clientName === scraper.clientName && s.userId === user?.uid);
+      
+      const batch = writeBatch(db);
+      for (const s of sameClientScrapers) {
+        batch.update(doc(db, 'scrapers', s.id), {
+          portalToken: token,
+          trialLimit: s.trialLimit || 10,
+          isPaid: s.isPaid || false
+        });
+      }
+      await batch.commit();
+
+      // Log the deployment
+      await addDoc(collection(db, 'logs'), {
+        type: 'portal_deployed',
+        scraperId: scraper.id,
+        scraperName: scraper.name,
+        message: `Client portal deployed for "${scraper.clientName}" across ${sameClientScrapers.length} scraper(s)`,
+        createdAt: serverTimestamp(),
+        userId: user?.uid
       });
     } catch (error) {
       handleFirestoreError(error, OperationType.UPDATE, 'scrapers');
+    } finally {
+      setIsDeploying(false);
     }
   };
 
   const handleKillPortal = async () => {
+    if (!scraper.clientName) return;
+    setIsDeploying(true);
     try {
-      await updateDoc(doc(db, 'scrapers', scraper.id), {
-        portalToken: null
+      const sameClientScrapers = scrapers.filter(s => s.clientName === scraper.clientName && s.userId === user?.uid);
+      const batch = writeBatch(db);
+      for (const s of sameClientScrapers) {
+        batch.update(doc(db, 'scrapers', s.id), {
+          portalToken: null
+        });
+      }
+      await batch.commit();
+
+      // Log the kill
+      await addDoc(collection(db, 'logs'), {
+        type: 'portal_killed',
+        scraperId: scraper.id,
+        scraperName: scraper.name,
+        message: `Client portal killed for "${scraper.clientName}" across ${sameClientScrapers.length} scraper(s)`,
+        createdAt: serverTimestamp(),
+        userId: user?.uid
       });
     } catch (error) {
       handleFirestoreError(error, OperationType.UPDATE, 'scrapers');
+    } finally {
+      setIsDeploying(false);
     }
   };
 
   const handleExtendTrial = async () => {
     try {
+      const newLimit = (scraper.trialLimit || 10) + 10;
       await updateDoc(doc(db, 'scrapers', scraper.id), {
-        trialLimit: (scraper.trialLimit || 10) + 10
+        trialLimit: newLimit
+      });
+
+      await addDoc(collection(db, 'logs'), {
+        type: 'trial_extended',
+        scraperId: scraper.id,
+        scraperName: scraper.name,
+        message: `Trial extended for "${scraper.clientName}" — new limit: ${newLimit} leads`,
+        createdAt: serverTimestamp(),
+        userId: user?.uid
       });
     } catch (error) {
       handleFirestoreError(error, OperationType.UPDATE, 'scrapers');
@@ -226,7 +263,12 @@ export function ScraperView() {
             </div>
           </div>
           <div className="flex flex-wrap items-center gap-3">
-            {scraper.portalToken ? (
+            {isDeploying ? (
+              <div className="flex items-center gap-2 bg-white dark:bg-slate-900 border-2 border-slate-100 rounded-xl px-4 py-2 font-black uppercase tracking-widest text-[10px] text-slate-400">
+                <Icons.RefreshCw size={14} className="animate-spin text-[#5a8c12]" />
+                Syncing Portal...
+              </div>
+            ) : scraper.portalToken ? (
               <div className="flex items-center gap-2 bg-white dark:bg-slate-900 border-2 border-[#5a8c12] rounded-xl px-3 py-1.5 shadow-sm">
                 <div className="flex flex-col">
                   <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest leading-none mb-1">Live Client Portal</span>
@@ -244,7 +286,7 @@ export function ScraperView() {
                         setTimeout(() => setCopiedId(null), 2000);
                       }}
                     >
-                      {copiedId === 'portal-link' ? <Check size={12} /> : <Copy size={12} />}
+                      {copiedId === 'portal-link' ? <Icons.Check size={12} /> : <Icons.Copy size={12} />}
                     </Button>
                     <div className="h-4 w-px bg-slate-100 dark:bg-slate-800" />
                     <Button 
@@ -252,7 +294,7 @@ export function ScraperView() {
                       onClick={handleKillPortal}
                       className="h-7 text-[10px] font-black uppercase text-red-500 hover:text-red-600 hover:bg-red-50 px-2"
                     >
-                      Kill
+                      Kill Dashboard
                     </Button>
                   </div>
                 </div>
