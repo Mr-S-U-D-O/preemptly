@@ -107,88 +107,6 @@ export function ScraperView() {
     }
   };
 
-  const handleDeployPortal = async () => {
-    if (!scraper.clientName) return;
-    setIsDeploying(true);
-    const token = Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
-    try {
-      const sameClientScrapers = scrapers.filter(s => s.clientName === scraper.clientName && s.userId === user?.uid);
-      
-      const batch = writeBatch(db);
-      for (const s of sameClientScrapers) {
-        batch.update(doc(db, 'scrapers', s.id), {
-          portalToken: token,
-          trialLimit: s.trialLimit || 10,
-          isPaid: s.isPaid || false
-        });
-      }
-      await batch.commit();
-
-      // Log the deployment
-      await addDoc(collection(db, 'logs'), {
-        type: 'portal_deployed',
-        scraperId: scraper.id,
-        scraperName: scraper.name,
-        message: `Client portal deployed for "${scraper.clientName}" across ${sameClientScrapers.length} scraper(s)`,
-        createdAt: serverTimestamp(),
-        userId: user?.uid
-      });
-    } catch (error) {
-      handleFirestoreError(error, OperationType.UPDATE, 'scrapers');
-    } finally {
-      setIsDeploying(false);
-    }
-  };
-
-  const handleKillPortal = async () => {
-    if (!scraper.clientName) return;
-    setIsDeploying(true);
-    try {
-      const sameClientScrapers = scrapers.filter(s => s.clientName === scraper.clientName && s.userId === user?.uid);
-      const batch = writeBatch(db);
-      for (const s of sameClientScrapers) {
-        batch.update(doc(db, 'scrapers', s.id), {
-          portalToken: null
-        });
-      }
-      await batch.commit();
-
-      // Log the kill
-      await addDoc(collection(db, 'logs'), {
-        type: 'portal_killed',
-        scraperId: scraper.id,
-        scraperName: scraper.name,
-        message: `Client portal killed for "${scraper.clientName}" across ${sameClientScrapers.length} scraper(s)`,
-        createdAt: serverTimestamp(),
-        userId: user?.uid
-      });
-    } catch (error) {
-      handleFirestoreError(error, OperationType.UPDATE, 'scrapers');
-    } finally {
-      setIsDeploying(false);
-    }
-  };
-
-  const handleExtendTrial = async () => {
-    try {
-      const newLimit = (scraper.trialLimit || 10) + 10;
-      await updateDoc(doc(db, 'scrapers', scraper.id), {
-        trialLimit: newLimit
-      });
-
-      await addDoc(collection(db, 'logs'), {
-        type: 'trial_extended',
-        scraperId: scraper.id,
-        scraperName: scraper.name,
-        message: `Trial extended for "${scraper.clientName}" — new limit: ${newLimit} leads`,
-        createdAt: serverTimestamp(),
-        userId: user?.uid
-      });
-    } catch (error) {
-      handleFirestoreError(error, OperationType.UPDATE, 'scrapers');
-    }
-  };
-
   const handlePushToPortal = async (lead: any) => {
     try {
       // 1. Update Lead in Firestore
@@ -257,50 +175,13 @@ export function ScraperView() {
             </div>
           </div>
           <div className="flex flex-wrap items-center gap-3">
-            {isDeploying ? (
-              <div className="flex items-center gap-2 bg-white dark:bg-slate-900 border-2 border-slate-100 rounded-xl px-4 py-2 font-black uppercase tracking-widest text-[10px] text-slate-400">
-                <Icons.RefreshCw size={14} className="animate-spin text-[#5a8c12]" />
-                Syncing Portal...
-              </div>
-            ) : scraper.portalToken ? (
-              <div className="flex items-center gap-2 bg-white dark:bg-slate-900 border-2 border-[#5a8c12] rounded-xl px-3 py-1.5 shadow-sm">
-                <div className="flex flex-col">
-                  <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest leading-none mb-1">Live Client Portal</span>
-                  <div className="flex items-center gap-2">
-                    <span className="text-xs font-mono text-slate-600 dark:text-slate-300 bg-slate-50 dark:bg-slate-800 px-2 py-0.5 rounded border border-slate-100 dark:border-slate-700 max-w-[120px] truncate">
-                      {window.location.origin}/portal/{scraper.portalToken}
-                    </span>
-                    <Button 
-                      variant="ghost" 
-                      size="icon" 
-                      className="h-6 w-6 text-[#5a8c12]"
-                      onClick={() => {
-                        navigator.clipboard.writeText(`${window.location.origin}/portal/${scraper.portalToken}`);
-                        setCopiedId('portal-link');
-                        setTimeout(() => setCopiedId(null), 2000);
-                      }}
-                    >
-                      {copiedId === 'portal-link' ? <Icons.Check size={12} /> : <Icons.Copy size={12} />}
-                    </Button>
-                    <div className="h-4 w-px bg-slate-100 dark:bg-slate-800" />
-                    <Button 
-                      variant="ghost" 
-                      onClick={handleKillPortal}
-                      className="h-7 text-[10px] font-black uppercase text-red-500 hover:text-red-600 hover:bg-red-50 px-2"
-                    >
-                      Kill Dashboard
-                    </Button>
-                  </div>
-                </div>
-              </div>
-            ) : (
-              <Button 
-                onClick={handleDeployPortal}
-                className="bg-[#5a8c12] hover:bg-[#4a730f] text-white gap-2 rounded-xl shadow-lg shadow-[#5a8c12]/20"
+            <Button 
+                onClick={() => navigate('/')}
+                variant="outline"
+                className="gap-2 rounded-xl border-2 border-slate-200 text-slate-600 hover:bg-slate-50"
               >
-                <Icons.Rocket size={16} /> Deploy Client Dashboard
+                <Icons.LayoutDashboard size={16} /> Manage Portals
               </Button>
-            )}
 
             <Button 
               onClick={handleToggleStatus} 
@@ -378,17 +259,10 @@ export function ScraperView() {
           </p>
         </div>
         <div className="bg-white dark:bg-slate-900 p-6 rounded-2xl shadow-[0_4px_20px_rgba(0,0,0,0.03)] border-2 border-[#5a8c12] dark:border-[#5a8c12]/50">
-          <div className="flex items-center justify-between mb-1">
             <div className="flex items-center gap-2">
               <Icons.ShieldCheck size={14} className="text-slate-500 dark:text-slate-400" />
               <p className="text-sm font-semibold text-slate-500 dark:text-slate-400">Trial Usage</p>
             </div>
-            {scraper.portalToken && (
-               <Button variant="ghost" className="h-5 px-1.5 text-[9px] font-black text-[#5a8c12] hover:bg-[#5a8c12]/10 uppercase tracking-widest" onClick={handleExtendTrial}>
-                 Extend +10
-               </Button>
-            )}
-          </div>
           <p className="text-lg font-bold text-slate-800 dark:text-slate-100">
             {scraper.totalPushedLeads || 0} / {scraper.trialLimit || 10}
             <span className="text-[10px] text-slate-400 ml-2 font-medium">Leads Pushed</span>

@@ -27,7 +27,15 @@ import {
   BarChart3,
   Hash,
   Code,
-  MessageSquare
+  MessageSquare,
+  Rocket,
+  Copy,
+  Check,
+  Share2,
+  ExternalLink,
+  ShieldCheck,
+  MousePointer2,
+  User
 } from 'lucide-react';
 import {
   XAxis,
@@ -63,8 +71,9 @@ import {
   DropdownMenuGroup
 } from '@/components/ui/dropdown-menu';
 import { ConfirmModal } from './ConfirmModal';
-import { writeBatch, doc } from 'firebase/firestore';
-import { db } from '../firebase';
+import { writeBatch, doc, updateDoc, addDoc, collection, serverTimestamp, deleteDoc } from 'firebase/firestore';
+import { db, handleFirestoreError, OperationType } from '../firebase';
+import { useAuth } from './AuthProvider';
 
 // ─────────────────────────────────────────────────────────────
 // Palette
@@ -176,11 +185,14 @@ function ChartCard({ title, subtitle, children, className = '', action }: {
 // ─────────────────────────────────────────────────────────────
 export function Home() {
   const { scrapers, leads, logs } = useData();
+  const { user } = useAuth();
   const navigate = useNavigate();
   const [resetModalOpen, setResetModalOpen] = useState(false);
   const [resetType, setResetType] = useState<'leads' | 'scrapers' | 'logs' | 'all' | null>(null);
   const [mounted, setMounted] = useState(false);
   const [timeRange, setTimeRange] = useState<'7d' | '30d' | 'all'>('7d');
+  const [isDeploying, setIsDeploying] = useState<Record<string, boolean>>({});
+  const [copiedToken, setCopiedToken] = useState<string | null>(null);
 
   useEffect(() => { setMounted(true); }, []);
 
@@ -192,6 +204,105 @@ export function Home() {
     if (resetType === 'scrapers' || resetType === 'all') scrapers.forEach(s => batch.delete(doc(db, 'scrapers', s.id)));
     if (resetType === 'logs' || resetType === 'all') logs.forEach(l => batch.delete(doc(db, 'logs', l.id)));
     try { await batch.commit(); } catch (e) { console.error('Reset error:', e); }
+  };
+
+  const handleDeployPortal = async (clientName: string, scraperIds: string[]) => {
+    setIsDeploying(prev => ({ ...prev, [clientName]: true }));
+    const token = Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
+    try {
+      const batch = writeBatch(db);
+      for (const id of scraperIds) {
+        batch.update(doc(db, 'scrapers', id), {
+          portalToken: token,
+          trialLimit: 10,
+          isPaid: false
+        });
+      }
+      await batch.commit();
+
+      await addDoc(collection(db, 'logs'), {
+        type: 'portal_deployed',
+        message: `Client portal deployed for "${clientName}" across ${scraperIds.length} scraper(s)`,
+        createdAt: serverTimestamp(),
+        userId: user?.uid
+      });
+    } catch (error) {
+      handleFirestoreError(error, OperationType.UPDATE, 'scrapers');
+    } finally {
+      setIsDeploying(prev => ({ ...prev, [clientName]: false }));
+    }
+  };
+
+  const handleKillPortal = async (clientName: string, scraperIds: string[]) => {
+    setIsDeploying(prev => ({ ...prev, [clientName]: true }));
+    try {
+      const batch = writeBatch(db);
+      for (const id of scraperIds) {
+        batch.update(doc(db, 'scrapers', id), {
+          portalToken: null
+        });
+      }
+      await batch.commit();
+
+      await addDoc(collection(db, 'logs'), {
+        type: 'portal_killed',
+        message: `Client portal deactivated for "${clientName}"`,
+        createdAt: serverTimestamp(),
+        userId: user?.uid
+      });
+    } catch (error) {
+      handleFirestoreError(error, OperationType.UPDATE, 'scrapers');
+    } finally {
+      setIsDeploying(prev => ({ ...prev, [clientName]: false }));
+    }
+  };
+
+  const handleExtendTrial = async (clientName: string, scraperIds: string[], currentLimit: number) => {
+    try {
+      const newLimit = currentLimit + 10;
+      const batch = writeBatch(db);
+      for (const id of scraperIds) {
+        batch.update(doc(db, 'scrapers', id), {
+          trialLimit: newLimit
+        });
+      }
+      await batch.commit();
+
+      await addDoc(collection(db, 'logs'), {
+        type: 'trial_extended',
+        message: `Trial extended for "${clientName}" — new limit: ${newLimit} leads`,
+        createdAt: serverTimestamp(),
+        userId: user?.uid
+      });
+    } catch (error) {
+      handleFirestoreError(error, OperationType.UPDATE, 'scrapers');
+    }
+  };
+
+  const handleDeleteClient = async (clientName: string, scrapersArray: any[]) => {
+    if (!confirm(`Are you sure you want to delete client "${clientName}" and all ${scrapersArray.length} associated scrapers?`)) return;
+    
+    try {
+      const batch = writeBatch(db);
+      for (const s of scrapersArray) {
+        // Find leads for this scraper to delete them too
+        const scraperLeads = leads.filter(l => l.scraperId === s.id);
+        for (const l of scraperLeads) {
+          batch.delete(doc(db, 'leads', l.id));
+        }
+        batch.delete(doc(db, 'scrapers', s.id));
+      }
+      await batch.commit();
+
+      await addDoc(collection(db, 'logs'), {
+        type: 'client_deleted',
+        message: `Client "${clientName}" and all associated data deleted`,
+        createdAt: serverTimestamp(),
+        userId: user?.uid
+      });
+    } catch (error) {
+      handleFirestoreError(error, OperationType.DELETE, 'scrapers');
+    }
   };
 
   const getResetTitle = () => ({ leads: 'Reset All Leads', scrapers: 'Reset All Scrapers', logs: 'Reset All Logs', all: 'Reset Entire Dashboard' })[resetType!] || 'Reset';
@@ -255,18 +366,75 @@ export function Home() {
     }));
 
     // Client stats
-    type ClientStat = { found: number; sent: number; phone: string };
+    type ClientStat = { 
+      found: number; 
+      sent: number; 
+      phone: string; 
+      scraperIds: string[]; 
+      portalToken?: string | null;
+      trialLimit: number;
+      totalPushedLeads: number;
+      totalClientClicks: number;
+      isPaid: boolean;
+      createdAt: any;
+      scrapers: any[];
+    };
     const clientMap = scrapers.reduce<Record<string, ClientStat>>((acc, s) => {
       const sl = leads.filter(l => l.scraperId === s.id);
       const key = s.clientName || 'Unknown';
-      if (!acc[key]) acc[key] = { found: 0, sent: 0, phone: s.clientPhone || '' };
+      if (!acc[key]) {
+        acc[key] = { 
+          found: 0, 
+          sent: 0, 
+          phone: s.clientPhone || '', 
+          scraperIds: [], 
+          portalToken: s.portalToken,
+          trialLimit: s.trialLimit || 10,
+          totalPushedLeads: 0,
+          totalClientClicks: 0,
+          isPaid: s.isPaid || false,
+          createdAt: s.createdAt,
+          scrapers: []
+        };
+      }
       acc[key].found += sl.length;
       acc[key].sent += sl.filter(l => l.status === 'sent').length;
+      acc[key].scraperIds.push(s.id);
+      acc[key].scrapers.push(s);
+      acc[key].totalPushedLeads += (s.totalPushedLeads || 0);
+      acc[key].totalClientClicks += (s.totalClientClicks || 0);
+      
+      // Use the earliest created date
+      if (s.createdAt && (!acc[key].createdAt || (s.createdAt.toMillis?.() < acc[key].createdAt.toMillis?.()))) {
+        acc[key].createdAt = s.createdAt;
+      }
+      
+      // If any scraper has paid status, client is paid
+      if (s.isPaid) acc[key].isPaid = true;
+      // If any scraper has a portal token, use it
+      if (s.portalToken) acc[key].portalToken = s.portalToken;
+      // Use max trial limit
+      if (s.trialLimit > acc[key].trialLimit) acc[key].trialLimit = s.trialLimit;
+
       return acc;
     }, {});
     const clientMapTyped = clientMap as Record<string, ClientStat>;
     const clientStatsArray = (Object.entries(clientMapTyped) as [string, ClientStat][])
-      .map(([name, d]) => ({ name, found: d.found, sent: d.sent, phone: d.phone, rate: d.found > 0 ? Math.round((d.sent / d.found) * 100) : 0 }))
+      .map(([name, d]) => ({ 
+        name, 
+        found: d.found, 
+        sent: d.sent, 
+        phone: d.phone, 
+        rate: d.found > 0 ? Math.round((d.sent / d.found) * 100) : 0,
+        scraperIds: d.scraperIds,
+        portalToken: d.portalToken,
+        trialLimit: d.trialLimit,
+        totalPushedLeads: d.totalPushedLeads,
+        totalClientClicks: d.totalClientClicks,
+        isPaid: d.isPaid,
+        createdAt: d.createdAt,
+        scrapers: d.scrapers
+      }))
       .sort((a, b) => b.sent - a.sent);
 
     return {
@@ -962,72 +1130,202 @@ export function Home() {
         {/* Client delivery */}
         <ChartCard
           className="lg:col-span-2"
-          title="Client Delivery Board"
-          subtitle="Track lead delivery performance for each business"
+          title="Client Management & Portals"
+          subtitle="Deploy dashboards, manage trials, and monitor client engagement"
         >
           {stats.clientStatsArray.length === 0 ? (
-            <div className="py-10 text-center text-slate-400 text-sm italic">
-              No client data available yet.
+            <div className="py-12 text-center text-slate-400 text-sm italic border-2 border-dashed border-slate-100 dark:border-slate-800 rounded-3xl">
+              <div className="w-12 h-12 rounded-full bg-slate-50 dark:bg-slate-800/50 flex items-center justify-center mx-auto mb-3">
+                <Briefcase size={20} className="text-slate-300" />
+              </div>
+              <p>No client profiles found. Create a scraper to begin.</p>
             </div>
           ) : (
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 gap-6">
               {stats.clientStatsArray.map((client, i) => (
                 <div
                   key={client.name}
-                  className="p-5 rounded-2xl border border-slate-100 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/40 flex flex-col gap-3"
+                  className="group relative bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-800 p-6 hover:border-[#5a8c12]/50 hover:shadow-xl hover:shadow-[#5a8c12]/5 transition-all duration-500 overflow-hidden"
                 >
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-3">
-                      <div
-                        className="w-9 h-9 rounded-xl flex items-center justify-center text-white text-sm font-black"
-                        style={{
-                          backgroundColor:
-                            SCRAPER_COLORS[i % SCRAPER_COLORS.length],
-                        }}
-                      >
-                        {client.name.charAt(0)}
+                  {/* Decorative background accent */}
+                  <div className="absolute top-0 right-0 w-32 h-32 bg-[#5a8c12]/5 rounded-bl-full translate-x-8 -translate-y-8 group-hover:scale-110 transition-transform duration-500" />
+                  
+                  <div className="relative flex flex-col md:flex-row gap-8">
+                    {/* Client Identity & Stats */}
+                    <div className="flex-1 space-y-6">
+                      <div className="flex items-start gap-4">
+                        <div
+                          className="w-14 h-14 rounded-2xl flex items-center justify-center text-white text-xl font-black shadow-lg shadow-[#5a8c12]/20 shrink-0"
+                          style={{ backgroundColor: SCRAPER_COLORS[i % SCRAPER_COLORS.length] }}
+                        >
+                          {client.name.charAt(0)}
+                        </div>
+                        <div className="min-w-0 flex-1">
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <h4 className="font-black text-xl text-slate-900 dark:text-white truncate">
+                              {client.name}
+                            </h4>
+                            {client.isPaid && (
+                              <span className="px-2 py-0.5 rounded-full bg-[#5a8c12]/10 text-[#5a8c12] text-[10px] font-black uppercase tracking-widest border border-[#5a8c12]/20">
+                                Paid Client
+                              </span>
+                            )}
+                          </div>
+                          <div className="flex items-center gap-3 mt-1.5">
+                            <div className="flex items-center gap-1 text-[11px] font-bold text-slate-400 uppercase tracking-tight">
+                              <User size={12} />
+                              {client.name}
+                            </div>
+                            <div className="w-1 h-1 rounded-full bg-slate-300" />
+                            <div className="flex items-center gap-1 text-[11px] font-bold text-slate-400 uppercase tracking-tight font-mono">
+                              <MessageCircle size={12} />
+                              {client.phone || "No phone"}
+                            </div>
+                            <div className="w-1 h-1 rounded-full bg-slate-300" />
+                            <div className="flex items-center gap-1 text-[11px] font-bold text-slate-400 uppercase tracking-tight">
+                              <Clock size={12} />
+                              Created {client.createdAt?.toMillis ? format(client.createdAt.toMillis(), 'MMM d, yyyy') : 'N/A'}
+                            </div>
+                          </div>
+                        </div>
                       </div>
-                      <div className="min-w-0">
-                        <h4 className="font-black text-sm text-slate-900 dark:text-white truncate">
-                          {client.name}
-                        </h4>
-                        <p className="text-[10px] text-slate-500 font-mono">
-                          {client.phone || "No phone"}
-                        </p>
+
+                      {/* KPI Grid for Client */}
+                      <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+                        <div className="bg-slate-50 dark:bg-slate-800/40 p-4 rounded-2xl border border-slate-100 dark:border-slate-800">
+                          <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Bots Running</p>
+                          <div className="flex items-center gap-2">
+                             <Zap size={14} className="text-[#5a8c12]" />
+                             <span className="text-lg font-black text-slate-900 dark:text-white">{client.scraperIds.length}</span>
+                          </div>
+                        </div>
+                        <div className="bg-slate-50 dark:bg-slate-800/40 p-4 rounded-2xl border border-slate-100 dark:border-slate-800">
+                          <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Leads Found</p>
+                          <div className="flex items-center gap-2">
+                             <Database size={14} className="text-blue-500" />
+                             <span className="text-lg font-black text-slate-900 dark:text-white">{client.found}</span>
+                          </div>
+                        </div>
+                        <div className="bg-slate-50 dark:bg-slate-800/40 p-4 rounded-2xl border border-slate-100 dark:border-slate-800">
+                          <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Leads Sent</p>
+                          <div className="flex items-center gap-2">
+                             <Rocket size={14} className="text-amber-500" />
+                             <span className="text-lg font-black text-slate-900 dark:text-white">{client.totalPushedLeads}</span>
+                          </div>
+                        </div>
+                        <div className="bg-slate-50 dark:bg-slate-800/40 p-4 rounded-2xl border border-slate-100 dark:border-slate-800">
+                          <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Client Clicks</p>
+                          <div className="flex items-center gap-2">
+                             <MousePointer2 size={14} className="text-pink-500" />
+                             <span className="text-lg font-black text-slate-900 dark:text-white">{client.totalClientClicks}</span>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Health Progress */}
+                      <div>
+                        <div className="flex justify-between items-center mb-2">
+                          <div className="flex items-center gap-2">
+                            <ShieldCheck size={14} className="text-[#5a8c12]" />
+                            <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Trial Usage ({client.totalPushedLeads}/{client.trialLimit})</span>
+                          </div>
+                          <span className="text-[10px] font-black text-[#5a8c12] bg-[#5a8c12]/10 px-2 py-0.5 rounded-full">
+                            {Math.round((client.totalPushedLeads / client.trialLimit) * 100)}%
+                          </span>
+                        </div>
+                        <div className="h-2 bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden">
+                           <div 
+                             className="h-full bg-[#5a8c12] transition-all duration-1000" 
+                             style={{ width: `${Math.min(100, (client.totalPushedLeads / client.trialLimit) * 100)}%` }} 
+                           />
+                        </div>
                       </div>
                     </div>
-                    <div className="text-right shrink-0">
-                      <span
-                        className="text-2xl font-black tracking-tighter"
-                        style={{
-                          color: SCRAPER_COLORS[i % SCRAPER_COLORS.length],
-                        }}
-                      >
-                        {client.sent}
-                      </span>
-                      <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">
-                        Sent
-                      </p>
+
+                    {/* Portal Management Controls */}
+                    <div className="md:w-72 flex flex-col gap-3 justify-center md:border-l border-slate-100 dark:border-slate-800 md:pl-8">
+                       {isDeploying[client.name] ? (
+                         <div className="flex flex-col items-center justify-center p-8 bg-slate-50 dark:bg-slate-800/20 rounded-2xl border-2 border-dashed border-slate-200 dark:border-slate-800 animate-pulse">
+                            <RefreshCcw size={20} className="animate-spin text-[#5a8c12] mb-2" />
+                            <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Syncing Dashboard...</p>
+                         </div>
+                       ) : client.portalToken ? (
+                         <div className="space-y-3">
+                           <div className="p-4 bg-[#5a8c12]/5 rounded-2xl border border-[#5a8c12]/20">
+                             <h5 className="text-[9px] font-black text-[#5a8c12] uppercase tracking-[0.2em] mb-2 text-center">Live Dashboard</h5>
+                             <div className="flex items-center gap-2 bg-white dark:bg-slate-800 p-2 rounded-xl border border-slate-100 dark:border-slate-700 shadow-sm">
+                               <span className="text-[10px] font-mono text-slate-500 flex-1 truncate">
+                                 {window.location.origin}/portal/{client.portalToken}
+                               </span>
+                               <Button 
+                                 variant="ghost" 
+                                 size="icon" 
+                                 className="h-7 w-7 text-[#5a8c12] hover:bg-[#5a8c12]/10"
+                                 onClick={() => {
+                                   navigator.clipboard.writeText(`${window.location.origin}/portal/${client.portalToken}`);
+                                   setCopiedToken(client.portalToken);
+                                   setTimeout(() => setCopiedToken(null), 2000);
+                                 }}
+                               >
+                                 {copiedToken === client.portalToken ? <Check size={14} /> : <Copy size={14} />}
+                               </Button>
+                               <Button 
+                                 variant="ghost" 
+                                 size="icon" 
+                                 className="h-7 w-7 text-blue-500 hover:bg-blue-50"
+                                 onClick={() => window.open(`${window.location.origin}/portal/${client.portalToken}`, '_blank')}
+                               >
+                                 <ExternalLink size={14} />
+                               </Button>
+                             </div>
+                           </div>
+                           
+                           <div className="grid grid-cols-2 gap-2">
+                             <Button 
+                               variant="outline" 
+                               className="h-10 rounded-xl text-[10px] font-black uppercase tracking-widest border-slate-200 hover:bg-slate-50 gap-2"
+                               onClick={() => handleExtendTrial(client.name, client.scraperIds, client.trialLimit)}
+                             >
+                               <ShieldCheck size={14} /> +10 Leads
+                             </Button>
+                             <Button 
+                               variant="outline" 
+                               className="h-10 rounded-xl text-[10px] font-black uppercase tracking-widest text-red-500 border-red-100 hover:bg-red-50 gap-2"
+                               onClick={() => handleKillPortal(client.name, client.scraperIds)}
+                             >
+                               <XCircle size={14} /> Kill Portal
+                             </Button>
+                           </div>
+                           <Button 
+                             className="w-full bg-[#5a8c12] hover:bg-[#4a730f] h-11 rounded-xl text-[10px] font-black uppercase tracking-widest gap-2"
+                             onClick={() => handleDeployPortal(client.name, client.scraperIds)}
+                           >
+                             <RefreshCcw size={14} /> Redeploy Dashboard
+                           </Button>
+                         </div>
+                       ) : (
+                         <div className="space-y-3">
+                           <div className="p-8 text-center bg-slate-50 dark:bg-slate-800/20 rounded-2xl border-2 border-dashed border-slate-200 dark:border-slate-800">
+                             <Rocket size={32} className="mx-auto text-slate-300 mb-3" />
+                             <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">No Dashboard Deployed</p>
+                           </div>
+                           <Button 
+                             className="w-full bg-[#5a8c12] hover:bg-[#4a730f] h-12 rounded-2xl text-[10px] font-black uppercase tracking-widest gap-3 shadow-lg shadow-[#5a8c12]/20"
+                             onClick={() => handleDeployPortal(client.name, client.scraperIds)}
+                           >
+                             <Rocket size={18} /> Deploy Dashboard
+                           </Button>
+                         </div>
+                       )}
+
+                       <Button 
+                         variant="ghost"
+                         className="mt-2 text-[10px] font-black text-red-400 hover:text-red-500 hover:bg-red-50/50 uppercase tracking-widest gap-2"
+                         onClick={() => handleDeleteClient(client.name, client.scrapers)}
+                       >
+                         <Trash2 size={12} /> Delete Client Profile
+                       </Button>
                     </div>
-                  </div>
-                  <div>
-                    <div className="flex justify-between text-[10px] font-bold uppercase tracking-widest text-slate-400 mb-1.5">
-                      <span>Delivery Rate</span>
-                      <span>{client.rate}%</span>
-                    </div>
-                    <div className="h-1.5 bg-slate-200 dark:bg-slate-700 rounded-full overflow-hidden">
-                      <div
-                        className="h-full rounded-full transition-all duration-700"
-                        style={{
-                          width: `${client.rate}%`,
-                          backgroundColor:
-                            SCRAPER_COLORS[i % SCRAPER_COLORS.length],
-                        }}
-                      />
-                    </div>
-                    <p className="text-[10px] text-slate-400 mt-1.5 italic">
-                      {client.found} total leads found for this client
-                    </p>
                   </div>
                 </div>
               ))}

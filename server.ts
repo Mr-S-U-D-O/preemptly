@@ -306,22 +306,26 @@ async function startServer() {
         return res.status(400).json({ error: "Invalid portal token" });
       }
 
-      // Find the scraper with this portalToken
+      // Find ALL scrapers with this portalToken
       const scrapersSnap = await adminDb.collection('scrapers')
         .where('portalToken', '==', token)
-        .limit(1)
         .get();
 
       if (scrapersSnap.empty) {
         return res.status(404).json({ error: "Portal not found" });
       }
 
-      const scraperDoc = scrapersSnap.docs[0];
-      const scraper = { id: scraperDoc.id, ...scraperDoc.data() };
+      const scrapersData = scrapersSnap.docs.map((d: any) => ({ id: d.id, ...d.data() }));
+      const scraperIds = scrapersData.map((s: any) => s.id);
+      
+      // Use the first scraper for general client info
+      const primaryScraper = scrapersData[0];
 
-      // Fetch only pushed leads for this scraper
+      // Fetch leads for ALL matching scrapers (using in operator for efficiency)
+      // Firestore 'in' query has a limit of 30, which should be plenty for scrapers per client.
+      // If we exceed 30, we might need multiple queries.
       const leadsSnap = await adminDb.collection('leads')
-        .where('scraperId', '==', scraper.id)
+        .where('scraperId', 'in', scraperIds)
         .where('pushedToPortal', '==', true)
         .get();
 
@@ -345,12 +349,17 @@ async function startServer() {
       // Sort by createdAt desc
       leads.sort((a: any, b: any) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
 
+      // Aggregate counts
+      const totalPushed = scrapersData.reduce((acc: number, s: any) => acc + (s.totalPushedLeads || 0), 0);
+      const avgTrialLimit = primaryScraper.trialLimit || 10;
+      const isPaid = scrapersData.some((s: any) => s.isPaid === true);
+
       res.json({
-        clientName: scraper.clientName || 'Client',
-        scraperName: scraper.name,
+        clientName: primaryScraper.clientName || 'Client',
+        scraperName: scrapersData.map((s: any) => s.name).join(', '),
         totalLeads: leads.length,
-        trialLimit: scraper.trialLimit || 10,
-        isPaid: scraper.isPaid || false,
+        trialLimit: avgTrialLimit,
+        isPaid: isPaid,
         leads,
       });
     } catch (error: any) {

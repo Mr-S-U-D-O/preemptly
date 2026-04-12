@@ -8,6 +8,9 @@ import { db, handleFirestoreError, OperationType } from '../firebase';
 import { useState, useMemo } from 'react';
 import { Input } from '@/components/ui/input';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
+import { updateDoc, addDoc, collection, serverTimestamp } from 'firebase/firestore';
+import { useAuth } from './AuthProvider';
+import { Button } from '@/components/ui/button';
 
 type SortColumn = 'postTitle' | 'subreddit' | 'keyword' | 'score' | 'postAuthor' | 'createdAt' | 'status';
 type SortDirection = 'asc' | 'desc';
@@ -18,11 +21,46 @@ export function LeadsTable({ leads, scrapers }: { leads: Lead[], scrapers: Scrap
   const [sortDirection, setSortDirection] = useState<SortDirection>('desc');
   const [copiedId, setCopiedId] = useState<string | null>(null);
 
+  const { user } = useAuth();
+
   const handleDeleteLead = async (leadId: string) => {
     try {
       await deleteDoc(doc(db, 'leads', leadId));
     } catch (error) {
       handleFirestoreError(error, OperationType.DELETE, 'leads');
+    }
+  };
+
+  const handlePushToPortal = async (lead: any, scraper: any) => {
+    if (!scraper) return;
+    try {
+      // 1. Update Lead in Firestore
+      await updateDoc(doc(db, 'leads', lead.id), {
+        pushedToPortal: true,
+        status: 'sent'
+      });
+
+      // 2. Increment Scraper counter
+      await updateDoc(doc(db, 'scrapers', scraper.id), {
+        totalPushedLeads: (scraper.totalPushedLeads || 0) + 1
+      });
+
+      // 3. Open WhatsApp
+      const clientPhone = scraper.clientPhone || '';
+      const whatsappUrl = `https://web.whatsapp.com/send?phone=${clientPhone.replace(/[^0-9]/g, '')}&text=${encodeURIComponent(lead.whatsappMessage || '')}`;
+      window.open(whatsappUrl, '_blank');
+
+      // 4. Log the push
+      await addDoc(collection(db, 'logs'), {
+        type: 'lead_found',
+        scraperId: scraper.id,
+        scraperName: scraper.name,
+        message: `Lead pushed to ${scraper.clientName || 'client'} dashboard`,
+        createdAt: serverTimestamp(),
+        userId: user?.uid
+      });
+    } catch (error) {
+      console.error("Failed to push lead:", error);
     }
   };
 
@@ -256,27 +294,23 @@ export function LeadsTable({ leads, scrapers }: { leads: Lead[], scrapers: Scrap
                 </div>
               </TableCell>
               <TableCell className="text-right">
-                <div className="flex items-center justify-end gap-2">
-                  {clientPhone && lead.whatsappMessage && (
-                    <>
-                      <a 
-                        href={whatsappUrl} 
-                        target="_blank" 
-                        rel="noopener noreferrer"
-                        className="inline-flex items-center justify-center w-8 h-8 rounded-full bg-green-100 text-green-600 hover:bg-green-200 dark:bg-green-900/30 dark:text-green-400 transition-colors"
-                        title="Open in WhatsApp Web"
-                      >
-                        <MessageCircle size={16} strokeWidth={1.5} />
-                      </a>
-                      <button
-                        onClick={() => handleCopyMessage(lead.whatsappMessage || '', lead.id)}
-                        className="inline-flex items-center justify-center w-8 h-8 rounded-full bg-slate-100 text-slate-600 hover:bg-slate-200 dark:bg-slate-800 dark:text-slate-400 transition-colors"
-                        title="Copy message to clipboard"
-                      >
-                        {copiedId === lead.id ? <Check size={14} className="text-green-600" /> : <Copy size={14} />}
-                      </button>
-                    </>
-                  )}
+                  <div className="flex items-center justify-end gap-2">
+                    {scraper && lead.whatsappMessage && (
+                      <>
+                        <Button
+                          size="sm"
+                          onClick={() => handlePushToPortal(lead, scraper)}
+                          className={`h-8 rounded-lg gap-2 font-black text-[10px] uppercase tracking-widest ${
+                            lead.pushedToPortal 
+                              ? 'bg-blue-50 text-blue-600 hover:bg-blue-100 border border-blue-100' 
+                              : 'bg-[#5a8c12] hover:bg-[#4a730f] text-white'
+                          }`}
+                        >
+                          {lead.pushedToPortal ? <Icons.CheckCheck size={12} /> : <Icons.Zap size={12} />}
+                          {lead.pushedToPortal ? 'Pushed' : 'Push'}
+                        </Button>
+                      </>
+                    )}
                   <a 
                     href={lead.postUrl} 
                     target="_blank" 
