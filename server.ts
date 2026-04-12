@@ -494,10 +494,24 @@ async function startServer() {
     console.log(`Server is listening on port ${PORT}`);
     
     // Deploy rules to named database on startup
-    fetch(`http://localhost:${PORT}/api/admin/update-rules`, { method: 'POST' })
-      .then(res => res.json())
-      .then(data => console.log("[Firebase Admin] Rules deployment:", data))
-      .catch(err => console.error("[Firebase Admin] Rules deployment failed:", err));
+    const deployRules = async () => {
+      try {
+        const response = await fetch(`http://localhost:${PORT}/api/admin/update-rules`, { method: 'POST' });
+        const contentType = response.headers.get('content-type');
+        
+        if (contentType && contentType.includes('application/json')) {
+          const data = await response.json();
+          console.log("[Firebase Admin] Rules deployment:", data);
+        } else {
+          const text = await response.text();
+          console.warn("[Firebase Admin] Rules deployment returned non-JSON response:", text.substring(0, 100));
+        }
+      } catch (err) {
+        console.error("[Firebase Admin] Rules deployment request failed:", err);
+      }
+    };
+    
+    deployRules();
     
     // Start background scraper engine
     console.log("Starting background scraper engine...");
