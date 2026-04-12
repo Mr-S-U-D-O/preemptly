@@ -373,10 +373,10 @@ export function Home() {
               align="end"
               className="w-52 rounded-2xl border-2 border-slate-100 dark:border-slate-800 p-2 bg-white dark:bg-slate-900 shadow-xl z-50"
             >
-              <DropdownMenuLabel className="text-[10px] font-black uppercase tracking-widest text-slate-400 px-2 py-1.5">
-                Reset Options
-              </DropdownMenuLabel>
               <DropdownMenuGroup>
+                <DropdownMenuLabel className="text-[10px] font-black uppercase tracking-widest text-slate-400 px-2 py-1.5">
+                  Reset Options
+                </DropdownMenuLabel>
                 {[
                   { icon: Database, label: "Reset Leads", type: "leads" },
                   { icon: Zap, label: "Reset Scrapers", type: "scrapers" },
