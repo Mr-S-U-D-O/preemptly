@@ -7,9 +7,10 @@ import { LoginScreen } from './LoginScreen';
 import { AccessDenied } from './AccessDenied';
 
 const ALLOWED_EMAILS = [
-  'launchpadstudioagency@gmail.com',
-  'molelekishoez@gmail.com',
-  'investors@intentfirsthunter.co.za'
+  "launchpadstudioagency@gmail.com",
+  "molelekishoez@gmail.com",
+  "investors@intentfirsthunter.co.za",
+  "visitor@intentfirsthunter.co.za",
 ];
 
 interface AuthContextType {

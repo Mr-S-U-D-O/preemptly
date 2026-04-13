@@ -24,7 +24,21 @@ export function LoginScreen() {
     try {
       await signInWithEmail(email, password);
     } catch (err: any) {
-      setError(err.message || 'Failed to sign in. Please check your credentials.');
+      let friendlyMessage = 'An unexpected error occurred. Please try again.';
+      
+      if (err.code === 'auth/invalid-credential') {
+        friendlyMessage = 'Invalid email or password. Please double-check your credentials and try again.';
+      } else if (err.code === 'auth/user-not-found') {
+        friendlyMessage = 'No account found with this email address.';
+      } else if (err.code === 'auth/wrong-password') {
+        friendlyMessage = 'Incorrect password. Please try again.';
+      } else if (err.code === 'auth/too-many-requests') {
+        friendlyMessage = 'Too many failed attempts. Access has been temporarily disabled. Please try again later.';
+      } else if (err.message?.includes('invalid-credential')) {
+        friendlyMessage = 'Invalid email or password. Please double-check your credentials.';
+      }
+      
+      setError(friendlyMessage);
     } finally {
       setLoading(false);
     }
@@ -36,7 +50,7 @@ export function LoginScreen() {
     try {
       await signIn();
     } catch (err: any) {
-      setError(err.message || 'Failed to sign in with Google.');
+      setError('Could not connect to Google. Please try again or use your email to sign in.');
     } finally {
       setLoading(false);
     }
@@ -49,9 +63,15 @@ export function LoginScreen() {
     setSuccess(null);
     try {
       await resetPassword(email);
-      setSuccess('Password reset email sent! Please check your inbox.');
+      setSuccess('Check your inbox! We\'ve sent a password reset link to ' + email);
     } catch (err: any) {
-      setError(err.message || 'Failed to send reset email.');
+      if (err.code === 'auth/user-not-found') {
+        setError('We couldn\'t find an account with that email address.');
+      } else if (err.code === 'auth/invalid-email') {
+        setError('Please enter a valid email address.');
+      } else {
+        setError('Something went wrong. Please check your connection and try again.');
+      }
     } finally {
       setLoading(false);
     }
@@ -59,8 +79,13 @@ export function LoginScreen() {
 
   return (
     <div className="min-h-screen w-full flex bg-slate-950 font-sans text-slate-200 antialiased overflow-hidden">
-      {/* Background Texture/Noise */}
-      <div className="fixed inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-[0.03] pointer-events-none"></div>
+      {/* Background Texture/Noise (SVG Data URI for reliability) */}
+      <div 
+        className="fixed inset-0 opacity-[0.03] pointer-events-none"
+        style={{ 
+          backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E")` 
+        }}
+      ></div>
       
       {/* Left Panel - Hero Info (Hidden on mobile) */}
       <div className="hidden lg:flex w-[45%] flex-col justify-between p-16 border-r border-slate-900 bg-slate-950/50 backdrop-blur-md relative z-10">
