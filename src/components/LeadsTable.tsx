@@ -11,6 +11,7 @@ import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip
 import { updateDoc, addDoc, collection, serverTimestamp } from 'firebase/firestore';
 import { useAuth } from './AuthProvider';
 import { Button } from '@/components/ui/button';
+import { LiveTimestamp } from './LiveTimestamp';
 
 type SortColumn = 'postTitle' | 'subreddit' | 'keyword' | 'score' | 'postAuthor' | 'createdAt' | 'status';
 type SortDirection = 'asc' | 'desc';
@@ -164,9 +165,6 @@ export function LeadsTable({ leads, scrapers }: { leads: Lead[], scrapers: Scrap
       <TableBody>
           {filteredAndSortedLeads.map((lead) => {
             const scraper = scrapers.find(s => s.id === lead.scraperId);
-            const timeAgo = lead.createdAt?.toMillis 
-              ? formatDistanceToNow(lead.createdAt.toMillis(), { addSuffix: true }) 
-              : 'Just now';
             
             const clientPhone = scraper?.clientPhone || '';
             const whatsappUrl = `https://web.whatsapp.com/send?phone=${clientPhone.replace(/[^0-9]/g, '')}&text=${encodeURIComponent(lead.whatsappMessage || '')}`;
@@ -253,7 +251,9 @@ export function LeadsTable({ leads, scrapers }: { leads: Lead[], scrapers: Scrap
               <TableCell className="text-slate-500 dark:text-slate-400 text-sm">
                 {(lead.platform === 'reddit' || !lead.platform) ? `u/${lead.postAuthor}` : lead.postAuthor}
               </TableCell>
-              <TableCell className="text-slate-500 dark:text-slate-400 text-sm">{timeAgo}</TableCell>
+              <TableCell className="text-slate-500 dark:text-slate-400 text-sm">
+                <LiveTimestamp date={lead.createdAt} />
+              </TableCell>
               <TableCell>
                 <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold ${
                   lead.status === 'sent' ? 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400' :

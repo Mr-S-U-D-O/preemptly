@@ -1,6 +1,9 @@
 import { useParams } from 'react-router-dom';
 import { useState, useEffect, useCallback } from 'react';
-import { ExternalLink, MessageCircle, Star, Clock, Zap, Lock, ChevronDown, ChevronUp, Send, LayoutGrid, List, ArrowUpDown, Trash2, CheckCircle } from 'lucide-react';
+import { format } from 'date-fns';
+import { ExternalLink, MessageCircle, Star, Clock, Zap, Lock, ChevronDown, ChevronUp, Send, LayoutGrid, List, ArrowUpDown, Trash2, CheckCircle, Sparkles } from 'lucide-react';
+import { LiveTimestamp } from './LiveTimestamp';
+import { ClientSetupModal } from './ClientSetupModal';
 
 interface PortalLead {
   id: string;
@@ -23,6 +26,8 @@ interface PortalData {
   trialLimit: number;
   isPaid: boolean;
   leads: PortalLead[];
+  setupCompleted?: boolean;
+  scrapers?: any[];
 }
 
 export function ClientPortal() {
@@ -112,11 +117,6 @@ export function ClientPortal() {
     }
   }) : [];
 
-  const formatDate = (iso: string) => {
-    const d = new Date(iso);
-    return d.toLocaleDateString('en-ZA', { month: 'short', day: 'numeric', year: 'numeric' });
-  };
-
   // Loading
   if (loading) {
     return (
@@ -148,6 +148,14 @@ export function ClientPortal() {
 
   return (
     <div className="min-h-screen bg-slate-50">
+      {/* Setup Modal */}
+      {!data.setupCompleted && data.scrapers && (
+        <ClientSetupModal 
+          scrapers={data.scrapers} 
+          onComplete={() => setData(prev => prev ? { ...prev, setupCompleted: true } : null)}
+        />
+      )}
+
       {/* Header */}
       <header className="bg-white border-b border-slate-100 sticky top-0 z-50">
         <div className="max-w-2xl mx-auto px-4 py-4">
@@ -281,10 +289,10 @@ export function ClientPortal() {
                       </span>
                     </div>
                     <div className="flex items-center gap-3">
-                       <div className="flex items-center gap-1 text-[10px] text-slate-400">
-                         <Clock size={10} />
-                         {formatDate(lead.createdAt)}
-                       </div>
+                       <div className="flex items-center gap-2 text-[10px] text-slate-400 font-bold uppercase tracking-widest">
+                        <Clock size={12} />
+                        <LiveTimestamp date={lead.createdAt} />
+                      </div>
                        {!isBlurred && (
                          <button 
                            onClick={() => handleDeleteLead(lead.id)}
@@ -395,7 +403,7 @@ export function ClientPortal() {
                   return (
                     <tr key={lead.id} className={`border-b border-slate-50 transition-colors ${isBlurred ? 'opacity-50' : 'hover:bg-slate-50/50'}`}>
                       <td className="px-4 py-4 whitespace-nowrap text-[11px] font-bold text-slate-400 font-mono">
-                        {formatDate(lead.createdAt)}
+                        {format(new Date(lead.createdAt), 'MMM dd, HH:mm')}
                       </td>
                       <td className="px-4 py-4">
                         <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-black ${

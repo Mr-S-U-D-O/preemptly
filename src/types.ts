@@ -20,12 +20,20 @@ export interface Scraper {
   userId: string;
   icon?: string;
   
-  // Client Portal Fields
+  // Client Portal & Personalization
   portalToken?: string | null;
   trialLimit?: number;
   isPaid?: boolean;
   totalPushedLeads?: number;
   totalClientClicks?: number;
+  
+  // Custom Context for Outreach
+  portalSetupCompleted?: boolean;
+  isSoloFreelancer?: boolean;
+  clientBusiness?: string;
+  clientSells?: string;
+  clientDoes?: string;
+  clientTone?: 'professional' | 'friendly' | 'technical';
 }
 
 export interface Lead {
@@ -52,10 +60,14 @@ export interface Lead {
   createdAt: any;
   userId: string;
 
-  // Tracking & Portal fields
+  // Tracking, Portal & Context
   pushedToPortal?: boolean;
   clientViewCount?: number;
   clientFeedback?: string;
+  
+  // Snapshotted Context used for AI generation
+  clientBusiness?: string;
+  isSoloFreelancer?: boolean;
 }
 
 export interface SystemLog {

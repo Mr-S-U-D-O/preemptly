@@ -84,7 +84,7 @@ service cloud.firestore {
     // ===============================================================
 
     function isValidScraperCreate() {
-      let allowedFields = ['name', 'subreddit', 'platform', 'target', 'city', 'category', 'keyword', 'leadDefinition', 'clientName', 'clientPhone', 'idealCustomerProfile', 'intervalMinutes', 'status', 'createdAt', 'lastRunAt', 'userId', 'icon', 'portalToken', 'trialLimit', 'isPaid', 'totalPushedLeads', 'totalClientClicks'];
+      let allowedFields = ['name', 'subreddit', 'platform', 'target', 'city', 'category', 'keyword', 'leadDefinition', 'clientName', 'clientPhone', 'idealCustomerProfile', 'intervalMinutes', 'status', 'createdAt', 'lastRunAt', 'userId', 'icon', 'portalToken', 'trialLimit', 'isPaid', 'totalPushedLeads', 'totalClientClicks', 'portalSetupCompleted', 'isSoloFreelancer', 'clientBusiness', 'clientSells', 'clientDoes', 'clientTone'];
       let requiredFields = ['name', 'keyword', 'intervalMinutes', 'status', 'createdAt', 'userId'];
       
       return hasOnlyAllowedFields(allowedFields) &&
@@ -99,18 +99,24 @@ service cloud.firestore {
              (!('leadDefinition' in request.resource.data) || validStringLength('leadDefinition', 1, 2000)) &&
              (!('clientName' in request.resource.data) || validStringLength('clientName', 1, 100)) &&
              (!('clientPhone' in request.resource.data) || validStringLength('clientPhone', 1, 50)) &&
-             (!('idealCustomerProfile' in request.resource.data) || validStringLength('idealCustomerProfile', 1, 5000)) &&
+             (!('idealCustomerProfile' in request.resource.data) || validStringLength('idealCustomerProfile', 0, 5000)) &&
              request.resource.data.intervalMinutes is number &&
              request.resource.data.intervalMinutes > 0 &&
              request.resource.data.status in ['active', 'paused'] &&
              request.resource.data.createdAt is timestamp &&
              (!('lastRunAt' in request.resource.data) || request.resource.data.lastRunAt is timestamp) &&
              (!('icon' in request.resource.data) || validStringLength('icon', 1, 50)) &&
+             (!('portalSetupCompleted' in request.resource.data) || request.resource.data.portalSetupCompleted is bool) &&
+             (!('isSoloFreelancer' in request.resource.data) || request.resource.data.isSoloFreelancer is bool) &&
+             (!('clientBusiness' in request.resource.data) || validStringLength('clientBusiness', 0, 500)) &&
+             (!('clientSells' in request.resource.data) || validStringLength('clientSells', 0, 500)) &&
+             (!('clientDoes' in request.resource.data) || validStringLength('clientDoes', 0, 500)) &&
+             (!('clientTone' in request.resource.data) || request.resource.data.clientTone in ['professional', 'friendly', 'technical']) &&
              request.resource.data.userId == request.auth.uid;
     }
 
     function isValidScraperUpdate() {
-      let allowedFields = ['name', 'subreddit', 'platform', 'target', 'city', 'category', 'keyword', 'leadDefinition', 'clientName', 'clientPhone', 'idealCustomerProfile', 'intervalMinutes', 'status', 'createdAt', 'lastRunAt', 'userId', 'icon', 'portalToken', 'trialLimit', 'isPaid', 'totalPushedLeads', 'totalClientClicks'];
+      let allowedFields = ['name', 'subreddit', 'platform', 'target', 'city', 'category', 'keyword', 'leadDefinition', 'clientName', 'clientPhone', 'idealCustomerProfile', 'intervalMinutes', 'status', 'createdAt', 'lastRunAt', 'userId', 'icon', 'portalToken', 'trialLimit', 'isPaid', 'totalPushedLeads', 'totalClientClicks', 'portalSetupCompleted', 'isSoloFreelancer', 'clientBusiness', 'clientSells', 'clientDoes', 'clientTone'];
       let requiredFields = ['name', 'keyword', 'intervalMinutes', 'status', 'createdAt', 'userId'];
       return hasOnlyAllowedFields(allowedFields) &&
              hasRequiredFields(requiredFields) &&
@@ -124,16 +130,22 @@ service cloud.firestore {
              (!('leadDefinition' in request.resource.data) || validStringLength('leadDefinition', 1, 2000)) &&
              (!('clientName' in request.resource.data) || validStringLength('clientName', 1, 100)) &&
              (!('clientPhone' in request.resource.data) || validStringLength('clientPhone', 1, 50)) &&
-             (!('idealCustomerProfile' in request.resource.data) || validStringLength('idealCustomerProfile', 1, 5000)) &&
+             (!('idealCustomerProfile' in request.resource.data) || validStringLength('idealCustomerProfile', 0, 5000)) &&
              request.resource.data.intervalMinutes is number &&
              request.resource.data.intervalMinutes > 0 &&
              request.resource.data.status in ['active', 'paused'] &&
              (!('lastRunAt' in request.resource.data) || request.resource.data.lastRunAt is timestamp) &&
+             (!('portalSetupCompleted' in request.resource.data) || request.resource.data.portalSetupCompleted is bool) &&
+             (!('isSoloFreelancer' in request.resource.data) || request.resource.data.isSoloFreelancer is bool) &&
+             (!('clientBusiness' in request.resource.data) || validStringLength('clientBusiness', 0, 500)) &&
+             (!('clientSells' in request.resource.data) || validStringLength('clientSells', 0, 500)) &&
+             (!('clientDoes' in request.resource.data) || validStringLength('clientDoes', 0, 500)) &&
+             (!('clientTone' in request.resource.data) || request.resource.data.clientTone in ['professional', 'friendly', 'technical']) &&
              (!('icon' in request.resource.data) || validStringLength('icon', 1, 50));
     }
 
     function isValidLead() {
-      let allowedFields = ['scraperId', 'subreddit', 'platform', 'target', 'city', 'category', 'keyword', 'postTitle', 'postUrl', 'postAuthor', 'postContent', 'score', 'reason', 'status', 'whatsappMessage', 'email', 'phone', 'location', 'company', 'createdAt', 'userId', 'pushedToPortal', 'clientViewCount', 'clientFeedback'];
+      let allowedFields = ['scraperId', 'subreddit', 'platform', 'target', 'city', 'category', 'keyword', 'postTitle', 'postUrl', 'postAuthor', 'postContent', 'score', 'reason', 'status', 'whatsappMessage', 'email', 'phone', 'location', 'company', 'createdAt', 'userId', 'pushedToPortal', 'clientViewCount', 'clientFeedback', 'clientBusiness', 'isSoloFreelancer'];
       let requiredFields = ['scraperId', 'keyword', 'postTitle', 'postUrl', 'postAuthor', 'createdAt', 'userId'];
       
       return hasOnlyAllowedFields(allowedFields) &&
@@ -157,6 +169,8 @@ service cloud.firestore {
              (!('phone' in request.resource.data) || request.resource.data.phone == null || validStringLength('phone', 1, 100)) &&
              (!('location' in request.resource.data) || request.resource.data.location == null || validStringLength('location', 1, 500)) &&
              (!('company' in request.resource.data) || request.resource.data.company == null || validStringLength('company', 1, 500)) &&
+             (!('clientBusiness' in request.resource.data) || validStringLength('clientBusiness', 0, 500)) &&
+             (!('isSoloFreelancer' in request.resource.data) || request.resource.data.isSoloFreelancer is bool) &&
              request.resource.data.createdAt is timestamp &&
              request.resource.data.userId == request.auth.uid;
     }
@@ -186,7 +200,9 @@ service cloud.firestore {
                       // Lightweight bypass: engagement counters
                       request.resource.data.diff(resource.data).affectedKeys().hasOnly(['totalPushedLeads']) ||
                       request.resource.data.diff(resource.data).affectedKeys().hasOnly(['totalClientClicks']) ||
-                      request.resource.data.diff(resource.data).affectedKeys().hasOnly(['totalPushedLeads', 'totalClientClicks'])
+                      request.resource.data.diff(resource.data).affectedKeys().hasOnly(['totalPushedLeads', 'totalClientClicks']) ||
+                      // Lightweight bypass: setup modal context (client-side update)
+                      request.resource.data.diff(resource.data).affectedKeys().hasOnly(['portalSetupCompleted', 'isSoloFreelancer', 'clientBusiness', 'clientSells', 'clientDoes', 'clientTone'])
                     );
       allow delete: if isAuthenticated() && resource.data.userId == request.auth.uid;
     }

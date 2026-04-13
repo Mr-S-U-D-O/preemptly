@@ -364,6 +364,13 @@ async function startServer() {
         trialLimit: avgTrialLimit,
         isPaid: isPaid,
         leads: activeLeads,
+        setupCompleted: scrapersData.some((s: any) => s.portalSetupCompleted === true),
+        scrapers: scrapersData.map((s: any) => ({
+          id: s.id,
+          name: s.name,
+          clientName: s.clientName,
+          portalSetupCompleted: s.portalSetupCompleted
+        }))
       });
     } catch (error: any) {
       console.error("[Portal API] Error fetching portal:", error);
@@ -405,20 +412,18 @@ async function startServer() {
       // Verify token maps to a valid scraper
       const scrapersSnap = await adminDb.collection('scrapers')
         .where('portalToken', '==', token)
-        .limit(1)
         .get();
 
       if (scrapersSnap.empty) {
         return res.status(404).json({ error: "Portal not found" });
       }
 
-      const scraperDoc = scrapersSnap.docs[0];
-      const scraperId = scraperDoc.id;
+      const scraperIds = scrapersSnap.docs.map(d => d.id);
 
       // Verify lead belongs to this scraper
       const leadRef = adminDb.collection('leads').doc(leadId);
       const leadSnap = await leadRef.get();
-      if (!leadSnap.exists || leadSnap.data().scraperId !== scraperId) {
+      if (!leadSnap.exists || !scraperIds.includes(leadSnap.data()?.scraperId)) {
         return res.status(403).json({ error: "Unauthorized" });
       }
 
@@ -427,11 +432,16 @@ async function startServer() {
         clientViewCount: (leadSnap.data().clientViewCount || 0) + 1
       });
 
-      // Increment aggregate scraper click count
-      const scraperRef = adminDb.collection('scrapers').doc(scraperId);
-      await scraperRef.update({
-        totalClientClicks: (scraperDoc.data().totalClientClicks || 0) + 1
-      });
+      // Increment aggregate scraper click count for the specific scraper this lead belongs to
+      const actualScraperId = leadSnap.data().scraperId;
+      const actualScraperRef = adminDb.collection('scrapers').doc(actualScraperId);
+      const actualScraperSnap = await actualScraperRef.get();
+      
+      if (actualScraperSnap.exists) {
+        await actualScraperRef.update({
+          totalClientClicks: (actualScraperSnap.data().totalClientClicks || 0) + 1
+        });
+      }
 
       res.json({ success: true });
     } catch (error: any) {
@@ -452,18 +462,17 @@ async function startServer() {
 
       const scrapersSnap = await adminDb.collection('scrapers')
         .where('portalToken', '==', token)
-        .limit(1)
         .get();
 
       if (scrapersSnap.empty) {
         return res.status(404).json({ error: "Portal not found" });
       }
 
-      const scraperId = scrapersSnap.docs[0].id;
+      const scraperIds = scrapersSnap.docs.map((d: any) => d.id);
 
       const leadRef = adminDb.collection('leads').doc(leadId);
       const leadSnap = await leadRef.get();
-      if (!leadSnap.exists || leadSnap.data().scraperId !== scraperId) {
+      if (!leadSnap.exists || !scraperIds.includes(leadSnap.data().scraperId)) {
         return res.status(403).json({ error: "Unauthorized" });
       }
 
@@ -856,10 +865,17 @@ async function executeScraper(scraper: any) {
       const prompt = `You are an expert lead generation analyst. I am providing a JSON array of ${minimizedData.length} recent social media posts. 
       
       YOUR CLIENT: ${scraper.clientName || scraper.name}
+      YOUR CLIENT'S BUSINESS PROFILE:
+      - ${scraper.isSoloFreelancer ? 'Type: Solo Freelancer' : 'Type: Company/Agency'}
+      - Business Name/Identity: ${scraper.clientBusiness || scraper.clientName || 'The Client'}
+      - What they sell: ${scraper.clientSells || 'Professional services'}
+      - What they do/Value prop: ${scraper.clientDoes || 'High-quality solutions'}
+      - Preferred outreach tone: ${scraper.clientTone || 'Friendly'}
+
       YOUR SPECIFIC TARGET (Ideal Customer Profile): ${scraper.idealCustomerProfile || scraper.leadDefinition || 'General commercial intent'}
       
       Evaluate EACH AND EVERY post based on this target definition. 
-      
+     
       Look for these specific signals of a high-quality opportunity:
       1. Explicit requests for recommendations or help.
       2. Complaints about current solutions (pain points).
@@ -873,16 +889,18 @@ async function executeScraper(scraper: any) {
       - 4-6: Potential interest, but vague or early stage.
       - 7-10: High-intent lead. The user is actively seeking a solution right now.
       
-      If the score is >= 7, you MUST draft a persuasive WhatsApp message to send to the client (the business owner). 
-      The goal is to summarize the lead and provide context so the recipient understands the value immediately.
+      If the score is >= 7, you MUST draft a persuasive personal message that the client (${scraper.clientBusiness || scraper.clientName}) would send to this lead to introduce their services. 
+      The goal is to respond to the user's specific pain point or request by highlighting how "${scraper.clientBusiness}" can help specifically using their value proposition: "${scraper.clientDoes}".
       
       Use this structure:
-      "Hey ${scraper.clientName || 'there'}, I found a high-intent lead for you regarding \"[Snippet of Post Title]\"! 
+      "Hey [username], I saw your post about \"[Snippet of Post Title]\" and wanted to reach out. 
       
-      [2-3 sentences providing deeper context into what the user is asking and WHY this is a perfect match for your business based on the Ideal Customer Profile]. 
+      [2-3 sentences responding to their specific problem. Mention that you represent ${scraper.clientBusiness || 'your business'} and that you specialize in ${scraper.clientSells}. Explain briefly how you can solve their issue based on your value prop: ${scraper.clientDoes}]. 
       
-      User: [username]
-      Link: [URL]"
+      Best,
+      ${scraper.isSoloFreelancer ? (scraper.clientName || 'the founder') : (scraper.clientName + ' from ' + scraper.clientBusiness)}
+      
+      Link to your post: [URL]"
       
       (Note: Leave [URL] and [username] exactly as those literal strings, we will replace them in the code).
       
@@ -982,7 +1000,10 @@ async function executeScraper(scraper: any) {
           location: scoreObj.enrichment?.location || null,
           company: scoreObj.enrichment?.company || null,
           createdAt: FieldValue.serverTimestamp(),
-          userId: scraper.userId
+          userId: scraper.userId,
+          // Snapshot context at time of generation
+          clientBusiness: scraper.clientBusiness || null,
+          isSoloFreelancer: scraper.isSoloFreelancer || false
         }, { merge: true });
         newLeadsCount++;
         batchOperations++;
