@@ -69,11 +69,13 @@ export function ScraperView() {
   const inboxLeads = filteredLeads.filter(l => !l.pushedToPortal);
   const sentLeads = filteredLeads.filter(l => l.pushedToPortal);
 
+  if (!scraper) {
     return (
       <div className="flex items-center justify-center h-full text-slate-500">
         Monitor not found or loading...
       </div>
     );
+  }
 
   const handleToggleStatus = async () => {
     setIsStatusToggling(true);
