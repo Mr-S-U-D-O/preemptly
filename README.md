@@ -1,6 +1,4 @@
-# IntentFirstHunter: Real-time Growth Intelligence Engine
- 
-IntentFirstHunter is a high-performance **Real-time Growth Intelligence platform** designed to identify and intercept business opportunities the millisecond they appear online. It utilizes **The Latest AI Models** to scan social platforms (Reddit, Stack Overflow, Hacker News, Craigslist) for high-intent signals—identifying users who are actively inquiring about solutions and calculating the system's **Reaction Time** to give you a definitive speed advantage.
+IntentFirstHunter is a high-performance **Real-time Growth Intelligence platform** designed to identify and intercept business opportunities the millisecond they appear online. It utilizes **Proprietary AI Scrutiny** to scan social platforms (Reddit, Stack Overflow, Hacker News, Craigslist) for high-intent signals—identifying users who are actively inquiring about solutions and providing a dedicated **Client Engagement Portal** for seamless community interaction.
 
 ---
 
@@ -24,20 +22,22 @@ graph TD
         ADMIN[Firebase Admin SDK]
     end
 
-    subgraph "Data & UI"
+    subgraph "Data & Analytics"
         FS[(Cloud Firestore)]
         VITE[Vite + React SPA]
         DASH[Intelligence Hub]
+        PORTAL[Client Engagement Portal]
     end
 
     CRON --> FETCHER
     FETCHER --> R & SO & HN & CL
     FETCHER -- "New Posts" --> GENAI
-    GENAI -- "Intent Scores & Velocity" --> ADMIN
+    GENAI -- "Strategic Match Rationale" --> ADMIN
     ADMIN -- "Sync" --> FS
     FS -- "onSnapshot" --> VITE
     VITE --> DASH
-    DASH -- "User Actions" --> ADMIN
+    DASH -- "Enable AI Power-ups" --> FS
+    FS -- "Visibility Toggle" --> PORTAL
 ```
 
 ---
@@ -58,16 +58,16 @@ When a post is discovered, it is sent to **Our Intent Scoring Engine** in optimi
 *   **4-6 (Warm)**: Vague interest or early-stage research.
 *   **7-10 (Hot)**: High-intent lead. The user is actively seeking a solution *now*.
 
-### ⚡ The "Reaction Gap" (Competitive Advantage)
-The platform measures the gap between when a post was created on the source platform and when it was identified by our engine.
-- **Velocity Tracking**: Every match includes a "Reaction Time" badge (e.g., "12m Reaction").
-- **First-Responder Psychology**: By identifying opportunities in real-time, we allow businesses to be the *first* to reach out, which is the single highest predictor of conversion.
+### ⚡ Strategic Match Intelligence
+Every match discovered undergoes a **Strategic Rationale** calculation.
+- **Provider View**: Explains exactly *why* the match was flagged based on the client's business profile.
+- **Client View**: A simplified, professional justification for the match to build trust in the automated lead hunt.
 
-### Automated Intelligence Dispatch
-For every match with a score of 7+, the AI generates a **personalized outreach dispatch**. 
-- It contextually understands the user's specific problem.
-- It drafts a 2-sentence value proposition targeted at the business owner's identity.
-- It enables immediate action via the **WhatsApp Dispatch** button.
+### 🪄 On-Demand "Smart Helper" Comments
+IntentFirstHunter avoids aggressive "Cold DMs." Instead, it enables high-trust community engagement.
+- **Master AI Toggle**: Providers control AI costs by enabling/disabling generative features for clients in real-time.
+- **Smart Comments**: When enabled, clients can generate a **Context-Aware Helpful Comment** for any match, tailored to their business tone and specific expertise.
+- **Actionable Workflow**: Clients review the match, generate a comment, and use the **"One-Click Copy"** to engage on the source platform instantly.
 
 ---
 
@@ -110,14 +110,14 @@ When a user clicks **"Deploy Monitor"**, they aren't just setting up a search; t
 ### 2. Intercepting the Opportunity
 When a match is identified:
 - The backend writes the intelligence data to Firestore.
-- The UI triggers an animation in the **"Intelligence Stream"** feed.
-- The **Reaction Time** and **AI Logic** appear, explaining *how fast* and *why* the machine thinks this is a match.
+- The **Provider** receives a "Strategic Alert" on their dashboard.
+- The **Client** receives an automated notification (WhatsApp/Email) alerting them to a new match.
 
-### 3. Closing the Gap
-Within the **Intelligence View**, the user can:
-- Review the post content and original source timestamp.
-- See the AI's logic and intent score.
-- Click **"Dispatch WhatsApp"**: This opens a pre-composed message in a new tab, ready for the business owner to hit "Send" and win the deal.
+### 3. Smart Interaction
+Within the **Client Engagement Portal**, the user can:
+- Review the post content and strategic rationale.
+- Click **"Open Post"** to view the live conversation.
+- Use **"Draft AI Comment"** (if enabled) to generate a helpful, high-trust response that positions them as an expert.
 
 ---
 
