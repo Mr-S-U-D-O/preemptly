@@ -26,6 +26,7 @@ interface PortalData {
   trialLimit: number;
   isPaid: boolean;
   leads: PortalLead[];
+  isAiEnabled?: boolean;
   setupCompleted?: boolean;
   scrapers?: any[];
 }
@@ -42,6 +43,9 @@ export function ClientPortal() {
   const [sortBy, setSortBy] = useState<'date' | 'score'>('date');
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
   const [deletingLead, setDeletingLead] = useState<string | null>(null);
+  const [generatingComment, setGeneratingComment] = useState<string | null>(null);
+  const [aiComments, setAiComments] = useState<Record<string, string>>({});
+  const [showAiModal, setShowAiModal] = useState<string | null>(null);
 
   const fetchPortal = useCallback(async () => {
     try {
@@ -105,6 +109,23 @@ export function ClientPortal() {
     }
   };
 
+  const handleGenerateComment = async (leadId: string) => {
+    setGeneratingComment(leadId);
+    try {
+      const res = await fetch(`/api/portal/${token}/generate-comment/${leadId}`, {
+        method: 'POST'
+      });
+      if (!res.ok) throw new Error('Failed to generate comment');
+      const json = await res.json();
+      setAiComments(prev => ({ ...prev, [leadId]: json.comment }));
+      setShowAiModal(leadId);
+    } catch (err: any) {
+      alert(err.message || 'AI Generation failed. Please try again.');
+    } finally {
+      setGeneratingComment(null);
+    }
+  };
+
   const sortedLeads = data?.leads ? [...data.leads].sort((a, b) => {
     if (sortBy === 'date') {
       const timeA = new Date(a.createdAt).getTime();
@@ -123,7 +144,7 @@ export function ClientPortal() {
       <div className="min-h-screen bg-slate-50 flex items-center justify-center">
         <div className="text-center">
           <div className="w-10 h-10 border-4 border-[#5a8c12] border-t-transparent rounded-full animate-spin mx-auto mb-4" />
-          <p className="text-slate-500 font-medium">Loading your leads...</p>
+          <p className="text-slate-500 font-medium">Loading your matches...</p>
         </div>
       </div>
     );
@@ -166,16 +187,16 @@ export function ClientPortal() {
               </div>
               <div>
                 <h1 className="text-base font-black text-slate-900 leading-tight">
-                  {data.clientName}'s Leads
+                  {data.clientName}'s Matches
                 </h1>
                 <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">
-                  Powered by IntentFirstHunter
+                  Intelligence Portal
                 </p>
               </div>
             </div>
             <div className="flex items-center gap-2">
               <div className="bg-[#5a8c12]/10 text-[#5a8c12] px-3 py-1.5 rounded-full text-xs font-black">
-                {data.totalLeads} Lead{data.totalLeads !== 1 ? 's' : ''}
+                {data.totalLeads} Match{data.totalLeads !== 1 ? 'es' : ''}
               </div>
             </div>
           </div>
@@ -237,7 +258,7 @@ export function ClientPortal() {
             <p className="text-lg font-black text-[#5a8c12]">
               {data.leads.filter(l => (l.score || 0) >= 8).length}
             </p>
-            <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">Hot Leads</p>
+            <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">High Intent</p>
           </div>
           <div className="w-px bg-slate-100" />
           <div className="flex-1 text-center">
@@ -313,13 +334,17 @@ export function ClientPortal() {
                     {lead.postTitle}
                   </h3>
 
-                  {/* AI Reason */}
+                  {/* AI Rationale */}
                   {lead.reason && (
-                    <p className={`text-xs text-slate-500 leading-relaxed mb-3 ${
-                      isBlurred ? 'blur-sm select-none' : ''
-                    }`}>
-                      <span className="font-bold text-[#5a8c12]">Why this is a lead:</span> {lead.reason}
-                    </p>
+                    <div className={`flex gap-3 bg-[#5a8c12]/5 rounded-xl p-3 mb-3 border border-[#5a8c12]/10 ${isBlurred ? 'blur-sm select-none' : ''}`}>
+                       <div className="shrink-0 mt-0.5">
+                         <Sparkles size={14} className="text-[#5a8c12]" />
+                       </div>
+                       <p className="text-xs text-slate-600 leading-relaxed">
+                        <span className="font-black text-[#5a8c12] uppercase text-[9px] tracking-wider block mb-1">Strategic Rationale</span>
+                        {lead.reason}
+                       </p>
+                    </div>
                   )}
 
                   {/* Expandable Content */}
@@ -341,14 +366,29 @@ export function ClientPortal() {
 
                   {/* Actions */}
                   {!isBlurred ? (
-                    <div className="flex items-center gap-2 pt-2 border-t border-slate-50">
+                    <div className="flex flex-col gap-2 pt-2 border-t border-slate-50">
                       <button
                         onClick={() => handleClickLead(lead.id, lead.postUrl)}
-                        className="flex-1 flex items-center justify-center gap-2 bg-[#5a8c12] hover:bg-[#4a730f] text-white text-xs font-black uppercase tracking-widest py-3 rounded-xl transition-colors shadow-sm"
+                        className="w-full flex items-center justify-center gap-2 bg-white hover:bg-slate-50 text-slate-700 border-2 border-slate-100 text-xs font-black uppercase tracking-widest py-3 rounded-xl transition-all shadow-sm"
                       >
-                        <ExternalLink size={14} />
-                        Contact This Lead
+                        <ExternalLink size={14} className="text-[#5a8c12]" />
+                        Open Post on {lead.platform || 'Platform'}
                       </button>
+                      
+                      {data.isAiEnabled && (
+                        <button
+                          onClick={() => handleGenerateComment(lead.id)}
+                          disabled={generatingComment === lead.id}
+                          className="w-full flex items-center justify-center gap-2 bg-[#5a8c12] hover:bg-[#4a730f] text-white text-xs font-black uppercase tracking-widest py-3 rounded-xl transition-colors shadow-lg shadow-[#5a8c12]/20 disabled:opacity-70"
+                        >
+                          {generatingComment === lead.id ? (
+                            <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                          ) : (
+                            <Sparkles size={14} />
+                          )}
+                          Draft Helpful Comment (AI)
+                        </button>
+                      )}
                     </div>
                   ) : (
                     <div className="flex items-center justify-center gap-2 pt-2 border-t border-slate-50">
@@ -478,13 +518,53 @@ export function ClientPortal() {
             <div className="w-14 h-14 rounded-full bg-slate-50 flex items-center justify-center mx-auto mb-4">
               <Clock size={24} className="text-slate-300" />
             </div>
-            <h2 className="text-lg font-bold text-slate-800 mb-2">No leads yet</h2>
+            <h2 className="text-lg font-bold text-slate-800 mb-2">No matches yet</h2>
             <p className="text-sm text-slate-500">
-              Your leads are being hunted. You'll receive a WhatsApp notification when we find one.
+              Your matches are being monitored. You'll receive a WhatsApp notification when we find one.
             </p>
           </div>
         )}
       </div>
+
+      {/* AI Comment Modal */}
+      {showAiModal && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-md animate-in fade-in duration-300">
+          <div className="bg-white rounded-[32px] shadow-2xl w-full max-w-lg overflow-hidden border border-slate-100 flex flex-col animate-in zoom-in-95 duration-300">
+            <div className="bg-[#5a8c12] p-6 text-white text-center">
+               <Sparkles size={24} className="mx-auto mb-2" />
+               <h3 className="text-xl font-black uppercase tracking-tight">Smart Helpful Comment</h3>
+               <p className="text-white/70 text-xs font-medium mt-1">AI-generated draft based on your business profile</p>
+            </div>
+            <div className="p-8">
+               <div className="bg-slate-50 rounded-2xl p-6 border-2 border-dashed border-slate-200 mb-6">
+                 <p className="text-sm text-slate-700 leading-relaxed font-medium italic">
+                   "{aiComments[showAiModal]}"
+                 </p>
+               </div>
+               <div className="flex flex-col gap-3">
+                 <button
+                   onClick={() => {
+                     navigator.clipboard.writeText(aiComments[showAiModal] || '');
+                     alert('Draft copied to clipboard!');
+                   }}
+                   className="w-full bg-[#5a8c12] hover:bg-[#4a730f] text-white font-black text-xs uppercase tracking-widest py-4 rounded-xl transition-all shadow-lg shadow-[#5a8c12]/20 flex items-center justify-center gap-2"
+                 >
+                   <Send size={14} /> Copy to Clipboard
+                 </button>
+                 <button
+                   onClick={() => setShowAiModal(null)}
+                   className="w-full bg-slate-100 hover:bg-slate-200 text-slate-500 font-black text-xs uppercase tracking-widest py-4 rounded-xl transition-all"
+                 >
+                   Discard
+                 </button>
+               </div>
+            </div>
+            <div className="p-4 bg-slate-50 border-t border-slate-100 text-center">
+              <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">Edit this draft to match your personal style before posting</p>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Footer */}
       <footer className="border-t border-slate-100 bg-white mt-8">

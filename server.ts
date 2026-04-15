@@ -371,6 +371,7 @@ async function startServer() {
         totalLeads: activeLeads.length,
         trialLimit: avgTrialLimit,
         isPaid: isPaid,
+        isAiEnabled: scrapersData.some((s: any) => s.isAiEnabled === true),
         leads: activeLeads,
         setupCompleted: scrapersData.some((s: any) => s.portalSetupCompleted === true),
         scrapers: scrapersData.map((s: any) => ({
@@ -383,6 +384,72 @@ async function startServer() {
     } catch (error: any) {
       console.error("[Portal API] Error fetching portal:", error);
       res.status(500).json({ error: "Internal server error" });
+    }
+  });
+
+  // POST /api/portal/:token/generate-comment/:leadId - On-demand AI comment generation
+  app.post("/api/portal/:token/generate-comment/:leadId", express.json(), async (req, res) => {
+    try {
+      const { token, leadId } = req.params;
+
+      // 1. Verify Portal Token
+      const scrapersSnap = await adminDb.collection('scrapers')
+        .where('portalToken', '==', token)
+        .get();
+
+      if (scrapersSnap.empty) {
+        return res.status(403).json({ error: "Unauthorized portal access" });
+      }
+
+      // 2. Fetch Lead
+      const leadSnap = await adminDb.collection('leads').doc(leadId).get();
+      if (!leadSnap.exists) {
+        return res.status(404).json({ error: "Match not found" });
+      }
+      const leadData = leadSnap.data();
+
+      // 3. Find the specific monitor for this lead
+      const scraper = scrapersSnap.docs.find(d => d.id === leadData.scraperId)?.data();
+      if (!scraper) {
+        return res.status(403).json({ error: "Monitor not found for this match" });
+      }
+
+      // 4. Check if AI is enabled by the provider
+      if (!scraper.isAiEnabled) {
+        return res.status(403).json({ error: "AI Power-ups are disabled for this portal. Please contact your provider." });
+      }
+
+      // 5. Build the Generation Prompt
+      const prompt = `You are ${scraper.clientName || 'the user'}, a ${scraper.isSoloFreelancer ? 'Solo Freelancer' : 'Company/Agency'} specialized in ${scraper.clientSells || 'providing high-value solutions'}.
+      Your core value proposition: ${scraper.clientDoes || 'We deliver excellent results.'}
+      Your preferred communication tone: ${scraper.clientTone || 'Friendly'}
+
+      SOCIAL MEDIA POST TO INTERACT WITH:
+      Title: ${leadData.postTitle}
+      Content: ${leadData.postContent || 'N/A'}
+
+      TASK: Draft a helpful, insightful, and non-salesy "Smart Comment" for this post.
+      - If they have a question, offer a helpful tip or directly answer it.
+      - If they have a pain point, acknowledge it empathetically.
+      - DO NOT pitch or sell aggressively. This is community building.
+      - Subtly mention that you specialize in ${scraper.clientSells} only if it provides genuine context.
+      - Keep it short: 2-3 sentences max.
+      - Tone: ${scraper.clientTone}
+
+      Return ONLY the comment text. No preamble.`;
+
+      const aiResponse = await ai.models.generateContent({
+        model: 'gemini-3-flash-preview',
+        contents: prompt,
+      });
+
+      const comment = aiResponse.text || "I'm sorry, I couldn't generate a comment at this time.";
+
+      res.json({ comment: comment.trim() });
+
+    } catch (error: any) {
+      console.error("[Portal API] Comment generation failed:", error);
+      res.status(500).json({ error: "Failed to generate AI comment" });
     }
   });
 
@@ -915,30 +982,17 @@ async function executeScraper(scraper: any) {
       Score the intent from 1 to 10:
       - 1-3: No match or very weak signal.
       - 4-6: Potential interest, but vague or early stage.
-      - 7-10: High-intent lead. The user is actively seeking a solution right now.
+      - 7-10: Strategic Match. The user is actively seeking a solution right now.
       
-      If the score is >= 7, you MUST draft a persuasive personal message that the client (${scraper.clientBusiness || scraper.clientName}) would send to this lead to introduce their services. 
-      The goal is to respond to the user's specific pain point or request by highlighting how "${scraper.clientBusiness}" can help specifically using their value proposition: "${scraper.clientDoes}".
-      
-      Use this structure:
-      "Hey [username], I saw your post about \"[Snippet of Post Title]\" and wanted to reach out. 
-      
-      [2-3 sentences responding to their specific problem. Mention that you represent ${scraper.clientBusiness || 'your business'} and that you specialize in ${scraper.clientSells}. Explain briefly how you can solve their issue based on your value prop: ${scraper.clientDoes}]. 
-      
-      Best,
-      ${scraper.isSoloFreelancer ? (scraper.clientName || 'the founder') : (scraper.clientName + ' from ' + scraper.clientBusiness)}
-      
-      Link to your post: [URL]"
-      
-      (Note: Leave [URL] and [username] exactly as those literal strings, we will replace them in the code).
+      If the score is >= 7, provide a clear, one-sentence "Match rationale" that explains exactly why this is a good opportunity for the client, focusing on their value proposition: "${scraper.clientDoes}".
       
       Return ONLY a valid JSON array of objects. 
       Format: [{ 
         "index": number, 
         "score": number, 
         "reason": "string", 
+        "matchRationale": "string",
         "isLead": boolean, 
-        "whatsappMessage": "string",
         "enrichment": {
           "email": "string or null",
           "phone": "string or null",
@@ -1006,10 +1060,12 @@ async function executeScraper(scraper: any) {
         const postUrl = post.postUrl;
         const leadDocRef = adminDb.collection('leads').doc(post.leadId);
 
-        let finalWhatsappMessage = scoreObj.whatsappMessage || `Hey ${scraper.clientName || 'there'}, I found a user by /u/${post.data.author} looking for something related to your business. Here is the link: [URL]`;
-        finalWhatsappMessage = finalWhatsappMessage
-          .replace(/\[URL\]/gi, postUrl)
-          .replace(/\[username\]/gi, post.data.author || 'the author');
+        // Client Alert Template for WhatsApp
+        const matchRationale = scoreObj.matchRationale || scoreObj.reason || 'General match detected.';
+        const whatsappTemplate = `*New Strategic Match Opportunity!* 🎯\n\n*Topic:* ${title.substring(0, 100)}${title.length > 100 ? '...' : ''}\n\n*Rationale:* ${matchRationale}\n\n*Action:* Review and interact with this match in your Growth Portal:\n[PORTAL_URL]`;
+        
+        const portalUrl = process.env.VITE_APP_URL ? `${process.env.VITE_APP_URL}/portal/${scraper.portalToken}` : `https://intent-first-hunter.web.app/portal/${scraper.portalToken}`;
+        const finalWhatsappMessage = whatsappTemplate.replace(/\[PORTAL_URL\]/gi, portalUrl);
         
         // Use set() with the deterministic ID — duplicates are overwritten harmlessly
         batchWrite.set(leadDocRef, {

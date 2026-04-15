@@ -35,7 +35,8 @@ import {
   ExternalLink,
   ShieldCheck,
   MousePointer2,
-  User
+  User,
+  Sparkles
 } from 'lucide-react';
 import {
   XAxis,
@@ -305,6 +306,28 @@ export function Home() {
     }
   };
 
+  const handleToggleAi = async (clientName: string, scraperIds: string[], currentlyEnabled: boolean) => {
+    try {
+      const newState = !currentlyEnabled;
+      const batch = writeBatch(db);
+      for (const id of scraperIds) {
+        batch.update(doc(db, 'scrapers', id), {
+          isAiEnabled: newState
+        });
+      }
+      await batch.commit();
+
+      await addDoc(collection(db, 'logs'), {
+        type: newState ? 'scraper_resumed' : 'scraper_paused',
+        message: `AI Power-ups ${newState ? 'enabled' : 'disabled'} for "${clientName}"`,
+        createdAt: serverTimestamp(),
+        userId: user?.uid
+      });
+    } catch (error) {
+      handleFirestoreError(error, OperationType.UPDATE, 'scrapers');
+    }
+  };
+
   const getResetTitle = () => ({ leads: 'Reset All Leads', scrapers: 'Reset All Scrapers', logs: 'Reset All Logs', all: 'Reset Entire Dashboard' })[resetType!] || 'Reset';
   const getResetDescription = () => ({
     leads: 'Are you sure? All lead data will be permanently deleted.',
@@ -376,6 +399,7 @@ export function Home() {
       totalPushedLeads: number;
       totalClientClicks: number;
       isPaid: boolean;
+      isAiEnabled: boolean;
       createdAt: any;
       scrapers: any[];
     };
@@ -393,6 +417,7 @@ export function Home() {
           totalPushedLeads: 0,
           totalClientClicks: 0,
           isPaid: s.isPaid || false,
+          isAiEnabled: s.isAiEnabled || false,
           createdAt: s.createdAt,
           scrapers: []
         };
@@ -411,6 +436,8 @@ export function Home() {
       
       // If any scraper has paid status, client is paid
       if (s.isPaid) acc[key].isPaid = true;
+      // If any scraper has AI enabled, consider the client AI enabled
+      if (s.isAiEnabled) acc[key].isAiEnabled = true;
       // If any scraper has a portal token, use it
       if (s.portalToken) acc[key].portalToken = s.portalToken;
       // Use max trial limit
@@ -432,6 +459,7 @@ export function Home() {
         totalPushedLeads: d.totalPushedLeads,
         totalClientClicks: d.totalClientClicks,
         isPaid: d.isPaid,
+        isAiEnabled: d.isAiEnabled,
         createdAt: d.createdAt,
         scrapers: d.scrapers
       }))
@@ -1137,12 +1165,17 @@ export function Home() {
                             <h4 className="font-black text-xl text-slate-900 dark:text-white truncate">
                               {client.name}
                             </h4>
-                            {client.isPaid && (
-                              <span className="px-2 py-0.5 rounded-full bg-[#5a8c12]/10 text-[#5a8c12] text-[10px] font-black uppercase tracking-widest border border-[#5a8c12]/20">
-                                Paid Client
-                              </span>
-                            )}
-                          </div>
+                              {client.isPaid && (
+                                <span className="px-2 py-0.5 rounded-full bg-[#5a8c12]/10 text-[#5a8c12] text-[10px] font-black uppercase tracking-widest border border-[#5a8c12]/20">
+                                  Paid Client
+                                </span>
+                              )}
+                              {client.isAiEnabled && (
+                                <span className="px-2 py-0.5 rounded-full bg-blue-500/10 text-blue-500 text-[10px] font-black uppercase tracking-widest border border-blue-500/20 flex items-center gap-1">
+                                  <Sparkles size={10} /> AI Powered
+                                </span>
+                              )}
+                            </div>
                           <div className="flex items-center gap-3 mt-1.5">
                             <div className="flex items-center gap-1 text-[11px] font-bold text-slate-400 uppercase tracking-tight">
                               <User size={12} />
@@ -1195,21 +1228,43 @@ export function Home() {
                       </div>
 
                       {/* Health Progress */}
-                      <div>
-                        <div className="flex justify-between items-center mb-2">
-                          <div className="flex items-center gap-2">
-                            <ShieldCheck size={14} className="text-[#5a8c12]" />
-                            <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Trial Usage ({client.totalPushedLeads}/{client.trialLimit})</span>
+                      <div className="flex flex-col sm:flex-row gap-6 mt-4">
+                        <div className="flex-1">
+                          <div className="flex justify-between items-center mb-2">
+                            <div className="flex items-center gap-2">
+                              <ShieldCheck size={14} className="text-[#5a8c12]" />
+                              <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Trial Usage ({client.totalPushedLeads}/{client.trialLimit})</span>
+                            </div>
+                            <span className="text-[10px] font-black text-[#5a8c12] bg-[#5a8c12]/10 px-2 py-0.5 rounded-full">
+                              {Math.round((client.totalPushedLeads / client.trialLimit) * 100)}%
+                            </span>
                           </div>
-                          <span className="text-[10px] font-black text-[#5a8c12] bg-[#5a8c12]/10 px-2 py-0.5 rounded-full">
-                            {Math.round((client.totalPushedLeads / client.trialLimit) * 100)}%
-                          </span>
+                          <div className="h-2 bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden">
+                             <div 
+                               className="h-full bg-[#5a8c12] transition-all duration-1000" 
+                               style={{ width: `${Math.min(100, (client.totalPushedLeads / client.trialLimit) * 100)}%` }} 
+                             />
+                          </div>
                         </div>
-                        <div className="h-2 bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden">
-                           <div 
-                             className="h-full bg-[#5a8c12] transition-all duration-1000" 
-                             style={{ width: `${Math.min(100, (client.totalPushedLeads / client.trialLimit) * 100)}%` }} 
-                           />
+
+                        {/* AI Switch */}
+                        <div className="flex flex-col justify-center gap-2 p-3 bg-slate-50 dark:bg-slate-800/20 rounded-2xl border border-slate-100 dark:border-slate-800">
+                          <div className="flex items-center justify-between gap-4">
+                            <div className="flex items-center gap-2">
+                              <div className={`p-1.5 rounded-lg ${client.isAiEnabled ? 'bg-blue-500 text-white shadow-lg shadow-blue-500/20' : 'bg-slate-200 text-slate-400'}`}>
+                                <Sparkles size={12} />
+                              </div>
+                              <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest leading-none">AI Power-ups</span>
+                            </div>
+                            <button
+                              onClick={() => handleToggleAi(client.name, client.scraperIds, client.isAiEnabled)}
+                              className={`relative inline-flex h-5 w-9 shrink-0 cursor-pointer items-center rounded-full transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-950 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 ${client.isAiEnabled ? 'bg-[#5a8c12]' : 'bg-slate-200'}`}
+                            >
+                              <span
+                                className={`pointer-events-none block h-3.5 w-3.5 rounded-full bg-white shadow-lg ring-0 transition-transform ${client.isAiEnabled ? 'translate-x-[18px]' : 'translate-x-[4px]'}`}
+                              />
+                            </button>
+                          </div>
                         </div>
                       </div>
                     </div>

@@ -1,6 +1,6 @@
 # IntentFirstHunter: Real-time Growth Intelligence Engine
  
-IntentFirstHunter is a high-performance **Real-time Growth Intelligence platform** designed to identify and intercept business opportunities the millisecond they appear online. It utilizes **Google’s Gemini 3 Flash AI** to scan social platforms (Reddit, Stack Overflow, Hacker News, Craigslist) for high-intent signals—identifying users who are actively seeking solutions and calculating the system's **Reaction Time** to give you a definitive speed advantage.
+IntentFirstHunter is a high-performance **Real-time Growth Intelligence platform** designed to identify and intercept business opportunities the millisecond they appear online. It utilizes **The Latest AI Models** to scan social platforms (Reddit, Stack Overflow, Hacker News, Craigslist) for high-intent signals—identifying users who are actively inquiring about solutions and calculating the system's **Reaction Time** to give you a definitive speed advantage.
 
 ---
 
@@ -47,7 +47,7 @@ graph TD
 While traditional scrapers look for `keyword == "plumber"`, IntentFirstHunter looks for **Intent**.
 
 ### How the Machine "Thinks"
-When a post is fetched, it is sent to **Gemini 3 Flash** in optimized batches. The machine is programmed to look for specific behavioral signals:
+When a post is discovered, it is sent to **Our Intent Scoring Engine** in optimized batches. The machine is programmed to look for specific behavioral signals:
 1.  **Explicit Requests**: "Can anyone recommend a service for...?"
 2.  **Pain Points**: "I'm so frustrated with my current [Solution]..."
 3.  **Exploratory Questions**: "Does anyone know how to solve [Problem X]?"

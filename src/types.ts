@@ -34,6 +34,7 @@ export interface Scraper {
   clientSells?: string;
   clientDoes?: string;
   clientTone?: 'professional' | 'friendly' | 'technical';
+  isAiEnabled?: boolean;
 }
 
 export interface Lead {
