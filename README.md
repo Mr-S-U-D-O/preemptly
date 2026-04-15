@@ -1,6 +1,6 @@
-# IntentFirstHunter: AI-Driven Intent Discovery Engine
-
-IntentFirstHunter is a high-performance lead generation platform designed to move beyond simple keyword matching. It utilizes **Google’s Gemini 3 Flash AI** to scan social platforms (Reddit, Stack Overflow, Hacker News, Craigslist) for real-time "intent signals"—identifying users who are actively seeking solutions rather than just mentioning keywords.
+# IntentFirstHunter: Real-time Growth Intelligence Engine
+ 
+IntentFirstHunter is a high-performance **Real-time Growth Intelligence platform** designed to identify and intercept business opportunities the millisecond they appear online. It utilizes **Google’s Gemini 3 Flash AI** to scan social platforms (Reddit, Stack Overflow, Hacker News, Craigslist) for high-intent signals—identifying users who are actively seeking solutions and calculating the system's **Reaction Time** to give you a definitive speed advantage.
 
 ---
 
@@ -27,13 +27,13 @@ graph TD
     subgraph "Data & UI"
         FS[(Cloud Firestore)]
         VITE[Vite + React SPA]
-        DASH[Intelligence Dashboard]
+        DASH[Intelligence Hub]
     end
 
     CRON --> FETCHER
     FETCHER --> R & SO & HN & CL
     FETCHER -- "New Posts" --> GENAI
-    GENAI -- "Intent Scores & Pitches" --> ADMIN
+    GENAI -- "Intent Scores & Velocity" --> ADMIN
     ADMIN -- "Sync" --> FS
     FS -- "onSnapshot" --> VITE
     VITE --> DASH
@@ -58,11 +58,16 @@ When a post is fetched, it is sent to **Gemini 3 Flash** in optimized batches. T
 *   **4-6 (Warm)**: Vague interest or early-stage research.
 *   **7-10 (Hot)**: High-intent lead. The user is actively seeking a solution *now*.
 
-### Automated Pitch Generation
-For every lead with a score of 7+, the AI generates a **personalized WhatsApp pitch**. 
-- It contextually understands the user's problem.
-- It drafts a 2-sentence value proposition targeted at the business owner.
-- It leaves placeholders for the business owner to easily send the message via the WhatsApp API.
+### ⚡ The "Reaction Gap" (Competitive Advantage)
+The platform measures the gap between when a post was created on the source platform and when it was identified by our engine.
+- **Velocity Tracking**: Every match includes a "Reaction Time" badge (e.g., "12m Reaction").
+- **First-Responder Psychology**: By identifying opportunities in real-time, we allow businesses to be the *first* to reach out, which is the single highest predictor of conversion.
+
+### Automated Intelligence Dispatch
+For every match with a score of 7+, the AI generates a **personalized outreach dispatch**. 
+- It contextually understands the user's specific problem.
+- It drafts a 2-sentence value proposition targeted at the business owner's identity.
+- It enables immediate action via the **WhatsApp Dispatch** button.
 
 ---
 
@@ -76,11 +81,11 @@ Platforms like Reddit have strict IP blocking for standard scrapers. IntentFirst
 *   Routing requests through **rss2json** and standard RSS parsers to distribute request footprints.
 *   Implementing **Randomized Delays** (1s - 3s) between platform fetches to mimic human interaction.
 
-### 2. Background Persistence Loop
+### 2. Background Surveillance Loop
 The server runs a `setInterval` worker every 60 seconds.
-- It identifies "Active" scrapers.
+- It identifies "Active" intelligence monitors.
 - It calculates the `nextRun` based on the user-defined interval.
-- It executes the `executeScraper` function, which handles the full pipeline: Fetch -> Batch -> Score -> Save.
+- It executes the `executeScraper` function, which handles the full pipeline: Fetch -> Batch -> Score -> Save (with Reaction Time capture).
 
 ---
 
@@ -94,25 +99,25 @@ The frontend is a **Vite-powered React SPA** built for speed and visual clarity.
 
 ---
 
-## 🚀 The User Flow: From Search to Sale
+## 🚀 The User Flow: From Signal to Sale
 
 ### 1. Initializing the Engine
-When a user clicks **"Add Scraper"**, they aren't just setting up a search; they are configuring a digital hunter.
-- **Client Name**: Who is the lead for?
-- **Ideal Customer Profile**: What does a "perfect lead" look like to the AI?
-- **Target**: Which "hunting grounds" should the engine monitor?
+When a user clicks **"Deploy Monitor"**, they aren't just setting up a search; they are configuring a digital hunter.
+- **Identity (Internal)**: What is this monitor called?
+- **Ideal Customer Profile**: What does a "perfect match" look like to our AI?
+- **Target**: Which platform "hunting grounds" should the engine surveil?
 
-### 2. Identifying the Opportunity
-When a lead is found:
-- The backend writes the lead to Firestore.
-- The UI triggers an animation in the **"System Activity"** feed.
-- The **Lead Score** and **AI Reason** appear, explaining *why* the machine thinks this is a match.
+### 2. Intercepting the Opportunity
+When a match is identified:
+- The backend writes the intelligence data to Firestore.
+- The UI triggers an animation in the **"Intelligence Stream"** feed.
+- The **Reaction Time** and **AI Logic** appear, explaining *how fast* and *why* the machine thinks this is a match.
 
-### 3. Closing the Deal
-Within the **Lead View**, the user can:
-- Review the raw post content.
-- See the AI's logic.
-- Click **"Send WhatsApp"**: This opens a pre-composed message in a new tab, ready for the business owner to hit "Send".
+### 3. Closing the Gap
+Within the **Intelligence View**, the user can:
+- Review the post content and original source timestamp.
+- See the AI's logic and intent score.
+- Click **"Dispatch WhatsApp"**: This opens a pre-composed message in a new tab, ready for the business owner to hit "Send" and win the deal.
 
 ---
 

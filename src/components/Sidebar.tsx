@@ -9,11 +9,11 @@ import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip
 import { db, auth } from '../firebase';
 import { collection, query, where, onSnapshot } from 'firebase/firestore';
 
-export function Sidebar({ scrapers, onAddScraper, className }: { scrapers: Scraper[], onAddScraper: (initialData?: any) => void, className?: string }) {
+export function Sidebar({ scrapers, onAddMonitor, className }: { scrapers: Scraper[], onAddMonitor: (initialData?: any) => void, className?: string }) {
   const [isOpen, setIsOpen] = useState(true);
   const [openClients, setOpenClients] = useState<Record<string, boolean>>({});
   const [openPlatforms, setOpenPlatforms] = useState<Record<string, boolean>>({});
-  const [newLeadsCounts, setNewLeadsCounts] = useState<Record<string, number>>({});
+  const [newMatchesCounts, setNewMatchesCounts] = useState<Record<string, number>>({});
 
   useEffect(() => {
     const user = auth.currentUser;
@@ -34,7 +34,7 @@ export function Sidebar({ scrapers, onAddScraper, className }: { scrapers: Scrap
           counts[scraperId] = (counts[scraperId] || 0) + 1;
         }
       });
-      setNewLeadsCounts(counts);
+      setNewMatchesCounts(counts);
     });
 
     return () => unsubscribe();
@@ -113,7 +113,7 @@ export function Sidebar({ scrapers, onAddScraper, className }: { scrapers: Scrap
           </NavLink>
           
           <Button 
-            onClick={() => onAddScraper()} 
+            onClick={() => onAddMonitor()} 
             variant="outline" 
             className="w-full justify-start gap-3 px-4 py-6 rounded-xl border-dashed border-2 border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:text-[#5a8c12] dark:hover:text-[#5a8c12] hover:border-[#5a8c12]/30 dark:hover:border-[#5a8c12]/50 hover:bg-[#5a8c12]/5 dark:hover:bg-[#5a8c12]/10 transition-all font-semibold"
           >
@@ -137,7 +137,7 @@ export function Sidebar({ scrapers, onAddScraper, className }: { scrapers: Scrap
                 <div key={clientName} className="space-y-1">
                   {(() => {
                     const clientScrapers = Object.values(platforms).flat();
-                    const clientNewLeads = clientScrapers.reduce((sum, s) => sum + (newLeadsCounts[s.id] || 0), 0);
+                    const clientNewMatches = clientScrapers.reduce((sum, s) => sum + (newMatchesCounts[s.id] || 0), 0);
                     
                     return (
                       <button 
@@ -149,9 +149,9 @@ export function Sidebar({ scrapers, onAddScraper, className }: { scrapers: Scrap
                         <span className="text-xs font-bold text-slate-700 dark:text-slate-200 truncate flex-1 text-left">
                           {clientName}
                         </span>
-                        {clientNewLeads > 0 && (
+                        {clientNewMatches > 0 && (
                           <span className="bg-[#5a8c12] text-white text-[9px] font-black px-1.5 py-0.5 rounded-full min-w-[18px] text-center animate-pulse">
-                            {clientNewLeads}
+                            {clientNewMatches}
                           </span>
                         )}
                         <span className="bg-slate-100 dark:bg-slate-800 px-1.5 py-0.5 rounded text-[9px] text-slate-500">
@@ -166,7 +166,7 @@ export function Sidebar({ scrapers, onAddScraper, className }: { scrapers: Scrap
                       {Object.entries(platforms).map(([platform, platformScrapers]) => {
                         const platformKey = `${clientName}-${platform}`;
                         const PlatformIcon = platformIcons[platform] || Icons.Globe;
-                        const platformNewLeads = platformScrapers.reduce((sum, s) => sum + (newLeadsCounts[s.id] || 0), 0);
+                        const platformNewMatches = platformScrapers.reduce((sum, s) => sum + (newMatchesCounts[s.id] || 0), 0);
                         
                         return (
                           <div key={platform} className="space-y-1">
@@ -178,9 +178,9 @@ export function Sidebar({ scrapers, onAddScraper, className }: { scrapers: Scrap
                                 {openPlatforms[platformKey] ? <ChevronDown size={10} /> : <ChevronRight size={10} />}
                                 <PlatformIcon size={12} className="text-[#5a8c12] opacity-80" />
                                 <span className="flex-1 text-left truncate">{platformNames[platform] || platform}</span>
-                                {platformNewLeads > 0 && (
+                                {platformNewMatches > 0 && (
                                   <span className="bg-[#5a8c12] text-white text-[8px] font-black px-1.5 py-0.5 rounded-full min-w-[14px] text-center">
-                                    {platformNewLeads}
+                                    {platformNewMatches}
                                   </span>
                                 )}
                               </button>
@@ -189,7 +189,7 @@ export function Sidebar({ scrapers, onAddScraper, className }: { scrapers: Scrap
                                 <TooltipTrigger
                                   onClick={(e) => {
                                     e.stopPropagation();
-                                    onAddScraper({ 
+                                    onAddMonitor({ 
                                       clientName, 
                                       clientPhone: platformScrapers[0]?.clientPhone, 
                                       platform 
@@ -232,9 +232,9 @@ export function Sidebar({ scrapers, onAddScraper, className }: { scrapers: Scrap
                                               <span className="text-xs font-semibold text-slate-700 dark:text-slate-300 truncate block">
                                                 {scraper.name}
                                               </span>
-                                              {newLeadsCounts[scraper.id] > 0 && (
+                                              {newMatchesCounts[scraper.id] > 0 && (
                                                 <span className="bg-[#5a8c12] text-white text-[8px] font-black px-1.5 py-0.5 rounded-full min-w-[14px] text-center shrink-0">
-                                                  {newLeadsCounts[scraper.id]}
+                                                  {newMatchesCounts[scraper.id]}
                                                 </span>
                                               )}
                                             </div>

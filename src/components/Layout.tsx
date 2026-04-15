@@ -29,7 +29,7 @@ export function Layout() {
 
   return (
     <div className="flex h-screen bg-[#f8f9fa] dark:bg-slate-950 font-sans text-slate-900 dark:text-slate-100 p-2 md:p-4 gap-4 md:gap-6 transition-colors">
-      <Sidebar scrapers={scrapers} onAddScraper={openAddModal} className="hidden lg:flex" />
+      <Sidebar scrapers={scrapers} onAddMonitor={openAddModal} className="hidden lg:flex" />
       
       <main className="flex-1 flex flex-col overflow-hidden bg-transparent">
         <header className="h-16 flex items-center justify-between lg:justify-end px-2 shrink-0 mb-4">
@@ -41,7 +41,7 @@ export function Layout() {
               <SheetContent side="left" className="p-0 w-72 bg-transparent border-none shadow-none">
                 <Sidebar 
                   scrapers={scrapers} 
-                  onAddScraper={(data) => {
+                  onAddMonitor={(data) => {
                     openAddModal(data);
                     setIsMobileMenuOpen(false);
                   }} 
