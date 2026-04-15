@@ -166,7 +166,7 @@ export function LeadsTable({ leads, scrapers }: { leads: Lead[], scrapers: Scrap
             <div className="flex items-center">Author <SortIcon column="postAuthor" /></div>
           </TableHead>
           <TableHead className="cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors" onClick={() => handleSort('createdAt')}>
-            <div className="flex items-center">Found <SortIcon column="createdAt" /></div>
+            <div className="flex items-center">Reaction Gap <SortIcon column="createdAt" /></div>
           </TableHead>
           <TableHead className="cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors" onClick={() => handleSort('status')}>
             <div className="flex items-center">Status <SortIcon column="status" /></div>
@@ -306,8 +306,36 @@ export function LeadsTable({ leads, scrapers }: { leads: Lead[], scrapers: Scrap
               <TableCell className="text-slate-500 dark:text-slate-400 text-sm">
                 {(lead.platform === 'reddit' || !lead.platform) ? `u/${lead.postAuthor}` : lead.postAuthor}
               </TableCell>
-              <TableCell className="text-slate-500 dark:text-slate-400 text-sm">
-                <LiveTimestamp date={lead.createdAt} />
+              <TableCell>
+                <div className="flex flex-col">
+                  {lead.pubDate && (
+                    <div className="flex items-center gap-1.5 mb-1">
+                      <span className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[9px] font-black uppercase tracking-tight ${
+                        (() => {
+                          const created = lead.createdAt?.toMillis?.() || Date.now();
+                          const published = new Date(lead.pubDate).getTime();
+                          const diffMinutes = Math.floor((created - published) / 60000);
+                          if (diffMinutes < 15) return 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400';
+                          if (diffMinutes < 60) return 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400';
+                          return 'bg-slate-100 text-slate-500 dark:bg-slate-800 dark:text-slate-400';
+                        })()
+                      }`}>
+                        <Icons.Zap size={8} />
+                        {(() => {
+                          const created = lead.createdAt?.toMillis?.() || Date.now();
+                          const published = new Date(lead.pubDate).getTime();
+                          const diff = created - published;
+                          const mins = Math.max(1, Math.floor(diff / 60000));
+                          if (mins < 60) return `${mins}m Reaction`;
+                          const hrs = Math.floor(mins / 60);
+                          if (hrs < 24) return `${hrs}h Reaction`;
+                          return `${Math.floor(hrs / 24)}d Reaction`;
+                        })()}
+                      </span>
+                    </div>
+                  )}
+                  <LiveTimestamp date={lead.createdAt} />
+                </div>
               </TableCell>
               <TableCell>
                 <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold ${

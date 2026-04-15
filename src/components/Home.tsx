@@ -519,7 +519,7 @@ export function Home() {
             Overview
           </span>
           <h1 className="text-2xl font-black text-slate-900 dark:text-slate-100 tracking-tight mt-0.5">
-            Intelligence Dashboard
+            Intelligence Hub
           </h1>
         </div>
         <div className="flex items-center gap-3">
@@ -609,8 +609,8 @@ export function Home() {
       {/* ── Primary KPIs ── */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-5">
         <KpiCard
-          icon={Database}
-          label="Total Leads"
+          icon={Activity}
+          label="Intelligence Alerts"
           value={leads.length}
           iconBg="bg-[#5a8c12]/10"
           iconColor="text-[#5a8c12]"
@@ -639,7 +639,7 @@ export function Home() {
         />
         <KpiCard
           icon={Zap}
-          label="Active Scrapers"
+          label="Active Monitors"
           value={`${activeScrapers}/${scrapers.length}`}
           iconBg="bg-[#5a8c12]/10"
           iconColor="text-[#5a8c12]"
@@ -661,8 +661,8 @@ export function Home() {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <ChartCard
           className="lg:col-span-2"
-          title="Lead Generation Velocity"
-          subtitle="Leads found per day, broken down by scraper"
+          title="Intelligence Stream Velocity"
+          subtitle="Real-time alert frequency and monitoring health"
           action={
             <div className="flex items-center gap-1 bg-slate-100 dark:bg-slate-800 p-1 rounded-xl">
               {(["7d", "30d", "all"] as const).map((r) => (
@@ -773,7 +773,7 @@ export function Home() {
         </ChartCard>
 
         {/* Platform breakdown donut */}
-        <ChartCard title="Platform Mix" subtitle="Lead sources by platform">
+        <ChartCard title="Intelligence Sources" subtitle="Platform distribution across monitors">
           {!mounted || stats.platformData.length === 0 ? (
             <div className="h-64 flex items-center justify-center text-slate-400 text-sm italic">
               No platform data yet

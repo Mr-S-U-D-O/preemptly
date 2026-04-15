@@ -1033,6 +1033,7 @@ async function executeScraper(scraper: any) {
           location: scoreObj.enrichment?.location || null,
           company: scoreObj.enrichment?.company || null,
           createdAt: FieldValue.serverTimestamp(),
+          pubDate: post.data.pubDate || null,
           userId: scraper.userId,
           // Snapshot context at time of generation
           clientBusiness: scraper.clientBusiness || null,
