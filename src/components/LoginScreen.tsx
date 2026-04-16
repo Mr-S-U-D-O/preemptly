@@ -93,7 +93,7 @@ export function LoginScreen() {
               <div className="w-10 h-10 rounded-xl bg-white/10 backdrop-blur-md border border-white/20 flex items-center justify-center">
                 <Target className="w-5 h-5" />
               </div>
-              <span className="font-bold tracking-tight text-xl">IntentFirstHunter</span>
+              <span className="font-bold tracking-tight text-xl">Preemptly</span>
             </div>
             <p className="text-white/70 max-w-sm text-sm font-medium leading-relaxed">
               Global intelligence for high-value growth. Powered by proprietary extraction algorithms.
@@ -112,7 +112,7 @@ export function LoginScreen() {
               <div className="w-10 h-10 rounded-xl bg-slate-900 flex items-center justify-center">
                 <Target className="w-6 h-6 text-white" />
               </div>
-              <span className="font-bold text-xl tracking-tight">IntentFirstHunter</span>
+              <span className="font-bold text-xl tracking-tight">Preemptly</span>
             </div>
 
             {/* Experience Toggler */}

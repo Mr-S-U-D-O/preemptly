@@ -57,6 +57,7 @@ export interface Lead {
   email?: string;
   phone?: string;
   location?: string;
+  company?: string;
   createdAt: any;
   pubDate?: string;
   userId: string;

@@ -501,7 +501,7 @@ export function ClientPortal() {
               You've used all {data.trialLimit} free leads. To unlock unlimited access, contact your account manager.
             </p>
             <a
-              href={`https://wa.me/?text=${encodeURIComponent(`Hi! I'd like to upgrade my IntentFirstHunter plan for ${data.clientName}. Portal: ${window.location.href}`)}`}
+              href={`https://wa.me/?text=${encodeURIComponent(`Hi! I'd like to upgrade my Preemptly plan for ${data.clientName}. Portal: ${window.location.href}`)}`}
               target="_blank"
               rel="noopener noreferrer"
               className="inline-flex items-center gap-2 bg-[#25D366] hover:bg-[#1da851] text-white font-black text-sm uppercase tracking-widest px-6 py-3 rounded-xl transition-colors shadow-md"
@@ -570,7 +570,7 @@ export function ClientPortal() {
       <footer className="border-t border-slate-100 bg-white mt-8">
         <div className="max-w-2xl mx-auto px-4 py-4 text-center">
           <p className="text-[10px] font-bold text-slate-300 uppercase tracking-widest">
-            Leads powered by IntentFirstHunter • AI-Driven Lead Generation
+            Leads powered by Preemptly • AI-Driven Lead Generation
           </p>
         </div>
       </footer>

@@ -207,9 +207,24 @@ export function Home() {
     try { await batch.commit(); } catch (e) { console.error('Reset error:', e); }
   };
 
+  const generateReadableToken = (clientName: string) => {
+    const slug = clientName
+      .toLowerCase()
+      .trim()
+      .replace(/[^\w\s-]/g, '')     // Remove non-alphanumeric
+      .replace(/\s+/g, '-')          // Replace spaces with hyphens
+      .replace(/-+/g, '-')           // Remove consecutive hyphens
+      .substring(0, 32);             // Limit length
+
+    // Add a short 6-char random suffix for uniqueness
+    const randomSuffix = Math.random().toString(36).substring(2, 8);
+    
+    return `${slug || 'portal'}-${randomSuffix}`;
+  };
+
   const handleDeployPortal = async (clientName: string, scraperIds: string[]) => {
     setIsDeploying(prev => ({ ...prev, [clientName]: true }));
-    const token = Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
+    const token = generateReadableToken(clientName);
     try {
       const batch = writeBatch(db);
       for (const id of scraperIds) {
@@ -1282,14 +1297,14 @@ export function Home() {
                              <h5 className="text-[9px] font-black text-[#5a8c12] uppercase tracking-[0.2em] mb-2 text-center">Live Dashboard</h5>
                              <div className="flex items-center gap-2 bg-white dark:bg-slate-800 p-2 rounded-xl border border-slate-100 dark:border-slate-700 shadow-sm">
                                <span className="text-[10px] font-mono text-slate-500 flex-1 truncate">
-                                 {window.location.origin}/portal/{client.portalToken}
+                                 portal.bepreemptly.com/{client.portalToken}
                                </span>
                                <Button 
                                  variant="ghost" 
                                  size="icon" 
                                  className="h-7 w-7 text-[#5a8c12] hover:bg-[#5a8c12]/10"
                                  onClick={() => {
-                                   navigator.clipboard.writeText(`${window.location.origin}/portal/${client.portalToken}`);
+                                   navigator.clipboard.writeText(`https://portal.bepreemptly.com/${client.portalToken}`);
                                    setCopiedToken(client.portalToken);
                                    setTimeout(() => setCopiedToken(null), 2000);
                                  }}
@@ -1300,7 +1315,7 @@ export function Home() {
                                  variant="ghost" 
                                  size="icon" 
                                  className="h-7 w-7 text-blue-500 hover:bg-blue-50"
-                                 onClick={() => window.open(`${window.location.origin}/portal/${client.portalToken}`, '_blank')}
+                                 onClick={() => window.open(`https://portal.bepreemptly.com/${client.portalToken}`, '_blank')}
                                >
                                  <ExternalLink size={14} />
                                </Button>

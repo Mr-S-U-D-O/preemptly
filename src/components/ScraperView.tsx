@@ -550,12 +550,10 @@ export function ScraperView() {
                       </TableCell>
                       <TableCell>
                          <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-black uppercase tracking-widest border ${
-                           lead.status === 'deleted' ? 'bg-red-50 text-red-500 border-red-100' :
                            lead.status === 'sent' ? 'bg-blue-50 text-blue-600 border-blue-100' :
                            lead.status === 'viewed' ? 'bg-green-50 text-green-600 border-green-100' :
                            'bg-slate-50 text-slate-400 border-slate-100'
                          }`}>
-                           {lead.status === 'deleted' ? <Icons.Trash2 size={10}/> : null}
                            {lead.status === 'sent' ? <Icons.Send size={10}/> : null}
                            {lead.status}
                          </span>

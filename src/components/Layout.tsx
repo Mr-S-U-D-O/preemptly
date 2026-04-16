@@ -54,7 +54,7 @@ export function Layout() {
               <div className="w-8 h-8 rounded-lg bg-[#5a8c12] text-white flex items-center justify-center shadow-md">
                 <Database size={16} strokeWidth={1.5} />
               </div>
-              <span className="hidden sm:inline">IntentFirstHunter</span>
+              <span className="hidden sm:inline">Preemptly</span>
             </div>
           </div>
 

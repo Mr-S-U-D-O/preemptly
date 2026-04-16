@@ -113,7 +113,7 @@ export function AuthGate({ children }: { children: React.ReactNode }) {
         <div className="w-12 h-12 rounded-xl bg-[#5a8c12] flex items-center justify-center shadow-lg shadow-[#5a8c12]/20 animate-pulse mb-4">
           <Target className="text-white w-8 h-8" />
         </div>
-        <div className="text-slate-500 dark:text-slate-400 font-medium animate-pulse">Loading IntentFirstHunter...</div>
+        <div className="text-slate-500 dark:text-slate-400 font-medium animate-pulse">Loading Preemptly...</div>
       </div>
     );
   }

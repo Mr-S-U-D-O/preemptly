@@ -1,4 +1,4 @@
-IntentFirstHunter is a high-performance **Real-time Growth Intelligence platform** designed to identify and intercept business opportunities the millisecond they appear online. It utilizes **Proprietary AI Scrutiny** to scan social platforms (Reddit, Stack Overflow, Hacker News, Craigslist) for high-intent signals—identifying users who are actively inquiring about solutions and providing a dedicated **Client Engagement Portal** for seamless community interaction.
+Preemptly is a high-performance **Real-time Growth Intelligence platform** designed to identify and intercept business opportunities the millisecond they appear online. It utilizes **Proprietary AI Scrutiny** to scan social platforms (Reddit, Stack Overflow, Hacker News, Craigslist) for high-intent signals—identifying users who are actively inquiring about solutions and providing a dedicated **Client Engagement Portal** for seamless community interaction.
 
 ---
 
@@ -44,7 +44,7 @@ graph TD
 
 ## 🧠 The "Brain": AI Scrutiny Logic
 
-While traditional scrapers look for `keyword == "plumber"`, IntentFirstHunter looks for **Intent**.
+While traditional scrapers look for `keyword == "plumber"`, Preemptly looks for **Intent**.
 
 ### How the Machine "Thinks"
 When a post is discovered, it is sent to **Our Intent Scoring Engine** in optimized batches. The machine is programmed to look for specific behavioral signals:
@@ -64,7 +64,7 @@ Every match discovered undergoes a **Strategic Rationale** calculation.
 - **Client View**: A simplified, professional justification for the match to build trust in the automated lead hunt.
 
 ### 🪄 On-Demand "Smart Helper" Comments
-IntentFirstHunter avoids aggressive "Cold DMs." Instead, it enables high-trust community engagement.
+Preemptly avoids aggressive "Cold DMs." Instead, it enables high-trust community engagement.
 - **Master AI Toggle**: Providers control AI costs by enabling/disabling generative features for clients in real-time.
 - **Smart Comments**: When enabled, clients can generate a **Context-Aware Helpful Comment** for any match, tailored to their business tone and specific expertise.
 - **Actionable Workflow**: Clients review the match, generate a comment, and use the **"One-Click Copy"** to engage on the source platform instantly.
@@ -76,7 +76,7 @@ IntentFirstHunter avoids aggressive "Cold DMs." Instead, it enables high-trust c
 The backend is a robust Node.js server powered by **Express** and **Hono-style routing**, serving as a bridge between the browser and the raw internet.
 
 ### 1. The RSS Bypass Technique
-Platforms like Reddit have strict IP blocking for standard scrapers. IntentFirstHunter bypasses this by:
+Platforms like Reddit have strict IP blocking for standard scrapers. Preemptly bypasses this by:
 *   Using **RSS Feeds** instead of the JSON API.
 *   Routing requests through **rss2json** and standard RSS parsers to distribute request footprints.
 *   Implementing **Randomized Delays** (1s - 3s) between platform fetches to mimic human interaction.

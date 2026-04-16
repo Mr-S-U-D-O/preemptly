@@ -88,7 +88,7 @@ export function AccessDenied({ onSignOut, userEmail }: AccessDeniedProps) {
                 Sign Out & Try Different Account
               </Button>
               <p className="text-[10px] text-slate-400 font-medium">
-                IntentFirstHunter Internal Tool v2.1.0
+                Preemptly Internal Tool v2.1.0
               </p>
             </div>
           </div>

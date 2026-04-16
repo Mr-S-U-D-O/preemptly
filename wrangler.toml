@@ -1,0 +1,15 @@
+name = "preemptly-frontend"
+pages_build_output_dir = "dist"
+
+[[custom_domains]]
+domain = "bepreemptly.com"
+
+[[custom_domains]]
+domain = "hq.bepreemptly.com"
+
+[[custom_domains]]
+domain = "portal.bepreemptly.com"
+
+[vars]
+# Add your environment variables here if needed for build
+# Or configure them in the Cloudflare Dashboard
