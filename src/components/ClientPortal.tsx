@@ -6,6 +6,7 @@ import { LiveTimestamp } from './LiveTimestamp';
 import { ClientSetupModal } from './ClientSetupModal';
 import { SEO } from './SEO';
 import { reportError } from '../utils/logger';
+import { toast } from './ui/toast';
 
 interface PortalLead {
   id: string;
@@ -48,6 +49,7 @@ export function ClientPortal() {
   const [generatingComment, setGeneratingComment] = useState<string | null>(null);
   const [aiComments, setAiComments] = useState<Record<string, string>>({});
   const [showAiModal, setShowAiModal] = useState<string | null>(null);
+  const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
 
   const fetchPortal = useCallback(async () => {
     try {
@@ -94,9 +96,15 @@ export function ClientPortal() {
     }
   };
 
-  const handleDeleteLead = async (leadId: string) => {
-    if (!confirm('Are you sure you want to remove this lead from your dashboard?')) return;
+  const handleDeleteLeadClick = (leadId: string) => {
+    setConfirmDeleteId(leadId);
+  };
+
+  const handleConfirmDelete = async () => {
+    if (!confirmDeleteId) return;
+    const leadId = confirmDeleteId;
     setDeletingLead(leadId);
+    setConfirmDeleteId(null);
     try {
       await fetch(`/api/portal/${token}/delete/${leadId}`, { method: 'POST' });
       // Update local state by removing the lead
@@ -105,8 +113,9 @@ export function ClientPortal() {
         leads: prev.leads.filter(l => l.id !== leadId),
         totalLeads: prev.totalLeads - 1
       } : null);
+      toast('Lead removed successfully.');
     } catch {
-      alert('Failed to delete lead. Please try again.');
+      toast('Failed to delete lead. Please try again.', 'error');
     } finally {
       setDeletingLead(null);
     }
@@ -123,7 +132,7 @@ export function ClientPortal() {
       setAiComments(prev => ({ ...prev, [leadId]: json.comment }));
       setShowAiModal(leadId);
     } catch (err: any) {
-      alert(err.message || 'AI Generation failed. Please try again.');
+      toast(err.message || 'AI Generation failed. Please try again.', 'error');
       reportError(err, { component: 'ClientPortal', action: 'handleGenerateComment', token, leadId });
     } finally {
       setGeneratingComment(null);
@@ -322,7 +331,7 @@ export function ClientPortal() {
                       </div>
                        {!isBlurred && (
                          <button 
-                           onClick={() => handleDeleteLead(lead.id)}
+                           onClick={() => handleDeleteLeadClick(lead.id)}
                            disabled={deletingLead === lead.id}
                            className="text-slate-300 hover:text-red-400 transition-colors p-1"
                            title="Dismiss lead"
@@ -477,7 +486,7 @@ export function ClientPortal() {
                                  <ExternalLink size={14} />
                                </button>
                                <button 
-                                 onClick={() => handleDeleteLead(lead.id)}
+                                 onClick={() => handleDeleteLeadClick(lead.id)}
                                  className="w-8 h-8 rounded-lg bg-red-50 text-red-400 flex items-center justify-center hover:bg-red-500 hover:text-white transition-all"
                                >
                                  <Trash2 size={14} />
@@ -551,7 +560,8 @@ export function ClientPortal() {
                  <button
                    onClick={() => {
                      navigator.clipboard.writeText(aiComments[showAiModal] || '');
-                     alert('Draft copied to clipboard!');
+                     toast('Draft copied to clipboard!');
+                     setShowAiModal(null);
                    }}
                    className="w-full bg-[#5a8c12] hover:bg-[#4a730f] text-white font-black text-xs uppercase tracking-widest py-4 rounded-xl transition-all shadow-lg shadow-[#5a8c12]/20 flex items-center justify-center gap-2"
                  >
@@ -580,6 +590,33 @@ export function ClientPortal() {
           </p>
         </div>
       </footer>
+
+      {/* Confirmation Modal */}
+      {confirmDeleteId && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-md animate-in fade-in duration-300">
+          <div className="bg-white rounded-[32px] shadow-2xl w-full max-w-sm overflow-hidden border border-slate-100 flex flex-col p-8 text-center animate-in zoom-in-95 duration-300">
+            <div className="w-14 h-14 rounded-full bg-red-50 flex items-center justify-center mx-auto mb-4">
+              <Trash2 size={24} className="text-red-500" />
+            </div>
+            <h3 className="text-xl font-black text-slate-900 mb-2">Remove Lead?</h3>
+            <p className="text-sm text-slate-500 mb-6">Are you sure you want to remove this lead from your dashboard? This cannot be undone.</p>
+            <div className="flex gap-3">
+              <button
+                onClick={() => setConfirmDeleteId(null)}
+                className="flex-1 bg-slate-100 hover:bg-slate-200 text-slate-600 font-black text-xs uppercase tracking-widest py-3 rounded-xl transition-all"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleConfirmDelete}
+                className="flex-1 bg-red-500 hover:bg-red-600 text-white font-black text-xs uppercase tracking-widest py-3 rounded-xl transition-all shadow-lg shadow-red-500/20"
+              >
+                Remove
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

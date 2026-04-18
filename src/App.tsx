@@ -11,6 +11,7 @@ import { CRMView } from './components/CRMView';
 import { TooltipProvider } from '@/components/ui/tooltip';
 import { LandingPage } from './components/public/LandingPage';
 import { SmoothCursor } from './components/ui/smooth-cursor';
+import { Toaster } from './components/ui/toast';
 
 export default function App() {
   const hostname = window.location.hostname;
@@ -30,6 +31,7 @@ export default function App() {
     return (
       <TooltipProvider>
         <SmoothCursor />
+        <Toaster />
         <LandingPage />
       </TooltipProvider>
     );
@@ -41,6 +43,7 @@ export default function App() {
       <DataProvider>
         <TooltipProvider>
           <SmoothCursor />
+          <Toaster />
           <BrowserRouter>
             <Routes>
               {/* Client Portal - no auth, no layout */}

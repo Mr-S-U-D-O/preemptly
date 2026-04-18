@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Target, ArrowRight, CheckCircle2, ChevronRight, Check } from 'lucide-react';
 import { db } from '../../firebase';
 import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
+import { toast } from '../ui/toast';
 
 interface InteractiveOnboardingProps {
   isOpen: boolean;
@@ -46,7 +47,7 @@ export const InteractiveOnboarding: React.FC<InteractiveOnboardingProps> = ({ is
       setIsSuccess(true);
     } catch (error) {
       console.error("Error submitting application:", error);
-      alert("Something went wrong. Please try again.");
+      toast("Something went wrong. Please try again.", "error");
     } finally {
       setIsSubmitting(false);
     }

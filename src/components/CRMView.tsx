@@ -17,6 +17,7 @@ import { db } from '../firebase';
 import { SEO } from './SEO';
 import { ConfirmModal } from './ConfirmModal';
 import { AddScraperModal } from './AddScraperModal';
+import { toast } from './ui/toast';
 
 interface BetaApplicant {
   id: string;
@@ -83,7 +84,7 @@ export function CRMView() {
       setDeleteId(null);
     } catch (error) {
       console.error("Error deleting applicant:", error);
-      alert("Failed to delete applicant.");
+      toast("Failed to delete applicant.", "error");
     }
   };
 

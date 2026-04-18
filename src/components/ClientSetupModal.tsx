@@ -6,6 +6,7 @@ import { Label } from '@/components/ui/label';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Scraper } from '../types';
 import { reportError } from '../utils/logger';
+import { toast } from './ui/toast';
 
 interface ClientSetupModalProps {
   scrapers: Scraper[];
@@ -47,7 +48,7 @@ export function ClientSetupModal({ scrapers, token, onComplete }: ClientSetupMod
     } catch (error: any) {
       console.error("Setup failed:", error);
       reportError(error, { component: 'ClientSetupModal', action: 'handleSave', token });
-      alert("Failed to complete setup. Please check your connection and try again.");
+      toast("Failed to complete setup. Please check your connection and try again.", "error");
     } finally {
       setIsSubmitting(false);
     }

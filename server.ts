@@ -472,13 +472,13 @@ async function startServer() {
       Title: ${leadData.postTitle}
       Content: ${leadData.postContent || 'N/A'}
 
-      TASK: Draft a helpful, insightful, and non-salesy "Smart Comment" for this post.
-      - If they have a question, offer a helpful tip or directly answer it.
-      - If they have a pain point, acknowledge it empathetically.
-      - DO NOT pitch or sell aggressively. This is community building.
-      - Subtly mention that you specialize in ${scraper.clientSells} only if it provides genuine context.
-      - Keep it short: 2-3 sentences max.
-      - Tone: ${scraper.clientTone}
+      TASK: Draft a highly context-aware, helpful, and insightful "Smart Comment" for this post.
+      - Deeply analyze any frustrations, questions, or software pain points the author is expressing.
+      - If they have a question, offer a helpful tip or directly answer it drawing from your expertise.
+      - If they express a pain point (e.g. software issues, workflow bottlenecks), acknowledge it empathetically.
+      - DO NOT pitch or sell aggressively. This is relationship and community building.
+      - SUBTLE NUDGING: You must implicitly and elegantly hint that you are a better alternative or have solved this problem. Use framing such as "At ${scraper.clientName || 'our company'}, we deliberately built our process to avoid exactly this..." or "We've noticed this is a common issue with X, which is why we approach it differently..." ONLY when it genuinely fits the context.
+      - Maintain a ${scraper.clientTone} tone. Keep it short: 2-3 sentences max.
 
       Return ONLY the comment text. No preamble.`;
 
