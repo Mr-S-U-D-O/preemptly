@@ -1,7 +1,8 @@
 import { useParams } from 'react-router-dom';
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { format } from 'date-fns';
-import { ExternalLink, MessageCircle, Star, Clock, Zap, Lock, ChevronDown, ChevronUp, Send, LayoutGrid, List, ArrowUpDown, Trash2, CheckCircle, Sparkles } from 'lucide-react';
+import { ExternalLink, MessageCircle, Star, Clock, Zap, Lock, ChevronDown, ChevronUp, Send, LayoutGrid, List, ArrowUpDown, Trash2, CheckCircle, Sparkles, X, MessageSquare } from 'lucide-react';
+import { ChatMessage } from '../types';
 import { LiveTimestamp } from './LiveTimestamp';
 import { ClientSetupModal } from './ClientSetupModal';
 import { SEO } from './SEO';
@@ -53,6 +54,14 @@ export function ClientPortal() {
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
   const [updatingOutcome, setUpdatingOutcome] = useState<string | null>(null);
 
+  // Chat state
+  const [chatOpen, setChatOpen] = useState(false);
+  const [messages, setMessages] = useState<ChatMessage[]>([]);
+  const [newMessage, setNewMessage] = useState('');
+  const [sendingMsg, setSendingMsg] = useState(false);
+  const [unreadCount, setUnreadCount] = useState(0);
+  const messagesEndRef = useRef<HTMLDivElement>(null);
+
   const fetchPortal = useCallback(async () => {
     try {
       const res = await fetch(`/api/portal/${token}`);
@@ -73,6 +82,73 @@ export function ClientPortal() {
   useEffect(() => {
     fetchPortal();
   }, [fetchPortal]);
+
+  // SSE Chat stream
+  useEffect(() => {
+    if (!token) return;
+    
+    // Using native EventSource for SSE
+    const eventSource = new EventSource(`/api/portal/${token}/chat/stream`);
+
+    eventSource.onmessage = (event) => {
+      try {
+        const data = JSON.parse(event.data);
+        setMessages(data);
+        
+        // Count unread from admin ONLY when chat is closed
+        if (!chatOpen) {
+          const unreadMsgs = data.filter((m: ChatMessage) => m.sender === 'admin' && !m.isRead).length;
+          setUnreadCount(unreadMsgs);
+        }
+      } catch (e) {
+        // Parse error, ignore incomplete streams
+      }
+    };
+
+    eventSource.onerror = (err) => {
+      // Stream broken (server restart, connection lost). Browser will automatically attempt reconnect.
+      console.error('SSE Chat Error', err);
+    };
+
+    return () => {
+      eventSource.close();
+    };
+  }, [token, chatOpen]);
+
+  useEffect(() => {
+    // When chat opens, clear unread count and scroll to bottom
+    if (chatOpen) {
+      setUnreadCount(0);
+      setTimeout(() => {
+        messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+      }, 100);
+    }
+  }, [chatOpen, messages]);
+
+  const handleSendMessage = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newMessage.trim() || sendingMsg) return;
+
+    const msg = newMessage.trim();
+    setNewMessage('');
+    setSendingMsg(true);
+
+    try {
+      await fetch(`/api/portal/${token}/chat`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ text: msg, sender: 'client' })
+      });
+      setTimeout(() => {
+        messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+      }, 100);
+    } catch {
+      toast('Failed to send message. Please try again.', 'error');
+      setNewMessage(msg);
+    } finally {
+      setSendingMsg(false);
+    }
+  };
 
   const handleClickLead = async (leadId: string, postUrl: string) => {
     // Track the click server-side
@@ -711,6 +787,119 @@ export function ClientPortal() {
           </div>
         </div>
       )}
+
+      {/* Real-time Support Chat Widget */}
+      <div className="fixed bottom-6 right-6 z-50 flex flex-col items-end pointer-events-none">
+        
+        {/* Chat Pane */}
+        <div 
+          className={`pointer-events-auto w-[340px] bg-white rounded-[24px] shadow-2xl border border-slate-100 overflow-hidden transition-all duration-300 flex flex-col origin-bottom-right mb-4 ${
+            chatOpen ? 'scale-100 opacity-100 h-[480px]' : 'scale-95 opacity-0 h-0 pointer-events-none'
+          }`}
+        >
+          {/* Header */}
+          <div className="bg-[#5a8c12] p-4 flex items-center justify-between shrink-0">
+            <div className="flex items-center gap-3">
+              <div className="w-8 h-8 rounded-full bg-white/20 flex items-center justify-center">
+                <MessageSquare size={16} className="text-white" />
+              </div>
+              <div>
+                <h3 className="text-white font-black text-sm tracking-tight leading-none">Support Team</h3>
+                <p className="text-white/70 text-[10px] font-bold uppercase tracking-widest mt-1">Usually replies instantly</p>
+              </div>
+            </div>
+            <button 
+              onClick={() => setChatOpen(false)}
+              className="w-8 h-8 rounded-full flex items-center justify-center text-white/70 hover:text-white hover:bg-white/10 transition-colors"
+            >
+              <X size={18} />
+            </button>
+          </div>
+          
+          {/* Messages Area */}
+          <div className="flex-1 overflow-y-auto p-4 bg-slate-50 flex flex-col gap-3 custom-scrollbar">
+            <div className="text-center py-4">
+              <div className="inline-block bg-slate-200/50 text-slate-500 text-[10px] font-bold uppercase tracking-widest px-3 py-1 rounded-full mb-2">
+                Today
+              </div>
+              <p className="text-xs text-slate-500">Welcome to your Growth Portal! Drop a message below if you have any questions or feedback.</p>
+            </div>
+            
+            {messages.map((msg) => {
+              const isClient = msg.sender === 'client';
+              return (
+                <div key={msg.id} className={`flex ${isClient ? 'justify-end' : 'justify-start'}`}>
+                  <div 
+                    className={`max-w-[85%] px-4 py-2.5 rounded-2xl text-sm ${
+                      isClient 
+                        ? 'bg-[#5a8c12] text-white rounded-br-sm' 
+                        : 'bg-white text-slate-700 border border-slate-100 shadow-sm rounded-bl-sm'
+                    }`}
+                  >
+                    <p className="leading-relaxed whitespace-pre-wrap">{msg.text}</p>
+                    <span 
+                      className={`text-[9px] font-bold uppercase tracking-wider block mt-1 ${
+                        isClient ? 'text-white/60 text-right' : 'text-slate-400'
+                      }`}
+                    >
+                      {new Date(msg.timestamp).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}
+                    </span>
+                  </div>
+                </div>
+              );
+            })}
+            <div ref={messagesEndRef} className="h-1" />
+          </div>
+          
+          {/* Input Area */}
+          <form 
+            onSubmit={handleSendMessage} 
+            className="p-3 bg-white border-t border-slate-100 flex items-center gap-2 shrink-0"
+          >
+            <input 
+              type="text"
+              value={newMessage}
+              onChange={e => setNewMessage(e.target.value)}
+              placeholder="Write a message..."
+              className="flex-1 bg-slate-50 border border-slate-100 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#5a8c12]/20 focus:border-[#5a8c12]/30 transition-all font-medium placeholder:font-normal placeholder:text-slate-400"
+              disabled={sendingMsg}
+            />
+            <button 
+              type="submit"
+              disabled={!newMessage.trim() || sendingMsg}
+              className="w-11 h-11 shrink-0 bg-[#5a8c12] text-white rounded-xl flex items-center justify-center hover:bg-[#4a730f] transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-md shadow-[#5a8c12]/20"
+            >
+              {sendingMsg ? <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" /> : <Send size={18} className="translate-x-[1px]" />}
+            </button>
+          </form>
+        </div>
+
+        {/* Toggle Button */}
+        <button
+          onClick={() => setChatOpen(!chatOpen)}
+          className={`pointer-events-auto h-14 rounded-full flex items-center justify-center transition-all duration-300 shadow-xl shadow-[#5a8c12]/20 focus:outline-none focus:ring-4 focus:ring-[#5a8c12]/20 relative ${
+            chatOpen 
+              ? 'bg-slate-800 text-white w-14' 
+              : 'bg-[#5a8c12] text-white w-auto px-6 gap-2 hover:-translate-y-1'
+          }`}
+        >
+          {chatOpen ? (
+            <X size={24} />
+          ) : (
+            <>
+              <div className="relative">
+                <MessageCircle size={22} className="fill-[#5a8c12]" />
+                {unreadCount > 0 && (
+                  <span className="absolute -top-1 -right-2 bg-red-500 text-white min-w-[18px] h-[18px] rounded-full text-[10px] font-black flex items-center justify-center border-2 border-[#5a8c12] px-1">
+                    {unreadCount}
+                  </span>
+                )}
+              </div>
+              <span className="font-black text-sm tracking-tight pr-1">Growth Support</span>
+            </>
+          )}
+        </button>
+      </div>
     </div>
   );
 }

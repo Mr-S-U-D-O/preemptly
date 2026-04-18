@@ -83,3 +83,11 @@ export interface SystemLog {
   createdAt: any;
   userId: string;
 }
+
+export interface ChatMessage {
+  id: string;
+  text: string;
+  sender: 'client' | 'admin';
+  timestamp: string;
+  isRead: boolean;
+}

@@ -352,6 +352,9 @@ async function startServer() {
   
   // GET /api/portal/:token - Fetch scraper info + pushed leads
   app.get("/api/portal/:token", async (req, res) => {
+    res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
+    res.setHeader('Pragma', 'no-cache');
+    res.setHeader('Expires', '0');
     const { token } = req.params;
     try {
       if (!token || token.length < 10) {
@@ -677,6 +680,117 @@ async function startServer() {
       res.json({ success: true });
     } catch (error: any) {
       await logSystemError("portal_outcome", "Outcome tracking error", { error: error.message, stack: error.stack, token, leadId });
+      res.status(500).json({ error: "Internal server error" });
+    }
+  });
+
+  // GET /api/portal/:token/chat/stream - SSE Chat Stream
+  app.get("/api/portal/:token/chat/stream", async (req, res) => {
+    const { token } = req.params;
+    
+    res.writeHead(200, {
+      'Content-Type': 'text/event-stream',
+      'Cache-Control': 'no-cache, no-transform',
+      'Connection': 'keep-alive',
+      'X-Accel-Buffering': 'no'
+    });
+
+    try {
+      const scrapersSnap = await adminDb.collection('scrapers')
+        .where('portalToken', '==', token)
+        .get();
+
+      if (scrapersSnap.empty) {
+        res.write('event: error\ndata: {"error":"Portal not found"}\n\n');
+        return res.end();
+      }
+
+      const unsubscribe = adminDb.collection('portal_chats').doc(token).collection('messages')
+        .orderBy('timestamp', 'asc')
+        .onSnapshot(
+          (snapshot) => {
+            const messages = snapshot.docs.map(doc => {
+              const data = doc.data();
+              return {
+                id: doc.id,
+                text: data.text,
+                sender: data.sender,
+                isRead: data.isRead,
+                timestamp: data.timestamp?.toDate?.()?.toISOString() || new Date().toISOString()
+              };
+            });
+            res.write(`data: ${JSON.stringify(messages)}\n\n`);
+          },
+          (error) => {
+            console.error('SSE Snapshot error:', error);
+            res.write(`event: error\ndata: {"error":"${error.message}"}\n\n`);
+          }
+        );
+
+      req.on('close', () => {
+        unsubscribe();
+      });
+
+    } catch (error: any) {
+      console.error('SSE Auth error:', error);
+      res.write('event: error\ndata: {"error":"Internal server error"}\n\n');
+      res.end();
+    }
+  });
+
+  // POST /api/portal/:token/chat - Send Chat Message
+  app.post("/api/portal/:token/chat", express.json(), async (req, res) => {
+    const { token } = req.params;
+    try {
+      const { text, sender } = req.body;
+
+      if (!text || typeof text !== 'string') {
+        return res.status(400).json({ error: "Invalid message text" });
+      }
+      
+      const safeSender = sender === 'admin' ? 'admin' : 'client';
+
+      const scrapersSnap = await adminDb.collection('scrapers')
+        .where('portalToken', '==', token)
+        .get();
+
+      if (scrapersSnap.empty) {
+        return res.status(404).json({ error: "Portal not found" });
+      }
+      
+      const clientName = scrapersSnap.docs[0].data().clientName || 'Client';
+      const userId = scrapersSnap.docs[0].data().userId;
+
+      await adminDb.collection('portal_chats').doc(token).collection('messages').add({
+        text,
+        sender: safeSender,
+        isRead: false,
+        timestamp: FieldValue.serverTimestamp()
+      });
+      
+      await adminDb.collection('portal_chats').doc(token).set({
+        lastMessage: text.substring(0, 50),
+        lastMessageAt: FieldValue.serverTimestamp(),
+        lastSender: safeSender,
+        clientName: clientName,
+        userId: userId,
+        hasUnreadAdmin: safeSender === 'client',
+        hasUnreadClient: safeSender === 'admin',
+      }, { merge: true });
+
+      if (safeSender === 'client') {
+        await adminDb.collection('logs').add({
+          type: 'chat_message',
+          message: `New message from ${clientName}: "${text.substring(0, 40)}${text.length > 40 ? '...' : ''}"`,
+          userId: userId,
+          createdAt: FieldValue.serverTimestamp(),
+          token: token
+        });
+      }
+
+      res.json({ success: true });
+    } catch (error: any) {
+      await logSystemError("portal_chat", "Chat send error", { error: error.message, stack: error.stack, token });
       res.status(500).json({ error: "Internal server error" });
     }
   });

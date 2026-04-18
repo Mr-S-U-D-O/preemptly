@@ -1042,53 +1042,55 @@ export function Home() {
           {!mounted ? (
             <div className="h-48 bg-slate-100 dark:bg-slate-800 rounded-2xl animate-pulse" />
           ) : scraperPerformance.length > 0 ? (
-            <ResponsiveContainer
-              width="100%"
-              height={Math.max(240, scraperPerformance.length * 52)}
-            >
-              <BarChart
-                data={scraperPerformance}
-                layout="vertical"
-                margin={{ top: 0, right: 60, left: 0, bottom: 0 }}
+            <div className="max-h-[420px] overflow-y-auto custom-scrollbar pr-4 -mr-4">
+              <ResponsiveContainer
+                width="100%"
+                height={Math.max(240, scraperPerformance.length * 42)}
               >
-                <XAxis type="number" hide />
-                <YAxis
-                  dataKey="name"
-                  type="category"
-                  axisLine={false}
-                  tickLine={false}
-                  tick={{ fill: "#64748b", fontSize: 11, fontWeight: 700 }}
-                  width={110}
-                />
-                <RechartsTooltip content={<DarkTooltip />} />
-                <Bar
-                  dataKey="leads"
-                  name="Total"
-                  radius={[0, 6, 6, 0]}
-                  barSize={16}
+                <BarChart
+                  data={scraperPerformance}
+                  layout="vertical"
+                  margin={{ top: 0, right: 60, left: 0, bottom: 0 }}
                 >
-                  {scraperPerformance.map((entry, i) => (
-                    <Cell
-                      key={i}
-                      fill={
-                        entry.hasError
-                          ? "#ef4444"
-                          : SCRAPER_COLORS[i % SCRAPER_COLORS.length]
-                      }
-                      fillOpacity={entry.status === "paused" ? 0.35 : 1}
-                    />
-                  ))}
-                </Bar>
-                <Bar
-                  dataKey="sent"
-                  name="Sent"
-                  radius={[0, 6, 6, 0]}
-                  barSize={8}
-                  fill="#3b82f6"
-                  fillOpacity={0.7}
-                />
-              </BarChart>
-            </ResponsiveContainer>
+                  <XAxis type="number" hide />
+                  <YAxis
+                    dataKey="name"
+                    type="category"
+                    axisLine={false}
+                    tickLine={false}
+                    tick={{ fill: "#64748b", fontSize: 11, fontWeight: 700 }}
+                    width={110}
+                  />
+                  <RechartsTooltip content={<DarkTooltip />} />
+                  <Bar
+                    dataKey="leads"
+                    name="Total"
+                    radius={[0, 6, 6, 0]}
+                    barSize={12}
+                  >
+                    {scraperPerformance.map((entry, i) => (
+                      <Cell
+                        key={i}
+                        fill={
+                          entry.hasError
+                            ? "#ef4444"
+                            : SCRAPER_COLORS[i % SCRAPER_COLORS.length]
+                        }
+                        fillOpacity={entry.status === "paused" ? 0.35 : 1}
+                      />
+                    ))}
+                  </Bar>
+                  <Bar
+                    dataKey="sent"
+                    name="Sent"
+                    radius={[0, 6, 6, 0]}
+                    barSize={6}
+                    fill="#3b82f6"
+                    fillOpacity={0.7}
+                  />
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
           ) : (
             <div className="h-36 flex items-center justify-center text-slate-400 text-sm italic">
               No scrapers deployed yet
