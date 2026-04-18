@@ -91,8 +91,8 @@ export function LoginScreen() {
           {/* Subtle info on the image */}
           <div className="absolute bottom-10 left-10 text-white z-10">
             <div className="flex items-center gap-2 mb-4">
-              <div className="w-10 h-10 rounded-xl bg-white/10 backdrop-blur-md border border-white/20 flex items-center justify-center">
-                <Target className="w-5 h-5" />
+              <div className="w-10 h-10 rounded-xl bg-white/10 backdrop-blur-md border border-white/20 flex items-center justify-center overflow-hidden">
+                <img src="/preemptly-mascot.png" alt="Preemptly" className="w-full h-full object-cover" />
               </div>
               <span className="font-bold tracking-tight text-xl">Preemptly</span>
             </div>
@@ -110,8 +110,8 @@ export function LoginScreen() {
           <div className="max-w-md w-full mx-auto my-auto">
             {/* Logo for mobile */}
             <div className="flex lg:hidden items-center gap-2 mb-12">
-              <div className="w-10 h-10 rounded-xl bg-slate-900 flex items-center justify-center">
-                <Target className="w-6 h-6 text-white" />
+              <div className="w-10 h-10 rounded-xl overflow-hidden flex items-center justify-center border border-slate-100">
+                <img src="/preemptly-mascot.png" alt="Preemptly" className="w-full h-full object-cover" />
               </div>
               <span className="font-bold text-xl tracking-tight">Preemptly</span>
             </div>

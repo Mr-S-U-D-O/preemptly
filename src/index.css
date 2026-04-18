@@ -54,6 +54,7 @@
 }
 
 :root {
+    font-size: 90%;
     --clr-custom-a0: #5a8c12;
     --clr-custom-a1: #446715;
     --clr-custom-a2: #304513;
@@ -134,6 +135,9 @@
   }
   body {
     @apply bg-background text-foreground;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    letter-spacing: -0.01em;
   }
   html {
     @apply font-sans;

@@ -3,7 +3,7 @@ import { SEO } from './SEO';
 
 export function PrivacyPolicy() {
   return (
-    <div className="max-w-4xl mx-auto space-y-8 py-8">
+    <div className="max-w-5xl mx-auto space-y-8 py-8">
       <SEO title="Privacy Policy | Preemptly" />
       <div className="flex items-center gap-4 border-b border-slate-200 pb-6 dark:border-slate-800">
         <div className="w-12 h-12 rounded-xl bg-[#5a8c12]/10 text-[#5a8c12] flex items-center justify-center">

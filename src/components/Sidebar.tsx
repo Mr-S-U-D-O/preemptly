@@ -80,8 +80,8 @@ export function Sidebar({ scrapers, onAddMonitor, className }: { scrapers: Scrap
     <aside className={`w-64 bg-white dark:bg-slate-900 rounded-2xl shadow-[0_4px_20px_rgba(0,0,0,0.03)] border-2 border-[#5a8c12] dark:border-[#5a8c12]/50 flex flex-col h-full shrink-0 overflow-hidden transition-colors ${className}`}>
       <div className="h-24 flex flex-col justify-center px-8 shrink-0">
         <div className="flex items-center gap-3 text-slate-800 dark:text-slate-100 font-bold text-lg">
-          <div className="w-8 h-8 rounded-lg bg-[#5a8c12] text-white flex items-center justify-center shadow-md">
-            <Activity size={16} strokeWidth={1.5} />
+          <div className="w-8 h-8 rounded-lg overflow-hidden flex items-center justify-center shadow-md shrink-0">
+            <img src="/preemptly-mascot.png" alt="Preemptly" className="w-full h-full object-cover" />
           </div>
           <div className="flex flex-col">
             <span>Preemptly</span>

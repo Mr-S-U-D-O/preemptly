@@ -51,8 +51,8 @@ export function Layout() {
             </Sheet>
             
             <div className="flex items-center gap-2 text-slate-800 dark:text-slate-100 font-bold text-lg">
-              <div className="w-8 h-8 rounded-lg bg-[#5a8c12] text-white flex items-center justify-center shadow-md">
-                <Database size={16} strokeWidth={1.5} />
+              <div className="w-8 h-8 rounded-lg overflow-hidden flex items-center justify-center shadow-md">
+                <img src="/preemptly-mascot.png" alt="Preemptly Logo" className="w-full h-full object-cover" />
               </div>
               <span className="hidden sm:inline">Preemptly</span>
             </div>

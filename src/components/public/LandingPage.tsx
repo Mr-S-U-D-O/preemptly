@@ -165,10 +165,10 @@ export function LandingPage() {
       
       {/* Navigation */}
       <nav className="fixed top-0 w-full bg-white/90 backdrop-blur-xl z-50 border-b border-slate-200 shadow-sm transition-all">
-        <div className="max-w-6xl mx-auto px-6 h-16 flex items-center justify-between">
+        <div className="max-w-7xl mx-auto px-6 h-16 flex items-center justify-between">
           <div className="flex items-center gap-3 cursor-pointer">
-            <div className="w-8 h-8 bg-black flex items-center justify-center rounded-lg shadow-sm">
-              <Target className="text-white w-5 h-5" />
+            <div className="w-9 h-9 flex items-center justify-center rounded-lg shadow-sm overflow-hidden border border-slate-100">
+              <img src="/preemptly-mascot.png" alt="Preemptly" className="w-full h-full object-cover" />
             </div>
             <span className="font-extrabold text-xl tracking-tighter">Preemptly</span>
           </div>
@@ -213,7 +213,7 @@ export function LandingPage() {
       {/* Hero Section */}
       <section 
         ref={heroRef}
-        className={`pt-24 pb-16 md:pt-36 md:pb-24 px-6 max-w-6xl mx-auto transition-all duration-1000 transform ${heroInView ? 'translate-y-0 opacity-100' : 'translate-y-12 opacity-0'}`}
+        className={`pt-24 pb-16 md:pt-36 md:pb-24 px-6 max-w-7xl mx-auto transition-all duration-1000 transform ${heroInView ? 'translate-y-0 opacity-100' : 'translate-y-12 opacity-0'}`}
       >
         <div className="grid md:grid-cols-2 gap-8 lg:gap-14 items-center">
           
@@ -312,13 +312,79 @@ export function LandingPage() {
         </div>
       </section>
 
-      {/* Main Demo Video Placeholder */}
-      <section className="px-6 max-w-5xl mx-auto pb-24">
-        <div className="w-full aspect-video bg-white border-2 border-slate-200 rounded-xl flex flex-col items-center justify-center relative overflow-hidden group hover:border-black transition-colors cursor-pointer shadow-xl shadow-black/5">
-          <div className="w-16 h-16 bg-black rounded-full flex items-center justify-center mb-4 transform group-hover:scale-110 transition-transform shadow-xl">
-            <div className="w-0 h-0 border-t-6 border-t-transparent border-l-[11px] border-l-white border-b-6 border-b-transparent ml-1" />
+      {/* Command Center Video Space - Redesigned for Impact */}
+      <section 
+        ref={videoRef}
+        className={`bg-slate-50/50 py-32 px-6 border-y border-slate-100 transition-all duration-1000 transform overflow-hidden ${videoInView ? 'translate-y-0 opacity-100' : 'translate-y-12 opacity-0'}`}
+      >
+        <div className="max-w-7xl mx-auto flex flex-col items-center">
+          
+          {/* Header Area */}
+          <div className="w-full max-w-4xl text-center flex flex-col items-center mb-20">
+            <div className="flex items-center gap-2 px-4 py-1.5 border-2 border-[#5a8c12]/20 text-[#5a8c12] text-[10px] font-black uppercase tracking-widest mb-8 bg-white rounded-full shadow-sm">
+                <Activity size={14} className="animate-pulse" /> Growth Hub
+            </div>
+            <h2 className="text-5xl md:text-7xl font-extralight tracking-tighter mb-8 text-black leading-tight">
+              The <span className="font-bold bg-gradient-to-br from-black to-slate-600 bg-clip-text text-transparent">Stage.</span>
+            </h2>
+            <p className="text-xl md:text-2xl text-slate-600 font-light leading-relaxed mb-12 max-w-3xl">
+              Review growth opportunities, approve expertise strategies, and generate proof-of-value responses with one click—all in a professional workspace.
+            </p>
+            <button className="group bg-black text-white hover:bg-[#5a8c12] transition-all duration-500 px-10 py-5 text-[11px] font-black uppercase tracking-[0.25em] flex items-center justify-center gap-4 rounded-2xl shadow-2xl shadow-black/20 hover:scale-105">
+              Sign up to get your own stage 
+              <ArrowRight size={16} className="group-hover:translate-x-1 transition-transform" />
+            </button>
           </div>
-          <p className="font-bold text-slate-400 tracking-widest uppercase text-[10px]">[ DEMO VIDEO PLACEHOLDER ]</p>
+
+          {/* Large Showcase Visual */}
+          <div className="relative w-full max-w-[1240px] aspect-video bg-white border-[12px] border-white rounded-[3rem] shadow-[0_60px_130px_-20px_rgba(0,0,0,0.18)] group transition-all duration-700 hover:shadow-[0_80px_150px_-20px_rgba(0,0,0,0.22)] overflow-hidden">
+             {/* Browser Identity Bar */}
+             <div className="absolute top-0 left-0 right-0 h-12 bg-slate-50 border-b border-slate-100 flex items-center px-8 gap-2.5 z-20">
+                <div className="w-3 h-3 rounded-full bg-slate-200" />
+                <div className="w-3 h-3 rounded-full bg-slate-200" />
+                <div className="w-3 h-3 rounded-full bg-slate-200" />
+                <div className="ml-4 h-6 w-64 bg-white border border-slate-100 rounded-md" />
+             </div>
+             
+             {/* Video / Placeholder Container */}
+             <div className="absolute inset-0 pt-12 flex flex-col items-center justify-center bg-slate-50 group-hover:bg-white transition-colors duration-500">
+                {/* Visual Placeholder for Video */}
+                <div className="relative mb-8">
+                   <div className="absolute -inset-8 bg-gradient-to-r from-[#5a8c12] to-[#84b53b] rounded-full opacity-10 blur-3xl group-hover:opacity-20 transition-opacity animate-pulse" />
+                   <div className="w-20 h-20 rounded-3xl bg-white shadow-xl flex items-center justify-center border border-slate-100 group-hover:scale-110 group-hover:border-[#5a8c12] transition-all duration-500">
+                      <Activity className="text-slate-300 group-hover:text-[#5a8c12] w-10 h-10 transition-colors" />
+                   </div>
+                </div>
+                
+                <h3 className="font-black text-slate-400 group-hover:text-slate-900 tracking-[0.4em] text-xs uppercase mb-3 transition-colors">
+                  Client Dashboard Walkthrough
+                </h3>
+                <p className="text-sm text-slate-400 font-light flex items-center gap-2">
+                   <span className="w-2 h-2 rounded-full bg-slate-200" />
+                   Interactive demo recording pending
+                </p>
+
+                {/* Simulated Waveform / UI hint */}
+                <div className="absolute bottom-12 left-12 right-12 h-24 flex items-end gap-1 px-4">
+                   {[...Array(40)].map((_, i) => (
+                      <div 
+                        key={i} 
+                        className="flex-1 bg-slate-100 rounded-t-full transition-all duration-500 group-hover:bg-[#5a8c12]/20" 
+                        style={{ height: `${20 + Math.random() * 60}%`, transitionDelay: `${i * 20}ms` }} 
+                      />
+                   ))}
+                </div>
+             </div>
+             
+             {/* Gradient Overlays for depth */}
+             <div className="absolute inset-0 pointer-events-none border-[1px] border-black/5 rounded-[2.5rem] z-30" />
+          </div>
+
+          <p className="mt-12 text-slate-400 text-xs font-bold uppercase tracking-[0.3em] flex items-center gap-3">
+             <span className="w-12 h-px bg-slate-200" />
+             Inside The Preemptly Growth Portal
+             <span className="w-12 h-px bg-slate-200" />
+          </p>
         </div>
       </section>
 
@@ -327,7 +393,7 @@ export function LandingPage() {
         ref={painRef}
         className={`bg-white border-y-2 border-slate-200 py-24 px-6 transition-all duration-1000 transform ${painInView ? 'translate-y-0 opacity-100' : 'translate-y-12 opacity-0'}`}
       >
-        <div className="max-w-6xl mx-auto space-y-12">
+        <div className="max-w-7xl mx-auto space-y-12">
           
           <div className="text-center max-w-2xl mx-auto mb-10">
             <h2 className="text-3xl md:text-4xl font-extralight tracking-tighter text-black mb-4">
@@ -430,9 +496,9 @@ export function LandingPage() {
              {/* Card 3: Global Reach */}
              <div className="bg-white rounded-3xl border border-slate-200 shadow-sm flex flex-col overflow-hidden group hover:shadow-md transition-shadow">
                 <div className="p-8 pb-4 text-left">
-                  <h3 className="font-bold text-lg text-slate-900 mb-2">Global monitoring</h3>
+                  <h3 className="font-bold text-lg text-slate-900 mb-2">Total Global Awareness</h3>
                   <p className="text-sm text-slate-500 leading-relaxed font-light">
-                    Our network of localized models monitors hidden communities globally, catching signals wherever they emerge.
+                    Stop guessing where your next lead is hiding. Our network identifies high-intent hand-raisers across 250k+ niche communities globally, the second they experience the pain you solve.
                   </p>
                 </div>
                 <div className="flex-1 bg-[#FAFAFA] mx-8 border border-b-0 border-slate-200 rounded-t-2xl overflow-hidden relative min-h-[220px]">
@@ -443,6 +509,14 @@ export function LandingPage() {
                              backgroundImage: 'linear-gradient(rgba(255,255,255,0.15) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.15) 1px, transparent 1px)',
                              backgroundSize: '24px 24px',
                            }}>
+                      </div>
+
+                      {/* Live Counter Overlay */}
+                      <div className="absolute top-4 left-4 z-30">
+                         <div className="flex items-center gap-2 bg-black/40 backdrop-blur-md border border-white/10 px-3 py-1.5 rounded-full">
+                            <div className="w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse" />
+                            <span className="text-[8px] font-black text-white uppercase tracking-widest">Live: 242 Opportunity Intercepts</span>
+                         </div>
                       </div>
                       
                       {/* Radar sweep */}
@@ -457,17 +531,17 @@ export function LandingPage() {
                       {/* Intercept Nodes */}
                       <div className="absolute top-[25%] left-[55%] flex gap-2 items-center group-hover:scale-110 transition-transform">
                          <div className="w-1.5 h-1.5 bg-[#5a8c12] rounded-full shadow-[0_0_12px_3px_rgba(90,140,18,0.8)] animate-pulse" />
-                         <span className="text-[7px] text-[#5a8c12] font-bold uppercase tracking-widest bg-[#5a8c12]/10 px-1.5 py-0.5 rounded border border-[#5a8c12]/20 hidden md:block">EU-WEST</span>
+                         <span className="text-[7px] text-[#5a8c12] font-bold uppercase tracking-widest bg-[#5a8c12]/10 px-1.5 py-0.5 rounded border border-[#5a8c12]/20 hidden md:block">High Intent Found (r/SaaS)</span>
                       </div>
 
                       <div className="absolute top-[65%] left-[25%] flex gap-2 items-center group-hover:scale-110 transition-transform delay-75">
                          <div className="w-1 h-1 bg-white rounded-full shadow-[0_0_8px_2px_rgba(255,255,255,0.8)] animate-pulse" style={{ animationDelay: '1s' }} />
-                         <span className="text-[7px] text-slate-300 font-bold uppercase tracking-widest bg-white/5 px-1.5 py-0.5 rounded border border-white/10 hidden md:block">US-EAST</span>
+                         <span className="text-[7px] text-slate-300 font-bold uppercase tracking-widest bg-white/5 px-1.5 py-0.5 rounded border border-white/10 hidden md:block">Pain Gap Intercepted</span>
                       </div>
                       
                       <div className="absolute top-[75%] left-[65%] flex gap-2 items-center group-hover:scale-110 transition-transform delay-150">
                          <div className="w-2 h-2 bg-[#5a8c12] rounded-full shadow-[0_0_15px_4px_rgba(90,140,18,0.6)] animate-pulse" style={{ animationDelay: '0.5s' }} />
-                         <span className="text-[7px] text-[#5a8c12] font-bold uppercase tracking-widest bg-[#5a8c12]/10 px-1.5 py-0.5 rounded border border-[#5a8c12]/20 hidden md:block">APAC</span>
+                         <span className="text-[7px] text-[#5a8c12] font-bold uppercase tracking-widest bg-[#5a8c12]/10 px-1.5 py-0.5 rounded border border-[#5a8c12]/20 hidden md:block">Golden Intercept (HN)</span>
                       </div>
                       
                       {/* Gradient overlay for fade effect */}
@@ -549,6 +623,8 @@ export function LandingPage() {
         </div>
       </section>
 
+
+
       {/* The Engine Diagram */}
       <section 
         id="how-it-works"
@@ -598,7 +674,7 @@ export function LandingPage() {
 
               {/* Right Column: Lead Animation */}
               <div className="relative min-h-[400px] flex flex-col justify-center">
-                 <div className="absolute top-0 right-[-50vw] bottom-0 w-[100vw] bg-white opacity-50 z-0 pointer-events-none" />
+                 <div className="absolute top-0 left-0 bottom-0 w-[100vw] bg-white opacity-50 z-0 pointer-events-none" />
                  <div className="relative z-10 w-full">
                    {getEngineMockText()}
                  </div>
@@ -607,45 +683,10 @@ export function LandingPage() {
         </div>
       </section>
 
-      {/* Command Center Video Space */}
-      <section 
-        ref={videoRef}
-        className={`bg-white py-24 px-6 border-y-2 border-slate-200 transition-all duration-1000 transform ${videoInView ? 'translate-y-0 opacity-100' : 'translate-y-12 opacity-0'}`}
-      >
-        <div className="max-w-5xl mx-auto">
-          <div className="grid md:grid-cols-2 gap-12 lg:gap-20 items-center">
-             
-             {/* Left Column: Visual Placement */}
-             <div className="order-2 md:order-1 relative w-full aspect-[16/10] bg-slate-50 border-2 border-slate-200 rounded-3xl flex flex-col items-center justify-center shadow-xl shadow-black/5 group hover:border-black transition-colors overflow-hidden">
-                <div className="absolute inset-0 bg-[#5a8c12]/5 opacity-0 group-hover:opacity-100 transition-opacity" />
-                <Activity className="text-slate-300 w-12 h-12 mb-4 group-hover:text-[#5a8c12] group-hover:scale-110 transition-all z-10" />
-                <p className="font-bold text-slate-400 tracking-widest uppercase text-[10px] z-10">[ DASHBOARD WALKTHROUGH PLACEHOLDER ]</p>
-             </div>
-             
-             {/* Right Column: Copy */}
-             <div className="order-1 md:order-2 flex flex-col items-start text-left">
-               <div className="flex items-center gap-2 px-3 py-1 border-2 border-slate-200 text-slate-500 text-[9px] font-black uppercase tracking-widest mb-6 bg-white rounded-lg">
-                  <Activity size={12} className="text-[#5a8c12]" /> Growth Hub
-               </div>
-               <h2 className="text-4xl font-extralight tracking-tighter mb-5 text-black leading-tight">
-                 The <span className="font-bold border-b-2 border-slate-200">Stage.</span>
-               </h2>
-               <p className="text-lg text-slate-600 font-light leading-relaxed mb-8">
-                 Review growth opportunities, approve expertise strategies, and generate proof-of-value responses with one click—all in a professional workspace.
-               </p>
-               <button className="bg-white text-black hover:bg-slate-50 transition-colors px-6 py-3.5 text-xs font-bold uppercase tracking-widest border-2 border-slate-200 hover:border-black flex items-center justify-center gap-2 rounded-xl">
-                 Explore Dashboard <ArrowRight size={14} />
-               </button>
-             </div>
-
-          </div>
-        </div>
-      </section>
-
       {/* Why Not Reddit Pro? */}
       <section 
         ref={redditRef}
-        className={`py-24 px-6 max-w-5xl mx-auto transition-all duration-1000 transform ${redditInView ? 'translate-y-0 opacity-100' : 'translate-y-12 opacity-0'}`}
+        className={`py-24 px-6 max-w-6xl mx-auto transition-all duration-1000 transform ${redditInView ? 'translate-y-0 opacity-100' : 'translate-y-12 opacity-0'}`}
       >
         <div className="grid md:grid-cols-2 gap-12 lg:gap-16 items-center">
            <div>
@@ -674,13 +715,15 @@ export function LandingPage() {
         </div>
       </section>
 
+
+
       {/* Pricing / Bento Grid */}
       <section 
         id="pricing"
         ref={pricingRef}
         className={`bg-[#FAFAFA] py-32 px-6 transition-all duration-1000 transform ${pricingInView ? 'translate-y-0 opacity-100' : 'translate-y-12 opacity-0'}`}
       >
-        <div className="max-w-5xl mx-auto">
+        <div className="max-w-6xl mx-auto">
           <div className="text-center mb-16">
             <h2 className="text-3xl md:text-4xl font-extralight tracking-tighter text-black">Transparent Pricing. <span className="font-bold">Beta Phase.</span></h2>
             <p className="mt-4 text-slate-500 font-light max-w-xl mx-auto">Because our pipeline is heavily curated, we are currently onboarding strictly via application to ensure our AI computing power is dedicated to active hunters.</p>
@@ -767,7 +810,7 @@ export function LandingPage() {
       <section 
         id="faq"
         ref={faqRef}
-        className={`py-24 px-6 max-w-3xl mx-auto transition-all duration-1000 transform ${faqInView ? 'translate-y-0 opacity-100' : 'translate-y-12 opacity-0'}`}
+        className={`py-24 px-6 max-w-4xl mx-auto transition-all duration-1000 transform ${faqInView ? 'translate-y-0 opacity-100' : 'translate-y-12 opacity-0'}`}
       >
         <div className="flex flex-col items-center text-center mb-12">
           <div className="flex items-center gap-2 px-3 py-1 border border-blue-200 text-blue-600 text-[9px] font-black uppercase tracking-widest mb-5 bg-blue-50/50 rounded-full">
@@ -788,7 +831,7 @@ export function LandingPage() {
         ref={leadRef}
         className={`bg-white text-slate-900 py-32 px-6 transition-all duration-1000 transform ${leadInView ? 'translate-y-0 opacity-100' : 'translate-y-12 opacity-0'}`}
       >
-        <div className="max-w-2xl mx-auto text-center flex flex-col items-center">
+        <div className="max-w-3xl mx-auto text-center flex flex-col items-center">
           <div className="text-[10px] font-black uppercase tracking-[0.3em] text-[#5a8c12] mb-8 bg-[#5a8c12]/5 px-4 py-2 rounded-full border border-[#5a8c12]/10">
             Final Beta Intake
           </div>
