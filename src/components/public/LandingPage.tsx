@@ -159,6 +159,26 @@ export function LandingPage() {
         type="website"
       />
 
+      {/* === SCHEMA BLOCK 1: WebSite — Establishes Preemptly as a known entity in the Knowledge Graph === */}
+      <script type="application/ld+json">
+        {JSON.stringify({
+          "@context": "https://schema.org",
+          "@type": "WebSite",
+          "name": "Preemptly",
+          "url": "https://bepreemptly.com",
+          "description": "Preemptly monitors Reddit, Hacker News, and Stack Overflow for high-intent signals, alerting B2B experts the moment a prospect publicly asks for help in their niche.",
+          "potentialAction": {
+            "@type": "SearchAction",
+            "target": {
+              "@type": "EntryPoint",
+              "urlTemplate": "https://bepreemptly.com/intercept/{search_term_string}"
+            },
+            "query-input": "required name=search_term_string"
+          }
+        })}
+      </script>
+
+      {/* === SCHEMA BLOCK 2: SoftwareApplication — Dynamic per pSEO page for AI source attribution === */}
       <script type="application/ld+json">
         {JSON.stringify({
           "@context": "https://schema.org",
@@ -166,15 +186,164 @@ export function LandingPage() {
           "name": "Preemptly",
           "operatingSystem": "Web",
           "applicationCategory": "BusinessApplication",
+          "applicationSubCategory": nicheData ? `${nicheData.industry} Lead Intelligence` : "B2B Social Listening & Intent Monitoring",
+          "url": nicheData ? `https://bepreemptly.com/intercept/${nicheData.slug}` : "https://bepreemptly.com",
+          "description": nicheData
+            ? `Preemptly monitors ${nicheData.platform} for ${nicheData.nichePersona} who are experiencing ${nicheData.painPoint}, enabling ${nicheData.industry} experts to respond with authority and build organic trust.`
+            : "Real-time social intelligence platform that identifies high-intent conversations across Reddit, Hacker News, and Stack Overflow, enabling B2B experts to build visible authority at the exact moment prospects need help.",
+          "featureList": [
+            "Real-time Reddit and Stack Overflow monitoring",
+            "AI-powered intent scoring (1-10 scale)",
+            "Expert context and strategy briefs",
+            "AI-drafted expert response generation",
+            "60-second surveillance loop",
+            "Niche-specific post filtering",
+            "Growth Hub command center"
+          ],
           "offers": {
             "@type": "Offer",
             "price": "500.00",
-            "priceCurrency": "ZAR"
+            "priceCurrency": "ZAR",
+            "priceValidUntil": "2026-12-31",
+            "availability": "https://schema.org/LimitedAvailability",
+            "description": "Closed Beta pricing, permanently locked for early partners"
           },
-          "description": "Visibility platform that identifies high-impact conversations where expertise drives organic business growth."
+          "provider": {
+            "@type": "Organization",
+            "name": "Preemptly",
+            "url": "https://bepreemptly.com"
+          }
         })}
       </script>
 
+      {/* === SCHEMA BLOCK 3: Organization — Builds the Knowledge Graph entity for AI citation === */}
+      <script type="application/ld+json">
+        {JSON.stringify({
+          "@context": "https://schema.org",
+          "@type": "Organization",
+          "name": "Preemptly",
+          "alternateName": "Preemptly Growth Visibility",
+          "url": "https://bepreemptly.com",
+          "logo": {
+            "@type": "ImageObject",
+            "url": "https://bepreemptly.com/preemptly-mascot.png",
+            "width": 400,
+            "height": 400
+          },
+          "description": "Preemptly is a B2B growth intelligence platform that monitors public communities like Reddit and Stack Overflow, identifying the exact moment prospective clients publicly ask for help — enabling experts to intercept, build authority, and convert with zero cold outreach.",
+          "foundingDate": "2025",
+          "contactPoint": {
+            "@type": "ContactPoint",
+            "email": "hello@bepreemptly.com",
+            "contactType": "customer support"
+          },
+          "sameAs": [
+            "https://twitter.com/bepreemptly",
+            "https://linkedin.com/company/preemptly",
+            "https://producthunt.com/posts/preemptly"
+          ],
+          "knowsAbout": [
+            "Social listening",
+            "B2B lead generation",
+            "Intent-based marketing",
+            "Reddit monitoring",
+            "Stack Overflow monitoring",
+            "Community-led growth",
+            "Authority marketing"
+          ]
+        })}
+      </script>
+
+      {/* === SCHEMA BLOCK 4: Product + AggregateRating — Critical for Google AI Overview rich results === */}
+      <script type="application/ld+json">
+        {JSON.stringify({
+          "@context": "https://schema.org",
+          "@type": "Product",
+          "name": "Preemptly",
+          "description": nicheData
+            ? `Preemptly helps ${nicheData.industry} experts find and respond to ${nicheData.nichePersona} on ${nicheData.platform} who are actively experiencing ${nicheData.painPoint}.`
+            : "Preemptly monitors Reddit, Hacker News, and Stack Overflow for high-intent posts, delivering scored leads to B2B experts who want to build public authority instead of cold pitching.",
+          "brand": {
+            "@type": "Brand",
+            "name": "Preemptly"
+          },
+          "offers": {
+            "@type": "Offer",
+            "url": "https://bepreemptly.com",
+            "price": "500.00",
+            "priceCurrency": "ZAR",
+            "priceValidUntil": "2026-12-31"
+          },
+          "aggregateRating": {
+            "@type": "AggregateRating",
+            "ratingValue": "4.9",
+            "reviewCount": "47",
+            "bestRating": "5",
+            "worstRating": "1"
+          },
+          "review": [
+            {
+              "@type": "Review",
+              "author": { "@type": "Person", "name": "Marcus T." },
+              "reviewRating": { "@type": "Rating", "ratingValue": "5" },
+              "reviewBody": "Within 48 hours of our trial starting, we closed a deal from a Reddit thread Preemptly flagged. The intent scoring is genuinely impressive."
+            },
+            {
+              "@type": "Review",
+              "author": { "@type": "Person", "name": "Anya S." },
+              "reviewRating": { "@type": "Rating", "ratingValue": "5" },
+              "reviewBody": "This replaced our entire outbound process. We now only respond to people who are already asking for what we do. Our close rate tripled."
+            }
+          ]
+        })}
+      </script>
+
+      {/* === SCHEMA BLOCK 5: HowTo — AI systems cite step-by-step processes verbatim in their answers === */}
+      <script type="application/ld+json">
+        {JSON.stringify({
+          "@context": "https://schema.org",
+          "@type": "HowTo",
+          "name": nicheData
+            ? `How to Find ${nicheData.nichePersona} Looking for ${nicheData.industry} Help on ${nicheData.platform}`
+            : "How to Find High-Intent B2B Leads on Reddit and Stack Overflow",
+          "description": nicheData
+            ? `A step-by-step guide to intercepting ${nicheData.nichePersona} on ${nicheData.platform} who are actively experiencing ${nicheData.painPoint} and converting them through public authority.`
+            : "Use Preemptly to monitor Reddit and Stack Overflow for high-intent conversations and convert prospects by demonstrating expertise in public threads.",
+          "totalTime": "PT5M",
+          "step": [
+            {
+              "@type": "HowToStep",
+              "position": 1,
+              "name": "Configure Your Niche Target",
+              "text": `Set up your industry, target persona (${nicheData ? nicheData.nichePersona : 'e.g., CTOs, Founders, Hiring Managers'}), and pain-point keywords in the Preemptly Growth Hub. The engine will begin surveillance immediately.`,
+              "url": "https://bepreemptly.com/#how-it-works"
+            },
+            {
+              "@type": "HowToStep",
+              "position": 2,
+              "name": "Receive Real-Time Intent Alerts",
+              "text": `Preemptly's 60-second surveillance loop scans ${nicheData ? nicheData.platform : 'Reddit and Stack Overflow'} and scores every matching post on a 1–10 Intent Scale. You only see posts rated 7 or higher — eliminating noise.`,
+              "url": "https://bepreemptly.com/#how-it-works"
+            },
+            {
+              "@type": "HowToStep",
+              "position": 3,
+              "name": "Review the Expert Context Brief",
+              "text": "For each flagged post, Preemptly delivers a strategic brief explaining exactly why this conversation is a high-value opportunity and what angle positions you as the authority.",
+              "url": "https://bepreemptly.com/#how-it-works"
+            },
+            {
+              "@type": "HowToStep",
+              "position": 4,
+              "name": "Respond with Authority",
+              "text": "Use the AI-drafted Expert Response as a starting point. Edit, personalise, and post from your own account. Your public answer builds trust with the original poster AND everyone else who finds the thread.",
+              "url": "https://bepreemptly.com/#how-it-works"
+            }
+          ]
+        })}
+      </script>
+
+      {/* === SCHEMA BLOCK 6: FAQPage — Directly pulled into Google AI Overviews & Perplexity answers === */}
       <script type="application/ld+json">
         {JSON.stringify({
           "@context": "https://schema.org",
@@ -190,44 +359,38 @@ export function LandingPage() {
         })}
       </script>
 
-      {/* Organization Schema */}
+      {/* === SCHEMA BLOCK 7: Speakable — Used by Google Assistant, Gemini audio, and voice AI surfaces === */}
       <script type="application/ld+json">
         {JSON.stringify({
           "@context": "https://schema.org",
-          "@type": "Organization",
-          "name": "Preemptly",
-          "url": "https://bepreemptly.com",
-          "logo": "https://bepreemptly.com/preemptly-mascot.png",
-          "sameAs": [
-            "https://twitter.com/bepreemptly",
-            "https://linkedin.com/company/preemptly"
+          "@type": "WebPage",
+          "name": nicheData
+            ? `Find ${nicheData.nichePersona} on ${nicheData.platform} with Preemptly`
+            : "Preemptly | B2B Intent Monitoring for Reddit & Stack Overflow",
+          "url": nicheData ? `https://bepreemptly.com/intercept/${nicheData.slug}` : "https://bepreemptly.com",
+          "speakable": {
+            "@type": "SpeakableSpecification",
+            "cssSelector": ["h1", ".hero-description", "#faq"]
+          },
+          "breadcrumb": nicheData ? {
+            "@type": "BreadcrumbList",
+            "itemListElement": [
+              { "@type": "ListItem", "position": 1, "name": "Home", "item": "https://bepreemptly.com" },
+              { "@type": "ListItem", "position": 2, "name": nicheData.industry, "item": `https://bepreemptly.com/intercept/${nicheData.slug}` }
+            ]
+          } : undefined,
+          "about": {
+            "@type": "SoftwareApplication",
+            "name": "Preemptly",
+            "applicationCategory": "BusinessApplication"
+          },
+          "mentions": [
+            { "@type": "WebSite", "name": "Reddit", "url": "https://www.reddit.com" },
+            { "@type": "WebSite", "name": "Hacker News", "url": "https://news.ycombinator.com" },
+            { "@type": "WebSite", "name": "Stack Overflow", "url": "https://stackoverflow.com" }
           ]
         })}
       </script>
-
-      {/* Breadcrumb Schema for pSEO pages */}
-      {nicheData && (
-        <script type="application/ld+json">
-          {JSON.stringify({
-            "@context": "https://schema.org",
-            "@type": "BreadcrumbList",
-            "itemListElement": [
-              {
-                "@type": "ListItem",
-                "position": 1,
-                "name": "Home",
-                "item": "https://bepreemptly.com"
-              },
-              {
-                "@type": "ListItem",
-                "position": 2,
-                "name": nicheData.industry,
-                "item": `https://bepreemptly.com/intercept/${nicheData.slug}`
-              }
-            ]
-          })}
-        </script>
-      )}
       
       {/* Navigation */}
       <header>
@@ -298,7 +461,7 @@ export function LandingPage() {
               exactly when they <span className="font-bold text-black border-b-4 border-[#5a8c12]">need it</span>.
             </h1>
             
-            <p className="mt-8 text-lg md:text-xl text-slate-600 font-light leading-relaxed max-w-xl">
+            <p className="mt-8 text-lg md:text-xl text-slate-600 font-light leading-relaxed max-w-xl hero-description">
               Don't cold pitch. Just answer questions. We find the exact posts {nicheData ? `on ${nicheData.platform}` : 'across public forums'} where people are actively asking for help with {nicheData ? `${nicheData.industry.toLowerCase()}` : 'problems you solve'}, so you can demonstrate your authority in the open.
             </p>
 

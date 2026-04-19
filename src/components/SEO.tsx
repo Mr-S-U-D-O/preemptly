@@ -61,7 +61,7 @@ export function SEO({ title, description, keywords, url, image, type = "website"
       setMetaTag('property', 'og:type', type);
     }
 
-  }, [title, description, url, image, type]);
+  }, [title, description, keywords, url, image, type]);
 
   return null;
 }
