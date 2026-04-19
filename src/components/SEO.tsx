@@ -3,12 +3,13 @@ import { useEffect } from 'react';
 interface SEOProps {
   title?: string;
   description?: string;
+  keywords?: string;
   url?: string;
   image?: string;
   type?: string;
 }
 
-export function SEO({ title, description, url, image, type = "website" }: SEOProps) {
+export function SEO({ title, description, keywords, url, image, type = "website" }: SEOProps) {
   useEffect(() => {
     // Helper functionality to upsert meta tags dynamically
     const setMetaTag = (attrName: string, attrValue: string, content: string) => {
@@ -31,6 +32,10 @@ export function SEO({ title, description, url, image, type = "website" }: SEOPro
       setMetaTag('name', 'description', description);
       setMetaTag('property', 'og:description', description);
       setMetaTag('name', 'twitter:description', description);
+    }
+
+    if (keywords) {
+      setMetaTag('name', 'keywords', keywords);
     }
 
     if (url) {

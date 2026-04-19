@@ -67,6 +67,12 @@ export function ClientPortal() {
   const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const chatOpenRef = useRef(chatOpen);
+
+  // Sync ref with state
+  useEffect(() => {
+    chatOpenRef.current = chatOpen;
+  }, [chatOpen]);
 
   const fetchPortal = useCallback(async () => {
     try {
@@ -93,35 +99,47 @@ export function ClientPortal() {
   useEffect(() => {
     if (!token) return;
     
-    // Using native EventSource for SSE
-    const eventSource = new EventSource(`/api/portal/${token}/chat/stream`);
+    let eventSource: EventSource | null = null;
+    let reconnectTimeout: NodeJS.Timeout | null = null;
 
-    eventSource.onmessage = (event) => {
-      try {
-        const payload = JSON.parse(event.data);
-        if (payload.type === 'messages') {
-          setMessages(payload.messages);
-          if (!chatOpen) {
-            const unreadMsgs = payload.messages.filter((m: ChatMessage) => m.sender === 'admin' && !m.isRead).length;
-            setUnreadCount(unreadMsgs);
+    const setupSSE = () => {
+      if (eventSource) eventSource.close();
+      
+      eventSource = new EventSource(`/api/portal/${token}/chat/stream`);
+
+      eventSource.onmessage = (event) => {
+        try {
+          const payload = JSON.parse(event.data);
+          if (payload.type === 'messages') {
+            setMessages(payload.messages);
+            // Use ref to decide if we should show unread count
+            if (!chatOpenRef.current) {
+              const unreadMsgs = payload.messages.filter((m: ChatMessage) => m.sender === 'admin' && !m.isRead).length;
+              setUnreadCount(unreadMsgs);
+            }
+          } else if (payload.type === 'meta') {
+            setAdminTyping(payload.adminTyping);
           }
-        } else if (payload.type === 'meta') {
-          setAdminTyping(payload.adminTyping);
+        } catch (e) {
+          // Parse error, ignore incomplete streams
         }
-      } catch (e) {
-        // Parse error, ignore incomplete streams
-      }
+      };
+
+      eventSource.onerror = (err) => {
+        // Stream broken. Native EventSource naturally retries, but we log for visibility.
+        console.warn('SSE Chat Connection lost. Retrying...', err);
+        // We don't need to manually reconnect, browser handles it, 
+        // but we can monitor if it stays dead.
+      };
     };
 
-    eventSource.onerror = (err) => {
-      // Stream broken (server restart, connection lost). Browser will automatically attempt reconnect.
-      console.error('SSE Chat Error', err);
-    };
+    setupSSE();
 
     return () => {
-      eventSource.close();
+      if (eventSource) eventSource.close();
+      if (reconnectTimeout) clearTimeout(reconnectTimeout);
     };
-  }, [token, chatOpen]);
+  }, [token]); // Removed chatOpen from dependencies to prevent reconnection on toggle
 
   useEffect(() => {
     // When chat opens, clear unread count and scroll to bottom

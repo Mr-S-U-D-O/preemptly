@@ -710,6 +710,7 @@ async function startServer() {
   // GET /api/portal/:token/chat/stream - SSE Chat Stream
   app.get("/api/portal/:token/chat/stream", async (req, res) => {
     const { token } = req.params;
+    console.log(`[SSE] Client connecting to chat stream. Token: ${token?.substring(0, 8)}...`);
     
     res.writeHead(200, {
       'Content-Type': 'text/event-stream',
@@ -718,13 +719,28 @@ async function startServer() {
       'X-Accel-Buffering': 'no'
     });
 
+    // Send retry interval and initial heartbeat
+    res.write('retry: 3000\n\n');
+    res.write(': heartbeat\n\n');
+
+    // Keep-alive heartbeat every 20 seconds to prevent proxy timeouts
+    const heartbeat = setInterval(() => {
+      res.write(': heartbeat\n\n');
+    }, 20000);
+
     try {
+      if (!adminDb) {
+        throw new Error("Firestore Admin SDK not initialized");
+      }
+
       const scrapersSnap = await adminDb.collection('scrapers')
         .where('portalToken', '==', token)
         .get();
 
       if (scrapersSnap.empty) {
+        console.warn(`[SSE] Portal not found for token: ${token}`);
         res.write('event: error\ndata: {"error":"Portal not found"}\n\n');
+        clearInterval(heartbeat);
         return res.end();
       }
 
@@ -745,10 +761,10 @@ async function startServer() {
                 fileType: data.fileType
               };
             });
-            res.write(`data: {"type":"messages","messages":${JSON.stringify(messages)}}\n\n`);
+            res.write(`data: ${JSON.stringify({ type: "messages", messages })}\n\n`);
           },
           (error) => {
-            console.error('SSE Snapshot error:', error);
+            console.error('[SSE] Snapshot error:', error);
             res.write(`event: error\ndata: {"error":"${error.message}"}\n\n`);
           }
         );
@@ -757,18 +773,21 @@ async function startServer() {
         .onSnapshot((doc) => {
            if (doc.exists) {
              const data = doc.data();
-             res.write(`data: {"type":"meta","adminTyping":${!!data?.adminTyping}}\n\n`);
+             res.write(`data: ${JSON.stringify({ type: "meta", adminTyping: !!data?.adminTyping })}\n\n`);
            }
         });
 
       req.on('close', () => {
+        console.log(`[SSE] Client disconnected from chat stream. Token: ${token?.substring(0, 8)}...`);
         unsubscribe();
         unsubscribeRooms();
+        clearInterval(heartbeat);
       });
 
     } catch (error: any) {
-      console.error('SSE Auth error:', error);
-      res.write('event: error\ndata: {"error":"Internal server error"}\n\n');
+      console.error('[SSE] Stream setup error:', error);
+      res.write(`event: error\ndata: {"error":"${error.message || "Internal server error"}"}\n\n`);
+      clearInterval(heartbeat);
       res.end();
     }
   });

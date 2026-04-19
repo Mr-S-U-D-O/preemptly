@@ -154,6 +154,7 @@ export function LandingPage() {
       <SEO 
         title={nicheData ? `Build Public Authority for ${nicheData.industry} Clients on ${nicheData.platform}` : "Preemptly | Scale Your Brand Through Public Proof"} 
         description={nicheData ? `Provide visible help to ${nicheData.nichePersona} on ${nicheData.platform} who are experiencing ${nicheData.painPoint}. Build brand trust.` : "Build organic presence. Preemptly finds the exact public conversations where your expertise drives growth."}
+        keywords={nicheData ? `${nicheData.industry}, ${nicheData.nichePersona}, ${nicheData.platform} growth, social listening, intent signals, ${nicheData.slug.replace(/-/g, ' ')}` : "growth visibility, intent scoring, AI sales, social listening, prospect hunting, B2B growth, Preemptly"}
         url={nicheData ? `https://bepreemptly.com/intercept/${nicheData.slug}` : "https://bepreemptly.com/"}
         type="website"
       />
@@ -174,7 +175,6 @@ export function LandingPage() {
         })}
       </script>
 
-      {/* FAQ Rich Snippet - Kills vertical screen real estate on Google */}
       <script type="application/ld+json">
         {JSON.stringify({
           "@context": "https://schema.org",
@@ -189,6 +189,45 @@ export function LandingPage() {
           }))
         })}
       </script>
+
+      {/* Organization Schema */}
+      <script type="application/ld+json">
+        {JSON.stringify({
+          "@context": "https://schema.org",
+          "@type": "Organization",
+          "name": "Preemptly",
+          "url": "https://bepreemptly.com",
+          "logo": "https://bepreemptly.com/preemptly-mascot.png",
+          "sameAs": [
+            "https://twitter.com/bepreemptly",
+            "https://linkedin.com/company/preemptly"
+          ]
+        })}
+      </script>
+
+      {/* Breadcrumb Schema for pSEO pages */}
+      {nicheData && (
+        <script type="application/ld+json">
+          {JSON.stringify({
+            "@context": "https://schema.org",
+            "@type": "BreadcrumbList",
+            "itemListElement": [
+              {
+                "@type": "ListItem",
+                "position": 1,
+                "name": "Home",
+                "item": "https://bepreemptly.com"
+              },
+              {
+                "@type": "ListItem",
+                "position": 2,
+                "name": nicheData.industry,
+                "item": `https://bepreemptly.com/intercept/${nicheData.slug}`
+              }
+            ]
+          })}
+        </script>
+      )}
       
       {/* Navigation */}
       <header>
@@ -909,14 +948,77 @@ export function LandingPage() {
       <ChatWidget />
 
       {/* Footer */}
-      <footer className="bg-white border-t-2 border-slate-100 py-12 px-6 text-center">
-         <div className="flex items-center justify-center gap-3 mb-6 opacity-30">
-            <div className="w-8 h-8 flex items-center justify-center rounded overflow-hidden">
-               <img src="/preemptly-mascot.png" alt="Preemptly" className="w-full h-full object-cover" />
-            </div>
-            <span className="font-black text-xl tracking-tighter">Preemptly</span>
+      <footer className="bg-white border-t-2 border-slate-100 pt-24 pb-12 px-6">
+        <div className="max-w-7xl mx-auto">
+          {/* Niche Directory (pSEO Internal Linking) */}
+          <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-10 text-left mb-20">
+             <div className="col-span-2 lg:col-span-1">
+                <div className="flex items-center gap-3 mb-6">
+                  <div className="w-8 h-8 flex items-center justify-center rounded overflow-hidden">
+                    <img src="/preemptly-mascot.png" alt="Preemptly" className="w-full h-full object-cover" />
+                  </div>
+                  <span className="font-black text-xl tracking-tighter">Preemptly</span>
+                </div>
+                <p className="text-slate-400 text-xs font-light leading-relaxed">
+                   Intercepting high-intent growth opportunities across the global niche network.
+                </p>
+             </div>
+
+             <div className="flex flex-col gap-4">
+                <h4 className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-900 border-b border-slate-100 pb-2">Solutions</h4>
+                <a href="#how-it-works" className="text-xs text-slate-500 hover:text-[#5a8c12] transition-colors">Growth Feed</a>
+                <a href="#pricing" className="text-xs text-slate-500 hover:text-[#5a8c12] transition-colors">Pricing</a>
+                <a href="#faq" className="text-xs text-slate-500 hover:text-[#5a8c12] transition-colors">FAQ</a>
+             </div>
+
+             <div className="flex flex-col gap-4">
+                <h4 className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-900 border-b border-slate-100 pb-2">Company</h4>
+                <a href="/privacy" className="text-xs text-slate-500 hover:text-[#5a8c12] transition-colors">Privacy Policy</a>
+                <a href="mailto:hello@bepreemptly.com" className="text-xs text-slate-500 hover:text-[#5a8c12] transition-colors">Contact</a>
+             </div>
+
+             {/* Dynamic Niche Links Grouped by Platform */}
+             <div className="flex flex-col gap-4 col-span-2 md:col-span-1">
+                <h4 className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-900 border-b border-slate-100 pb-2">Reddit Intercepts</h4>
+                <div className="flex flex-col gap-2.5">
+                   {pseoData.filter(d => d.platform === 'Reddit').slice(0, 6).map(niche => (
+                      <a 
+                        key={niche.slug} 
+                        href={`/intercept/${niche.slug}`} 
+                        className="text-[10px] text-slate-400 hover:text-[#5a8c12] transition-colors whitespace-nowrap overflow-hidden text-ellipsis"
+                        title={`Intercept ${niche.nichePersona} on Reddit`}
+                      >
+                         {niche.industry}
+                      </a>
+                   ))}
+                </div>
+             </div>
+
+             <div className="flex flex-col gap-4 col-span-2 md:col-span-1">
+                <h4 className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-900 border-b border-slate-100 pb-2">Stack Intercepts</h4>
+                <div className="flex flex-col gap-2.5">
+                   {pseoData.filter(d => d.platform === 'StackOverflow').slice(0, 6).map(niche => (
+                      <a 
+                        key={niche.slug} 
+                        href={`/intercept/${niche.slug}`} 
+                        className="text-[10px] text-slate-400 hover:text-[#5a8c12] transition-colors whitespace-nowrap overflow-hidden text-ellipsis"
+                        title={`Intercept ${niche.nichePersona} on Stack Overflow`}
+                      >
+                         {niche.industry}
+                      </a>
+                   ))}
+                </div>
+             </div>
           </div>
-          <p className="text-slate-400 text-sm font-light">© 2026 Preemptly Growth Visibility. All rights reserved.</p>
+
+          <div className="border-t border-slate-100 pt-12 flex flex-col md:flex-row items-center justify-between gap-6">
+             <p className="text-slate-400 text-[10px] font-medium uppercase tracking-widest">© 2026 Preemptly Growth Visibility. All rights reserved.</p>
+             <div className="flex items-center gap-8">
+                <a href="#" className="text-slate-400 hover:text-black transition-colors"><Activity size={16} /></a>
+                <a href="#" className="text-slate-400 hover:text-black transition-colors"><Users size={16} /></a>
+             </div>
+          </div>
+        </div>
       </footer>
 
     </div>
