@@ -203,7 +203,8 @@ async function startServer() {
         model: 'gemini-3-flash-preview',
         contents: prompt,
         config: {
-          maxOutputTokens: 100,
+          maxOutputTokens: 600,
+          temperature: 0.7,
         }
       });
 
@@ -254,7 +255,8 @@ async function startServer() {
         model: 'gemini-3-flash-preview',
         contents: prompt,
         config: {
-          maxOutputTokens: 100,
+          maxOutputTokens: 600,
+          temperature: 0.7,
         }
       });
 
@@ -510,7 +512,8 @@ async function startServer() {
         model: 'gemini-3-flash-preview',
         contents: prompt,
         config: {
-          maxOutputTokens: 150,
+          maxOutputTokens: 500,
+          temperature: 0.8,
         }
       });
 
