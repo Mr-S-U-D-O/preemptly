@@ -235,18 +235,12 @@ export function LeadsTable({ leads, scrapers }: { leads: Lead[], scrapers: Scrap
                   {(() => {
                     const platform = lead.platform || 'reddit';
                     if (platform === 'reddit') return <Icons.MessageSquare size={12} />;
-                    if (platform === 'hackernews') return <Icons.Hash size={12} />;
                     if (platform === 'stackoverflow') return <Icons.Code size={12} />;
-                    if (platform === 'craigslist') return <Icons.MapPin size={12} />;
                     return null;
                   })()}
-                  {lead.platform === 'craigslist'
-                    ? `${lead.city} (${lead.category})`
-                    : lead.platform === 'hackernews'
-                      ? `HN: ${lead.category || 'newest'}`
-                      : (lead.platform === 'reddit' || !lead.platform) 
-                        ? `r/${lead.target || lead.subreddit}` 
-                        : (lead.target || lead.subreddit)
+                  {(lead.platform === 'reddit' || !lead.platform) 
+                      ? `r/${lead.target || lead.subreddit}` 
+                      : (lead.target || lead.subreddit)
                   }
                 </span>
               </TableCell>

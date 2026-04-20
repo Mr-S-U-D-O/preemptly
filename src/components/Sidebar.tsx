@@ -66,16 +66,12 @@ export function Sidebar({ scrapers, onAddMonitor, className }: { scrapers: Scrap
 
   const platformIcons: Record<string, any> = {
     reddit: Icons.MessageSquare,
-    hackernews: Icons.Hash,
-    stackoverflow: Icons.Code,
-    craigslist: Icons.MapPin
+    stackoverflow: Icons.Code
   };
 
   const platformNames: Record<string, string> = {
     reddit: 'Reddit',
-    hackernews: 'Hacker News',
-    stackoverflow: 'Stack Overflow',
-    craigslist: 'Craigslist'
+    stackoverflow: 'Stack Overflow'
   };
 
   return (

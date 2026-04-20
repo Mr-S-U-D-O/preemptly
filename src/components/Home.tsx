@@ -88,9 +88,7 @@ const BRAND_LIGHT = '#7ab820';
 const SCRAPER_COLORS = ['#5a8c12', '#3b82f6', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899', '#06b6d4', '#10b981'];
 const PLATFORM_COLORS: Record<string, string> = {
   reddit: '#FF4500',
-  hackernews: '#FF6600',
   stackoverflow: '#F48024',
-  craigslist: '#6C3483',
 };
 
 // ─────────────────────────────────────────────────────────────
@@ -454,8 +452,6 @@ export function Home() {
     const targetCounts = leads.reduce((acc, lead) => {
       let t = lead.target || lead.subreddit || 'Unknown';
       if (lead.platform === 'reddit' || !lead.platform) t = `r/${t}`;
-      if (lead.platform === 'craigslist') t = `${lead.city || '?'} (${lead.category || '?'})`;
-      if (lead.platform === 'hackernews') t = `HN:${lead.category || 'newest'}`;
       acc[t] = (acc[t] || 0) + 1;
       return acc;
     }, {} as Record<string, number>);
@@ -611,9 +607,7 @@ export function Home() {
   const getPlatformIcon = (platform?: string) => {
     switch (platform) {
       case 'reddit': return <MessageSquare size={12} />;
-      case 'hackernews': return <Hash size={12} />;
       case 'stackoverflow': return <Code size={12} />;
-      case 'craigslist': return <MapPin size={12} />;
       default: return <MessageSquare size={12} />;
     }
   };

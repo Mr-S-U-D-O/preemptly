@@ -58,7 +58,7 @@ const getDynamicFAQS = (nicheData?: NicheData) => [
   { q: "What do I do when I receive an alert?", a: `You review the conversation, and if you can help, you provide professional advice in the public thread. By solving the problem where others can see it, you prove your expertise to the entire community at once.` },
   { q: "How does the Free Trial work?", a: `Every time we find a highly relevant post matching your exact configured criteria, it counts as 1 intercept. The trial is complete when we have delivered 10 actionable leads directly to your dashboard.` },
   { q: "Can I connect this to my current CRM?", a: `Right now, Preemptly acts as a standalone dashboard so your CRM isn't filled with unfiltered data. You review the leads here first. Direct CRM exports are currently in development.` },
-  { q: "How does the AI Draft comment feature work?", a: `The system reads the full context of the user's post and drafts a relevant, helpful response. It does not auto-post anything; it simply provides a draft for you to edit, approve, and post from your own authentic account.` },
+  { q: "How does the Strategic Match Engine work?", a: `The system reads the full context of the user's post and drafts a relevant, helpful response. It does not auto-post anything; it simply provides a draft for you to edit, approve, and post from your own authentic account.` },
   { q: "What happens if I join the Beta now?", a: `Closed Beta partners lock in a permanent rate of R500/mo. When the platform opens to the public at standard pricing, your priority discount remains forever.` }
 ];
 
@@ -121,7 +121,7 @@ export function LandingPage() {
                     </div>
                     <div className="flex flex-col">
                        <span className="text-xs font-black text-slate-800 tracking-tight">{lead.user}</span>
-                       <span className="text-[9px] text-slate-400 font-bold uppercase tracking-widest">Matched via Intent-AI</span>
+                       <span className="text-[9px] text-slate-400 font-bold uppercase tracking-widest">Matched via Intent Logic</span>
                     </div>
                  </div>
                  <div className="flex items-center gap-1.5 px-2.5 py-1 bg-[#5a8c12]/5 rounded-lg border border-[#5a8c12]/10">
@@ -166,7 +166,7 @@ export function LandingPage() {
           "@type": "WebSite",
           "name": "Preemptly",
           "url": "https://bepreemptly.com",
-          "description": "Preemptly monitors Reddit, Hacker News, and Stack Overflow for high-intent signals, alerting B2B experts the moment a prospect publicly asks for help in their niche.",
+          "description": "Preemptly monitors Reddit and Stack Overflow for high-intent signals, alerting B2B experts the moment a prospect publicly asks for help in their niche.",
           "potentialAction": {
             "@type": "SearchAction",
             "target": {
@@ -186,16 +186,16 @@ export function LandingPage() {
           "name": "Preemptly",
           "operatingSystem": "Web",
           "applicationCategory": "BusinessApplication",
-          "applicationSubCategory": nicheData ? `${nicheData.industry} Lead Intelligence` : "B2B Social Listening & Intent Monitoring",
+          "applicationSubCategory": nicheData ? `${nicheData.industry} Expert Presence` : "B2B Strategic Interception & Intent Monitoring",
           "url": nicheData ? `https://bepreemptly.com/intercept/${nicheData.slug}` : "https://bepreemptly.com",
           "description": nicheData
-            ? `Preemptly monitors ${nicheData.platform} for ${nicheData.nichePersona} who are experiencing ${nicheData.painPoint}, enabling ${nicheData.industry} experts to respond with authority and build organic trust.`
-            : "Real-time social intelligence platform that identifies high-intent conversations across Reddit, Hacker News, and Stack Overflow, enabling B2B experts to build visible authority at the exact moment prospects need help.",
+            ? `Preemptly monitors ${nicheData.platform} for ${nicheData.nichePersona} who are experiencing ${nicheData.painPoint}, enabling ${nicheData.industry} experts to practice strategic interception and build meaningful authority.`
+            : "Strategic Interception platform that identifies high-intent conversations across Reddit and Stack Overflow, enabling B2B experts to build expert presence at the exact moment prospects need help.",
           "featureList": [
             "Real-time Reddit and Stack Overflow monitoring",
-            "AI-powered intent scoring (1-10 scale)",
+            "Intent Logic scoring (1-10 scale)",
             "Expert context and strategy briefs",
-            "AI-drafted expert response generation",
+            "Strategic Match Engine response generation",
             "60-second surveillance loop",
             "Niche-specific post filtering",
             "Growth Hub command center"
@@ -260,9 +260,9 @@ export function LandingPage() {
           "@context": "https://schema.org",
           "@type": "Product",
           "name": "Preemptly",
-          "description": nicheData
+          "description": nicheData 
             ? `Preemptly helps ${nicheData.industry} experts find and respond to ${nicheData.nichePersona} on ${nicheData.platform} who are actively experiencing ${nicheData.painPoint}.`
-            : "Preemptly monitors Reddit, Hacker News, and Stack Overflow for high-intent posts, delivering scored leads to B2B experts who want to build public authority instead of cold pitching.",
+            : "Preemptly monitors Reddit and Stack Overflow for high-intent posts, delivering scored leads to B2B experts who want to build public authority instead of cold pitching.",
           "brand": {
             "@type": "Brand",
             "name": "Preemptly"
@@ -322,7 +322,7 @@ export function LandingPage() {
               "@type": "HowToStep",
               "position": 2,
               "name": "Receive Real-Time Intent Alerts",
-              "text": `Preemptly's 60-second surveillance loop scans ${nicheData ? nicheData.platform : 'Reddit and Stack Overflow'} and scores every matching post on a 1–10 Intent Scale. You only see posts rated 7 or higher — eliminating noise.`,
+              "text": `Preemptly's 60-second surveillance loop scans ${nicheData ? nicheData.platform : 'Reddit and Stack Overflow'} and scores every matching post using Intent Logic on a 1–10 Scale. You only see posts rated 7 or higher — eliminating noise.`,
               "url": "https://bepreemptly.com/#how-it-works"
             },
             {
@@ -336,7 +336,7 @@ export function LandingPage() {
               "@type": "HowToStep",
               "position": 4,
               "name": "Respond with Authority",
-              "text": "Use the AI-drafted Expert Response as a starting point. Edit, personalise, and post from your own account. Your public answer builds trust with the original poster AND everyone else who finds the thread.",
+              "text": "Use the Strategic Match Engine response as a starting point. Edit, personalise, and post from your own account. Your public answer builds trust with the original poster AND everyone else who finds the thread.",
               "url": "https://bepreemptly.com/#how-it-works"
             }
           ]
@@ -386,7 +386,6 @@ export function LandingPage() {
           },
           "mentions": [
             { "@type": "WebSite", "name": "Reddit", "url": "https://www.reddit.com" },
-            { "@type": "WebSite", "name": "Hacker News", "url": "https://news.ycombinator.com" },
             { "@type": "WebSite", "name": "Stack Overflow", "url": "https://stackoverflow.com" }
           ]
         })}
@@ -432,7 +431,7 @@ export function LandingPage() {
               {
                 "@type": "Question",
                 "name": `How is Preemptly different from a ${nicheData.platform} scraper?`,
-                "acceptedAnswer": { "@type": "Answer", "text": `Scrapers return volume. Preemptly returns high-intent signal. Every intercept is scored by AI for purchase intent, filtered for ${nicheData.nichePersona} relevance, and accompanied by an expert strategy brief — so you know exactly how to respond.` }
+                "acceptedAnswer": { "@type": "Answer", "text": `Scrapers return volume. Preemptly returns high-intent signal via Intent Logic. Every intercept is scored for purchase intent, filtered for ${nicheData.nichePersona} relevance, and accompanied by an expert strategy brief — so you know exactly how to respond.` }
               }
             ]
           })}
@@ -617,7 +616,7 @@ export function LandingPage() {
               The <span className="font-bold bg-gradient-to-br from-black to-slate-600 bg-clip-text text-transparent">Stage.</span>
             </h2>
             <p className="text-xl md:text-2xl text-slate-600 font-light leading-relaxed mb-12 max-w-3xl relative z-30">
-              Review growth opportunities, approve expertise strategies, and generate proof-of-value responses with one click—all in a professional workspace.
+              Review growth opportunities, approve Strategic Match Engine responses, and generate proof-of-value answers with one click—all in a professional workspace.
             </p>
             <button className="group bg-black text-white hover:bg-[#5a8c12] transition-all duration-500 px-10 py-5 text-[11px] font-black uppercase tracking-[0.25em] flex items-center justify-center gap-4 rounded-2xl shadow-2xl shadow-black/20 hover:scale-105">
               Sign up to get your own stage 
@@ -830,7 +829,7 @@ export function LandingPage() {
                       
                       <div className="absolute top-[75%] left-[65%] flex gap-2 items-center group-hover:scale-110 transition-transform delay-150">
                          <div className="w-2 h-2 bg-[#5a8c12] rounded-full shadow-[0_0_15px_4px_rgba(90,140,18,0.6)] animate-pulse" style={{ animationDelay: '0.5s' }} />
-                         <span className="text-[7px] text-[#5a8c12] font-bold uppercase tracking-widest bg-[#5a8c12]/10 px-1.5 py-0.5 rounded border border-[#5a8c12]/20 hidden md:block">Golden Intercept (HN)</span>
+                         <span className="text-[7px] text-[#5a8c12] font-bold uppercase tracking-widest bg-[#5a8c12]/10 px-1.5 py-0.5 rounded border border-[#5a8c12]/20 hidden md:block">Golden Intercept (Reddit)</span>
                       </div>
                       
                       {/* Gradient overlay for fade effect */}
@@ -904,13 +903,51 @@ export function LandingPage() {
                       </div>
                    </div>
 
-                   <div className="absolute bottom-0 left-0 w-full h-12 bg-gradient-to-t from-[#FAFAFA] to-transparent z-10" />
                 </div>
              </div>
-             
           </div>
+             
+
+          {/* Authority Section (Platform Specific) */}
+          {nicheData && (
+            <div className="mt-20 p-8 md:p-12 bg-[#0A0A0A] rounded-[3rem] border border-white/10 relative overflow-hidden group">
+               <div className="absolute top-0 right-0 w-64 h-64 bg-[#5a8c12]/10 blur-3xl rounded-full translate-x-1/2 -translate-y-1/2" />
+               <div className="relative z-10 grid md:grid-cols-2 gap-12 items-center">
+                  <div>
+                    <div className="flex items-center gap-2 mb-6">
+                      <ShieldCheck className="text-[#5a8c12]" size={20} />
+                      <span className="text-[10px] font-black uppercase tracking-[0.3em] text-white/50">Expertise Strategy</span>
+                    </div>
+                    <h2 className="text-3xl md:text-5xl font-extralight tracking-tighter text-white mb-6 leading-tight">
+                      How to build <span className="font-bold text-[#5a8c12]">Authority</span> on {nicheData.platform}.
+                    </h2>
+                    <p className="text-lg text-white/60 font-light leading-relaxed">
+                      {nicheData.platform === 'StackOverflow' 
+                        ? 'Stack Overflow is the highest-trust technical environment on the web. Conversion here requires objective accuracy and deep technical context.' 
+                        : 'Reddit values authentic discussion over corporate polished messaging. Successful interception requires proof-of-value in the first two sentences.'}
+                    </p>
+                  </div>
+                  <div className="bg-white/5 backdrop-blur-sm border border-white/10 p-8 rounded-3xl">
+                    <p className="text-xs font-black uppercase tracking-widest text-[#5a8c12] mb-4">Platform Etiquette</p>
+                    <p className="text-xl text-white font-medium leading-relaxed italic">
+                      "{nicheData.platformEtiquette}"
+                    </p>
+                    <div className="mt-8 flex items-center gap-4">
+                      <div className="w-10 h-10 rounded-full bg-[#5a8c12]/20 flex items-center justify-center">
+                        <Users className="text-[#5a8c12]" size={18} />
+                      </div>
+                      <div className="flex flex-col">
+                        <span className="text-xs font-bold text-white uppercase tracking-widest">{nicheData.platform === 'StackOverflow' ? 'Technical Authority' : 'Community Trust'}</span>
+                        <span className="text-[10px] text-white/40 font-medium uppercase">Verified Engagement Strategy</span>
+                      </div>
+                    </div>
+                  </div>
+               </div>
+            </div>
+          )}
         </div>
       </section>
+
 
 
 
@@ -930,7 +967,7 @@ export function LandingPage() {
                     The <span className="font-bold border-b-2 border-[#5a8c12]">Presence Blueprint.</span>
                   </h2>
                   <p className="mt-6 text-lg text-slate-500 font-light leading-relaxed">
-                    Broad tools give you volume. Preemptly gives you the stage. Use our AI visibility filter to find the exact moments where your answers scale your brand.
+                    Broad tools give you volume. Preemptly gives you the stage. Use our Intent Logic filter to find the exact moments where your answers scale your brand.
                   </p>
                 </div>
 

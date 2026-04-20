@@ -56,7 +56,7 @@
         },
         "platform": {
           "type": "string",
-          "description": "Platform where the lead was found (reddit, hackernews, etc.)"
+          "description": "Platform where the lead was found (reddit or stackoverflow)"
         },
         "target": {
           "type": "string",
@@ -66,14 +66,7 @@
           "type": "string",
           "description": "Subreddit where the lead was found (legacy field)"
         },
-        "city": {
-          "type": "string",
-          "description": "City for Craigslist leads"
-        },
-        "category": {
-          "type": "string",
-          "description": "Category for Craigslist or HN leads"
-        },
+
         "keyword": {
           "type": "string",
           "description": "Keyword that matched"

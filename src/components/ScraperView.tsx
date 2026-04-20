@@ -287,21 +287,15 @@ export function ScraperView() {
             {(() => {
               const platform = scraper.platform || 'reddit';
               if (platform === 'reddit') return <Icons.MessageSquare size={14} className="text-[#5a8c12]" />;
-              if (platform === 'hackernews') return <Icons.Hash size={14} className="text-[#5a8c12]" />;
               if (platform === 'stackoverflow') return <Icons.Code size={14} className="text-[#5a8c12]" />;
-              if (platform === 'craigslist') return <Icons.MapPin size={14} className="text-[#5a8c12]" />;
               return null;
             })()}
             <p className="text-sm font-semibold text-slate-500 dark:text-slate-400 capitalize">Target ({scraper.platform || 'reddit'})</p>
           </div>
           <p className="text-xl font-bold text-slate-800 dark:text-slate-100">
-            {scraper.platform === 'craigslist' 
-              ? `${scraper.city} (${scraper.category})`
-              : scraper.platform === 'hackernews'
-                ? `HN: ${scraper.category || 'newest'}`
-                : (scraper.platform === 'reddit' || !scraper.platform) 
-                  ? `r/${scraper.target || scraper.subreddit}` 
-                  : scraper.target
+            { (scraper.platform === 'reddit' || !scraper.platform) 
+                ? `r/${scraper.target || scraper.subreddit}` 
+                : scraper.target
             }
           </p>
         </div>

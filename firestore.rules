@@ -91,7 +91,7 @@ service cloud.firestore {
              hasRequiredFields(requiredFields) &&
              validStringLength('name', 1, 250) &&
              (!('subreddit' in request.resource.data) || validStringLength('subreddit', 1, 100)) &&
-             (!('platform' in request.resource.data) || request.resource.data.platform in ['reddit', 'hackernews', 'stackoverflow', 'craigslist']) &&
+             (!('platform' in request.resource.data) || request.resource.data.platform in ['reddit', 'stackoverflow']) &&
              (!('target' in request.resource.data) || validStringLength('target', 0, 500)) &&
              (!('city' in request.resource.data) || validStringLength('city', 1, 100)) &&
              (!('category' in request.resource.data) || validStringLength('category', 1, 50)) &&
@@ -123,7 +123,7 @@ service cloud.firestore {
              hasRequiredFields(requiredFields) &&
              validStringLength('name', 1, 250) &&
              (!('subreddit' in request.resource.data) || validStringLength('subreddit', 1, 100)) &&
-             (!('platform' in request.resource.data) || request.resource.data.platform in ['reddit', 'hackernews', 'stackoverflow', 'craigslist']) &&
+             (!('platform' in request.resource.data) || request.resource.data.platform in ['reddit', 'stackoverflow']) &&
              (!('target' in request.resource.data) || validStringLength('target', 0, 500)) &&
              (!('city' in request.resource.data) || validStringLength('city', 1, 100)) &&
              (!('category' in request.resource.data) || validStringLength('category', 1, 50)) &&
@@ -154,7 +154,7 @@ service cloud.firestore {
              hasRequiredFields(requiredFields) &&
              validStringLength('scraperId', 1, 50) &&
              (!('subreddit' in request.resource.data) || validStringLength('subreddit', 1, 50)) &&
-             (!('platform' in request.resource.data) || request.resource.data.platform in ['reddit', 'hackernews', 'stackoverflow', 'craigslist']) &&
+             (!('platform' in request.resource.data) || request.resource.data.platform in ['reddit', 'stackoverflow']) &&
              (!('target' in request.resource.data) || validStringLength('target', 0, 100)) &&
              (!('city' in request.resource.data) || validStringLength('city', 1, 50)) &&
              (!('category' in request.resource.data) || validStringLength('category', 1, 50)) &&

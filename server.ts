@@ -11,6 +11,7 @@ import { initializeApp, getApps, getApp, applicationDefault, cert } from 'fireba
 import { getFirestore, FieldValue } from 'firebase-admin/firestore';
 import { getSecurityRules } from 'firebase-admin/security-rules';
 import Parser from 'rss-parser';
+import { pseoData } from "./src/data/pseo";
 
 /**
  * Phase 1.2: Generates a deterministic, collision-resistant document ID for
@@ -156,58 +157,14 @@ async function startServer() {
   app.get("/sitemap.xml", (_req, res) => {
     const BASE = "https://bepreemptly.com";
     const now = new Date().toISOString();
-
-    // All pSEO slugs — keep in sync with src/data/pseo.ts
-    const intercepts = [
-      // Industry / Persona pages
-      "marketing-agencies-for-founders-on-reddit",
-      "marketing-agencies-for-cmos-on-reddit",
-      "design-agencies-on-stackoverflow",
-      "enterprise-software-for-ctos-on-reddit",
-      "enterprise-software-for-operations-directors-on-reddit",
-      "saas-infrastructure-for-lead-engineers-on-stackoverflow",
-      "saas-infrastructure-for-architects-on-stackoverflow",
-      "boutique-recruitment-for-hiring-managers-on-reddit",
-      "boutique-recruitment-for-founders-on-reddit",
-      "specialized-hiring-on-stackoverflow",
-      "financial-advisors-for-hnwi-on-reddit",
-      "financial-advisors-for-startup-founders-on-reddit",
-      "legal-tech-advisors-for-tech-founders-on-stackoverflow",
-      "legal-tech-advisors-for-data-officers-on-stackoverflow",
-      "digital-real-estate-for-portfolio-investors-on-reddit",
-      "digital-real-estate-for-ecom-owners-on-reddit",
-      "proptech-on-stackoverflow",
-      // Question-intent pages (Strategy 3)
-      "how-to-find-clients-on-reddit",
-      "how-to-monitor-reddit-for-leads",
-      "how-to-get-customers-from-reddit",
-      "reddit-lead-generation-tool",
-      "reddit-monitoring-for-agencies",
-      "reddit-social-listening-b2b",
-      "how-to-track-reddit-mentions",
-      "reddit-intent-signals-b2b",
-      "how-to-find-saas-customers-reddit",
-      "reddit-comment-marketing-strategy",
-      "best-subreddits-for-b2b-leads",
-      "reddit-vs-linkedin-outreach",
-      "how-brands-use-reddit-marketing",
-      "reddit-keyword-alert-tool",
-      "monitor-reddit-for-competitors",
-      "find-high-intent-reddit-posts",
-      "reddit-buyer-intent-signals",
-      "reddit-lead-monitoring-automation",
-      "best-way-to-respond-to-reddit-leads",
-      "why-reddit-beats-cold-email-for-b2b",
-      "reddit-monitoring-saas-founders",
-    ];
-
+    // All pSEO slugs — dynamically generated from src/data/pseo.ts
     const urlNodes = [
       // Homepage — highest priority
       `<url><loc>${BASE}/</loc><lastmod>${now}</lastmod><changefreq>daily</changefreq><priority>1.0</priority></url>`,
       // intercept pages
-      ...intercepts.map(
-        (slug) =>
-          `<url><loc>${BASE}/intercept/${slug}</loc><lastmod>${now}</lastmod><changefreq>weekly</changefreq><priority>0.85</priority></url>`
+      ...pseoData.map(
+        (niche) =>
+          `<url><loc>${BASE}/intercept/${niche.slug}</loc><lastmod>${now}</lastmod><changefreq>weekly</changefreq><priority>0.85</priority></url>`
       ),
     ];
 
@@ -333,8 +290,6 @@ async function startServer() {
       RESTRICTION: You MUST ONLY suggest targets for the platforms listed in "SELECTED PLATFORMS". 
       - If Reddit is selected: Suggest specific subreddits (e.g., "Entrepreneur", "reactjs").
       - If Stack Overflow is selected: Suggest specific technical tags (e.g., "javascript", "python").
-      - If Craigslist is selected: Suggest specific high-intent search keywords (e.g., "needed: plumber", "hiring admin").
-      - If Hacker News is selected: Suggest categories (e.g., "ask", "show").
       
       Return ONLY a valid JSON array of strings.
       Format: ["target1", "target2", ...]`;
@@ -1315,124 +1270,13 @@ async function fetchStackOverflowPosts(tag: string, limit: number = 25) {
   }
 }
 
-// Helper function to fetch Hacker News posts
-async function fetchHackerNewsPosts(category: string = 'newest', limit: number = 25) {
-  // Map categories to hnrss.org endpoints
-  const categoryMap: Record<string, string> = {
-    'newest': 'newest',
-    'frontpage': 'frontpage',
-    'ask': 'ask',
-    'show': 'show',
-    'jobs': 'jobs'
-  };
-  
-  const endpoint = categoryMap[category] || 'newest';
-  const rssUrl = `https://hnrss.org/${endpoint}`;
-  
-  try {
-    const feed = await parser.parseURL(rssUrl);
-    const items = feed.items || [];
-    const mappedPosts = items.map((item: any, index: number) => {
-      let permalink = item.link || '';
-      try { permalink = new URL(item.link).pathname + new URL(item.link).search; } catch (e) { permalink = permalink.replace('https://news.ycombinator.com', ''); }
-      const rawContent = item.content || item.description || '';
-      
-      // hnrss.org usually puts the author in the 'creator' or 'author' field
-      // or sometimes it's in the description like "by user"
-      let author = item.creator || item.author || 'unknown';
-      if (author === 'unknown' && item.contentSnippet) {
-        const match = item.contentSnippet.match(/by\s+([^\s|]+)/i);
-        if (match) author = match[1];
-      }
 
-      return {
-        data: {
-          index,
-          title: item.title || '',
-          selftext: rawContent.replace(/<[^>]*>?/gm, ''),
-          author: author,
-          permalink: permalink,
-          pubDate: item.pubDate || item.isoDate
-        }
-      };
-    });
-    
-    const fortyEightHoursAgo = Date.now() - (48 * 60 * 60 * 1000);
-    const recentPosts = mappedPosts.filter((post: any) => new Date(post.data.pubDate).getTime() > fortyEightHoursAgo);
-    return recentPosts.slice(0, limit);
-  } catch (error) {
-    console.error(`[RSS Parser] Hacker News failed:`, error);
-    throw new Error(`Failed to fetch Hacker News RSS: ${error instanceof Error ? error.message : String(error)}`);
-  }
-}
-
-// Helper function to fetch Craigslist posts
-async function fetchCraigslistPosts(city: string, category: string, query: string, limit: number = 25) {
-  const rssUrl = `https://${city.trim()}.craigslist.org/search/${category.trim()}?format=rss&query=${encodeURIComponent(query)}`;
-  const rss2jsonUrl = `https://api.rss2json.com/v1/api.json?rss_url=${encodeURIComponent(rssUrl)}`;
-  
-  try {
-    console.log(`[Craigslist RSS Fetch] Fetching via rss2json for ${city}/${category}`);
-    const response = await fetch(rss2jsonUrl);
-    
-    if (!response.ok) {
-      throw new Error(`RSS Service Error: ${response.status}`);
-    }
-    
-    const data = await response.json();
-    
-    if (data.status !== 'ok') {
-      throw new Error(data.message || "Unknown RSS error");
-    }
-    
-    const items = data.items || [];
-    const mappedPosts = items.map((item: any, index: number) => {
-      return {
-        data: {
-          index,
-          title: item.title || '',
-          selftext: (item.content || item.description || '').replace(/<[^>]*>?/gm, ''),
-          author: item.author || 'craigslist-user',
-          permalink: item.link || '', 
-          pubDate: item.pubDate
-        }
-      };
-    });
-    
-    const fortyEightHoursAgo = Date.now() - (48 * 60 * 60 * 1000);
-    const recentPosts = mappedPosts.filter((post: any) => new Date(post.data.pubDate).getTime() > fortyEightHoursAgo);
-    return recentPosts.slice(0, limit);
-  } catch (error) {
-    console.error(`[Craigslist RSS Fetch] Primary failed, trying direct:`, error);
-    try {
-      const feed = await parser.parseURL(rssUrl);
-      const items = feed.items || [];
-      return items.map((item: any, index: number) => ({
-        data: {
-          index,
-          title: item.title || '',
-          selftext: (item.content || item.description || '').replace(/<[^>]*>?/gm, ''),
-          author: item.author || 'craigslist-user',
-          permalink: item.link || '', 
-          pubDate: item.pubDate || item.isoDate
-        }
-      })).slice(0, limit);
-    } catch (directError) {
-      console.error(`[Craigslist RSS Fetch] Direct also failed:`, directError);
-    }
-    throw new Error(`Failed to fetch Craigslist RSS: ${error instanceof Error ? error.message : String(error)}`);
-  }
-}
 
 async function executeScraper(scraper: any) {
   try {
     let rawPosts = [];
     if (scraper.platform === 'stackoverflow') {
       rawPosts = await fetchStackOverflowPosts(scraper.target || scraper.subreddit, 50);
-    } else if (scraper.platform === 'hackernews') {
-      rawPosts = await fetchHackerNewsPosts(scraper.category || 'newest', 50);
-    } else if (scraper.platform === 'craigslist') {
-      rawPosts = await fetchCraigslistPosts(scraper.city, scraper.category, scraper.keyword, 50);
     } else {
       // Add a small random delay before Reddit fetch to avoid being flagged as a bot
       await new Promise(resolve => setTimeout(resolve, 1000 + Math.random() * 2000));
@@ -1450,10 +1294,6 @@ async function executeScraper(scraper: any) {
       let postUrl = '';
       if (scraper.platform === 'stackoverflow') {
         postUrl = `https://stackoverflow.com${post.data.permalink}`;
-      } else if (scraper.platform === 'hackernews') {
-        postUrl = `https://news.ycombinator.com${post.data.permalink}`;
-      } else if (scraper.platform === 'craigslist') {
-        postUrl = post.data.permalink;
       } else {
         postUrl = `https://www.reddit.com${post.data.permalink}`;
       }
@@ -1604,8 +1444,6 @@ async function executeScraper(scraper: any) {
           scraperId: scraper.id,
           platform: scraper.platform || 'reddit',
           target: scraper.target || scraper.subreddit || '',
-          city: scraper.city || '',
-          category: scraper.category || '',
           subreddit: scraper.subreddit || '', // Keep for backward compatibility
           keyword: scraper.keyword,
           postTitle: title.substring(0, 500),
