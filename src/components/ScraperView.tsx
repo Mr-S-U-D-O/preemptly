@@ -162,6 +162,55 @@ export function ScraperView() {
     }
   };
 
+  const handleMarkAllAsViewed = async () => {
+    try {
+      const batch = writeBatch(db);
+      inboxLeads.forEach(lead => {
+        batch.update(doc(db, 'leads', lead.id), { status: 'viewed' });
+      });
+      await batch.commit();
+      
+      // Log the action
+      await addDoc(collection(db, 'logs'), {
+        type: 'leads_marked_viewed',
+        scraperId: scraper.id,
+        scraperName: scraper.name,
+        message: `All ${inboxLeads.length} leads in "${scraper.name}" marked as viewed`,
+        createdAt: serverTimestamp(),
+        userId: user?.uid
+      });
+    } catch (error) {
+       handleFirestoreError(error, OperationType.UPDATE, 'leads');
+    }
+  };
+
+  const handlePauseAllScrapers = async () => {
+    if (!scraper.clientName) return;
+    setIsStatusToggling(true);
+    try {
+      const clientScrapers = scrapers.filter(s => s.clientName === scraper.clientName);
+      const batch = writeBatch(db);
+      
+      for (const s of clientScrapers) {
+        batch.update(doc(db, 'scrapers', s.id), { status: 'paused' });
+      }
+      
+      await batch.commit();
+
+      // Log the action
+      await addDoc(collection(db, 'logs'), {
+        type: 'scraper_paused',
+        message: `All trackers paused for client "${scraper.clientName}"`,
+        createdAt: serverTimestamp(),
+        userId: user?.uid
+      });
+    } catch (error) {
+      handleFirestoreError(error, OperationType.UPDATE, 'scrapers');
+    } finally {
+      setIsStatusToggling(false);
+    }
+  };
+
   return (
     <div className="max-w-7xl mx-auto space-y-6">
       <SEO title={`${scraper?.name || 'Scraper'} | Preemptly`} />
@@ -208,6 +257,16 @@ export function ScraperView() {
               ) : (
                 <><PlayCircle size={16} strokeWidth={1.5} /> Unpause</>
               )}
+            </Button>
+
+            <Button 
+              onClick={handlePauseAllScrapers} 
+              variant="outline" 
+              disabled={isStatusToggling || scrapers.filter(s => s.clientName === scraper.clientName && s.status === 'active').length === 0}
+              className="flex-1 sm:flex-none gap-2 rounded-xl border-2 border-red-200 text-red-600 hover:bg-red-50"
+            >
+              <Icons.Pause size={16} strokeWidth={1.5} />
+              Pause All
             </Button>
 
             <Button 
@@ -317,14 +376,25 @@ export function ScraperView() {
             <p className="text-sm text-slate-500 font-medium">Identify conversations where your expertise wins.</p>
             </div>
           </div>
-          <div className="relative max-w-sm w-full">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
-            <Input 
-              placeholder="Search matches..." 
-              className="pl-9 bg-slate-50 dark:bg-slate-800/50 border-slate-200 dark:border-slate-700 rounded-xl h-10 focus-visible:ring-[#5a8c12] dark:text-slate-100"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-            />
+          <div className="flex items-center gap-3 flex-1">
+            <div className="relative max-w-sm w-full">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+              <Input 
+                placeholder="Search matches..." 
+                className="pl-9 bg-slate-50 dark:bg-slate-800/50 border-slate-200 dark:border-slate-700 rounded-xl h-10 focus-visible:ring-[#5a8c12] dark:text-slate-100"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+              />
+            </div>
+            {inboxLeads.length > 0 && (
+              <Button
+                onClick={handleMarkAllAsViewed}
+                variant="outline"
+                className="gap-2 rounded-xl border-2 border-slate-200 text-slate-600 hover:bg-slate-50 h-10"
+              >
+                <Icons.CheckCheck size={16} /> Mark all as viewed
+              </Button>
+            )}
           </div>
         </div>
         

@@ -374,6 +374,47 @@ export function Home() {
     }
   };
 
+  const handleMarkAllViewedForClient = async (clientName: string, scraperIds: string[]) => {
+    try {
+      const batch = writeBatch(db);
+      const clientLeads = leads.filter(l => scraperIds.includes(l.scraperId) && (!l.status || l.status === 'new'));
+      
+      clientLeads.forEach(lead => {
+        batch.update(doc(db, 'leads', lead.id), { status: 'viewed' });
+      });
+      
+      await batch.commit();
+
+      await addDoc(collection(db, 'logs'), {
+        type: 'leads_marked_viewed',
+        message: `All ${clientLeads.length} pending leads marked as viewed for client "${clientName}"`,
+        createdAt: serverTimestamp(),
+        userId: user?.uid
+      });
+    } catch (error) {
+      handleFirestoreError(error, OperationType.UPDATE, 'leads');
+    }
+  };
+
+  const handlePauseAllForClient = async (clientName: string, scraperIds: string[]) => {
+    try {
+      const batch = writeBatch(db);
+      for (const id of scraperIds) {
+        batch.update(doc(db, 'scrapers', id), { status: 'paused' });
+      }
+      await batch.commit();
+
+      await addDoc(collection(db, 'logs'), {
+        type: 'scraper_paused',
+        message: `All trackers paused for client "${clientName}"`,
+        createdAt: serverTimestamp(),
+        userId: user?.uid
+      });
+    } catch (error) {
+      handleFirestoreError(error, OperationType.UPDATE, 'scrapers');
+    }
+  };
+
   const getResetTitle = () => ({ leads: 'Reset All Leads', scrapers: 'Reset All Scrapers', logs: 'Reset All Logs', all: 'Reset Entire Dashboard' })[resetType!] || 'Reset';
   const getResetDescription = () => ({
     leads: 'Are you sure? All lead data will be permanently deleted.',
@@ -1392,6 +1433,25 @@ export function Home() {
                        >
                          <Trash2 size={12} /> Delete Client Profile
                        </Button>
+
+                       <div className="border-t border-slate-100 dark:border-slate-800 mt-4 pt-4 flex flex-col gap-2">
+                          <Button 
+                            variant="outline" 
+                            className="h-9 rounded-xl text-[10px] font-black uppercase tracking-widest border-slate-200 hover:bg-slate-50 gap-2 w-full"
+                            onClick={() => handleMarkAllViewedForClient(client.name, client.scraperIds)}
+                            disabled={leads.filter(l => client.scraperIds.includes(l.scraperId) && (!l.status || l.status === 'new')).length === 0}
+                          >
+                            <CheckCircle2 size={14} /> Mark all viewed
+                          </Button>
+                          <Button 
+                            variant="outline" 
+                            className="h-9 rounded-xl text-[10px] font-black uppercase tracking-widest border-red-100 text-red-500 hover:bg-red-50 gap-2 w-full"
+                            onClick={() => handlePauseAllForClient(client.name, client.scraperIds)}
+                            disabled={client.scrapers.every(s => s.status === 'paused')}
+                          >
+                            <Pause size={14} /> Pause All Trackers
+                          </Button>
+                       </div>
                     </div>
                   </div>
                 </div>
