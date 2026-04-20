@@ -598,7 +598,7 @@ Title: "${leadData.postTitle}"
 Content: ${leadData.postContent ? leadData.postContent.substring(0, 1500) : '(No body — respond to the title alone)'}
 
 YOUR MISSION:
-Write a substantive, helpful comment (aim for 150–250 words) that makes the original poster feel like they just got advice from someone who truly knows this space — not someone trying to sell them something.
+Write a substantive, helpful comment that makes the original poster feel like they just got advice from someone who truly knows this space — not someone trying to sell them something.
 
 STRUCTURE YOUR RESPONSE IN 4 PARTS (write as continuous flowing prose, no labels, no bullet points):
 
@@ -641,7 +641,7 @@ Return ONLY the comment text. No labels, no intro, no quotes around it.`;
         model: 'gemini-3-flash-preview',
         contents: prompt,
         config: {
-          maxOutputTokens: 2000,
+          maxOutputTokens: 3000,
           temperature: 0.75,
         }
       });
