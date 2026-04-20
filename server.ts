@@ -329,7 +329,7 @@ async function startServer() {
         model: "gemini-3-flash-preview",
         contents: prompt,
         config: {
-          maxOutputTokens: 900,
+          maxOutputTokens: 1500,
           temperature: 0.7,
         },
       });
@@ -382,7 +382,7 @@ async function startServer() {
         model: "gemini-3-flash-preview",
         contents: prompt,
         config: {
-          maxOutputTokens: 900,
+          maxOutputTokens: 1500,
           temperature: 0.7,
         },
       });
@@ -1736,13 +1736,7 @@ async function executeScraper(scraper: any) {
         "score": number, 
         "reason": "string", 
         "matchRationale": "string",
-        "isLead": boolean, 
-        "enrichment": {
-          "email": "string or null",
-          "phone": "string or null",
-          "location": "string or null",
-          "company": "string or null"
-        }
+        "isLead": boolean
       }]
       
       Input Data:
@@ -1849,10 +1843,6 @@ async function executeScraper(scraper: any) {
             reason: (scoreObj.reason || "").substring(0, 2000),
             status: "new",
             whatsappMessage: finalWhatsappMessage.substring(0, 5000),
-            email: scoreObj.enrichment?.email || null,
-            phone: scoreObj.enrichment?.phone || null,
-            location: scoreObj.enrichment?.location || null,
-            company: scoreObj.enrichment?.company || null,
             createdAt: FieldValue.serverTimestamp(),
             pubDate: post.data.pubDate || null,
             userId: scraper.userId,

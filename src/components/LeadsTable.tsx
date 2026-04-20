@@ -171,7 +171,6 @@ export function LeadsTable({ leads, scrapers }: { leads: Lead[], scrapers: Scrap
           <TableHead className="cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors" onClick={() => handleSort('status')}>
             <div className="flex items-center">Status <SortIcon column="status" /></div>
           </TableHead>
-          <TableHead>Enrichment</TableHead>
           <TableHead className="text-right">Action</TableHead>
         </TableRow>
       </TableHeader>
@@ -342,33 +341,6 @@ export function LeadsTable({ leads, scrapers }: { leads: Lead[], scrapers: Scrap
                   {(!lead.status || lead.status === 'new') && <Clock size={12} />}
                   {(!lead.status || lead.status === 'new') ? 'New' : lead.status.charAt(0).toUpperCase() + lead.status.slice(1)}
                 </span>
-              </TableCell>
-              <TableCell>
-                <div className="flex flex-col gap-1">
-                  {lead.email && (
-                    <div className="flex items-center gap-1 text-[10px] text-slate-600 dark:text-slate-400">
-                      <Icons.Mail size={10} /> {lead.email}
-                    </div>
-                  )}
-                  {lead.phone && (
-                    <div className="flex items-center gap-1 text-[10px] text-slate-600 dark:text-slate-400">
-                      <Icons.Phone size={10} /> {lead.phone}
-                    </div>
-                  )}
-                  {lead.location && (
-                    <div className="flex items-center gap-1 text-[10px] text-slate-600 dark:text-slate-400">
-                      <Icons.MapPin size={10} /> {lead.location}
-                    </div>
-                  )}
-                  {lead.company && (
-                    <div className="flex items-center gap-1 text-[10px] text-slate-600 dark:text-slate-400">
-                      <Icons.Briefcase size={10} /> {lead.company}
-                    </div>
-                  )}
-                  {!lead.email && !lead.phone && !lead.location && !lead.company && (
-                    <span className="text-[10px] text-slate-400 italic">No enrichment</span>
-                  )}
-                </div>
               </TableCell>
               <TableCell className="text-right">
                   <div className="flex items-center justify-end gap-2">

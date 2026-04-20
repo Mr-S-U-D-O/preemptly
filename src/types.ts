@@ -54,10 +54,6 @@ export interface Lead {
   reason?: string;
   status?: 'new' | 'viewed' | 'sent' | 'rejected';
   whatsappMessage?: string;
-  email?: string;
-  phone?: string;
-  location?: string;
-  company?: string;
   createdAt: any;
   pubDate?: string;
   userId: string;
