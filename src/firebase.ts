@@ -38,8 +38,17 @@ export interface FirestoreErrorInfo {
 }
 
 export function handleFirestoreError(error: unknown, operationType: OperationType, path: string | null) {
+  const errMsg = error instanceof Error ? error.message : String(error);
+  
+  // DON'T throw on quota exhaustion — throwing crashes React, remounts components,
+  // and creates new listeners that burn even more quota in a vicious loop
+  if (errMsg.includes('resource-exhausted') || errMsg.includes('Quota')) {
+    console.warn(`[Preemptly] Firestore quota exhausted on "${path}" (${operationType}). Cached data still available. Quota resets at midnight PT.`);
+    return;
+  }
+
   const errInfo: FirestoreErrorInfo = {
-    error: error instanceof Error ? error.message : String(error),
+    error: errMsg,
     authInfo: {
       userId: auth.currentUser?.uid,
       email: auth.currentUser?.email || undefined,

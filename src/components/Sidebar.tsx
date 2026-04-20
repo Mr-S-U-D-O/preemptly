@@ -9,38 +9,26 @@ import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip
 import { db } from '../firebase';
 import { collection, query, where, onSnapshot } from 'firebase/firestore';
 import { useAuth } from './AuthProvider';
+import { useData } from './DataProvider';
 
 export function Sidebar({ scrapers, onAddMonitor, className }: { scrapers: Scraper[], onAddMonitor: (initialData?: any) => void, className?: string }) {
   const [isOpen, setIsOpen] = useState(true);
   const [openClients, setOpenClients] = useState<Record<string, boolean>>({});
   const [openPlatforms, setOpenPlatforms] = useState<Record<string, boolean>>({});
-  const [newMatchesCounts, setNewMatchesCounts] = useState<Record<string, number>>({});
   const [unreadInbox, setUnreadInbox] = useState(0);
   const { user } = useAuth();
+  const { leads } = useData();
 
-  useEffect(() => {
-    if (!user) return;
-
-    const q = query(
-      collection(db, 'leads'),
-      where('userId', '==', user.uid),
-      where('status', '==', 'new')
-    );
-
-    const unsubscribe = onSnapshot(q, (snapshot) => {
-      const counts: Record<string, number> = {};
-      snapshot.docs.forEach(doc => {
-        const data = doc.data();
-        const scraperId = data.scraperId;
-        if (scraperId) {
-          counts[scraperId] = (counts[scraperId] || 0) + 1;
-        }
-      });
-      setNewMatchesCounts(counts);
+  // Derive new-match counts from DataProvider's leads (ELIMINATES a duplicate Firestore listener)
+  const newMatchesCounts = useMemo(() => {
+    const counts: Record<string, number> = {};
+    leads.forEach(lead => {
+      if (lead.status === 'new' && lead.scraperId) {
+        counts[lead.scraperId] = (counts[lead.scraperId] || 0) + 1;
+      }
     });
-
-    return () => unsubscribe();
-  }, [user]);
+    return counts;
+  }, [leads]);
 
   // Live unread inbox badge
   useEffect(() => {

@@ -617,7 +617,7 @@ PART 3 — DEPTH AND CREDIBILITY (2-3 sentences):
 Add a layer of depth that signals real-world experience. This could be: edge cases to watch for, a counter-intuitive truth about this domain, something that works in theory but fails in practice, or a more advanced consideration they should factor in once they've handled the basics. This is what separates a genuine expert from someone who just read a blog post.
 
 PART 4 — SOFT BRAND SIGNAL (1-2 sentences, ONLY if it fits naturally):
-If — and only if — it feels completely natural given what you just wrote, casually mention how your work relates. This must feel like a practitioner incidentally mentioning their background, not a pitch. The test: would this sentence feel out of place at a dinner party? If yes, cut it.
+If it feels completely natural given what you just wrote, casually mention how your work relates. This must feel like a practitioner incidentally mentioning their background, not a pitch. The test: would this sentence feel out of place at a dinner party? If yes, cut it.
 - GOOD: "This is honestly the exact kind of problem we run into most with [type of client we work with]."
 - GOOD: "Happy to go deeper on [specific aspect] if useful — it's something we've had to work out the hard way."
 - GOOD: "It's actually part of why [business name] focuses specifically on [relevant principle or approach]."
