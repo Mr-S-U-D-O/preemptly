@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useEffect, useState, useRef } from 'react';
-import { collection, onSnapshot, query, where, limit, orderBy } from 'firebase/firestore';
+import { collection, onSnapshot, query, where, limit, orderBy, getDocs } from 'firebase/firestore';
 import { db } from '../firebase';
 import { Scraper, Lead, SystemLog } from '../types';
 import { useAuth } from './AuthProvider';
@@ -41,6 +41,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
     // If quota is exhausted, don't set up new listeners
     if (quotaExhausted) return;
 
+    // Scrapers: Keep onSnapshot because status changes are important for UI feedback
     const scrapersQuery = query(collection(db, 'scrapers'), where('userId', '==', user.uid));
     const unsubscribeScrapers = onSnapshot(scrapersQuery, (snapshot) => {
       const data: Scraper[] = [];
@@ -52,54 +53,43 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
       handleQuotaAwareError(error, 'scrapers');
     });
 
-    // REDUCED from 250 → 50 to cut reads by 80%
-    const leadsQuery = query(
-      collection(db, 'leads'), 
-      where('userId', '==', user.uid),
-      orderBy('createdAt', 'desc'),
-      limit(50)
-    );
-    const unsubscribeLeads = onSnapshot(leadsQuery, (snapshot) => {
-      const data: Lead[] = [];
-      snapshot.forEach((doc) => {
-        data.push({ id: doc.id, ...doc.data() } as Lead);
-      });
-      data.sort((a, b) => {
-        const timeA = a.createdAt?.toMillis?.() || 0;
-        const timeB = b.createdAt?.toMillis?.() || 0;
-        return timeB - timeA;
-      });
-      setLeads(data);
-    }, (error) => {
-      handleQuotaAwareError(error, 'leads');
-    });
+    // Leads: One-time fetch to save costs. Users can refresh to see new matches.
+    const fetchLeadsAndLogs = async () => {
+      try {
+        const leadsQuery = query(
+          collection(db, 'leads'), 
+          where('userId', '==', user.uid),
+          orderBy('createdAt', 'desc'),
+          limit(50)
+        );
+        const leadsSnap = await getDocs(leadsQuery);
+        const leadsData: Lead[] = [];
+        leadsSnap.forEach((doc) => {
+          leadsData.push({ id: doc.id, ...doc.data() } as Lead);
+        });
+        setLeads(leadsData);
 
-    // REDUCED from 250 → 50 to cut reads by 80%
-    const logsQuery = query(
-      collection(db, 'logs'), 
-      where('userId', '==', user.uid),
-      orderBy('createdAt', 'desc'),
-      limit(50)
-    );
-    const unsubscribeLogs = onSnapshot(logsQuery, (snapshot) => {
-      const data: SystemLog[] = [];
-      snapshot.forEach((doc) => {
-        data.push({ id: doc.id, ...doc.data() } as SystemLog);
-      });
-      data.sort((a, b) => {
-        const timeA = a.createdAt?.toMillis?.() || 0;
-        const timeB = b.createdAt?.toMillis?.() || 0;
-        return timeB - timeA;
-      });
-      setLogs(data);
-    }, (error) => {
-      handleQuotaAwareError(error, 'logs');
-    });
+        const logsQuery = query(
+          collection(db, 'logs'), 
+          where('userId', '==', user.uid),
+          orderBy('createdAt', 'desc'),
+          limit(50)
+        );
+        const logsSnap = await getDocs(logsQuery);
+        const logsData: SystemLog[] = [];
+        logsSnap.forEach((doc) => {
+          logsData.push({ id: doc.id, ...doc.data() } as SystemLog);
+        });
+        setLogs(logsData);
+      } catch (error) {
+        handleQuotaAwareError(error, 'leads_or_logs_fetch');
+      }
+    };
+
+    fetchLeadsAndLogs();
 
     return () => {
       unsubscribeScrapers();
-      unsubscribeLeads();
-      unsubscribeLogs();
     };
   }, [user, quotaExhausted]);
 

@@ -396,7 +396,9 @@ export function ChatManager() {
           ) : (
             filteredRooms.map((room) => {
               const isActive = activeToken === room.id;
-              const isOnline = room.clientOnline === true;
+              // Optimization: Use a 5-minute window for "Online" status instead of a heartbeat-driven flag
+              const lastSeenMs = room.clientLastSeen?.toMillis?.() || 0;
+              const isOnline = lastSeenMs > Date.now() - 5 * 60 * 1000;
               return (
                 <button
                   key={room.id}
@@ -486,10 +488,6 @@ export function ChatManager() {
                   <div className="flex items-center gap-1.5">
                     {activeRoom.clientTyping ? (
                       <span className="text-[11px] text-[#5a8c12] font-bold italic">typing...</span>
-                    ) : activeRoom.clientOnline ? (
-                      <span className="flex items-center gap-1 text-[11px] text-emerald-500 font-bold">
-                        <Circle size={6} className="fill-emerald-400" /> Online now
-                      </span>
                     ) : (
                       <span className="text-[11px] text-slate-400 font-medium">
                         {formatLastSeen(activeRoom.clientLastSeen)}

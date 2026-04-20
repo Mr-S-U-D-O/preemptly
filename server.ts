@@ -526,24 +526,43 @@ async function startServer() {
         return res.status(400).json({ error: "Invalid portal token" });
       }
 
-      // Find ALL scrapers with this portalToken
-      const scrapersSnap = await adminDb
-        .collection("scrapers")
-        .where("portalToken", "==", token)
-        .get();
+      // Optimization: Try to get scraper data from in-memory cache first
+      let portalInfo = portalTokenCache.get(token);
+      
+      // Fallback to Firestore if not in cache (e.g. server just restarted or scraper is newly active)
+      if (!portalInfo) {
+        console.log(`[Cache Miss] Fetching portal info from Firestore for token: ${token.substring(0, 8)}...`);
+        const scrapersSnap = await adminDb
+          .collection("scrapers")
+          .where("portalToken", "==", token)
+          .get();
 
-      if (scrapersSnap.empty) {
-        return res.status(404).json({ error: "Portal not found" });
+        if (scrapersSnap.empty) {
+          return res.status(404).json({ error: "Portal not found" });
+        }
+
+        const group = scrapersSnap.docs.map((d: any) => ({ id: d.id, ...d.data() }));
+        portalInfo = {
+          scraperIds: group.map(s => s.id),
+          primaryScraper: group[0],
+          userId: group[0].userId,
+          clientName: group[0].clientName || "Client",
+          isPaid: group.some(s => s.isPaid === true),
+          isAiEnabled: group.some(s => s.isAiEnabled === true),
+          scrapers: group.map(s => ({
+            id: s.id,
+            name: s.name,
+            clientName: s.clientName,
+            portalSetupCompleted: s.portalSetupCompleted,
+            isAiEnabled: s.isAiEnabled,
+            trialLimit: s.trialLimit
+          }))
+        };
+        // Add to cache for subsequent requests
+        portalTokenCache.set(token, portalInfo);
       }
 
-      const scrapersData = scrapersSnap.docs.map((d: any) => ({
-        id: d.id,
-        ...d.data(),
-      }));
-      const scraperIds = scrapersData.map((s: any) => s.id);
-
-      // Use the first scraper for general client info
-      const primaryScraper = scrapersData[0];
+      const { scraperIds, primaryScraper, isPaid, isAiEnabled, scrapers } = portalInfo;
 
       // Fetch leads for ALL matching scrapers (using in operator for efficiency)
       // Firestore 'in' query has a limit of 30, which should be plenty for scrapers per client.
@@ -584,31 +603,21 @@ async function startServer() {
       // Filter out leads that the client has deleted (but keep them in DB for admin)
       const activeLeads = leads.filter((l: any) => l.status !== "deleted");
 
-      // Aggregate counts
-      const totalPushed = scrapersData.reduce(
-        (acc: number, s: any) => acc + (s.totalPushedLeads || 0),
-        0,
-      );
-      const avgTrialLimit = primaryScraper.trialLimit || 10;
-      const isPaid = scrapersData.some((s: any) => s.isPaid === true);
+      // Aggregate counts or summary data
+      const trialLimit = primaryScraper.trialLimit || 10;
 
       res.json({
-        clientName: primaryScraper.clientName || "Client",
-        scraperName: scrapersData.map((s: any) => s.name).join(", "),
+        clientName: portalInfo.clientName,
+        scraperName: scrapers.map((s: any) => s.name).join(", "),
         totalLeads: activeLeads.length,
-        trialLimit: avgTrialLimit,
+        trialLimit: trialLimit,
         isPaid: isPaid,
-        isAiEnabled: scrapersData.some((s: any) => s.isAiEnabled === true),
+        isAiEnabled: isAiEnabled,
         leads: activeLeads,
-        setupCompleted: scrapersData.some(
+        setupCompleted: scrapers.some(
           (s: any) => s.portalSetupCompleted === true,
         ),
-        scrapers: scrapersData.map((s: any) => ({
-          id: s.id,
-          name: s.name,
-          clientName: s.clientName,
-          portalSetupCompleted: s.portalSetupCompleted,
-        })),
+        scrapers: scrapers,
       });
     } catch (error: any) {
       await logSystemError("portal_fetch", "Failed to fetch portal", {
@@ -627,14 +636,23 @@ async function startServer() {
     async (req, res) => {
       const { token, leadId } = req.params;
       try {
-        // 1. Verify Portal Token
-        const scrapersSnap = await adminDb
-          .collection("scrapers")
-          .where("portalToken", "==", token)
-          .get();
-
-        if (scrapersSnap.empty) {
-          return res.status(403).json({ error: "Unauthorized portal access" });
+        // 1. Verify Portal Token via Cache
+        let portalInfo = portalTokenCache.get(token);
+        if (!portalInfo) {
+          // One-shot fallback
+          const snap = await adminDb.collection("scrapers").where("portalToken", "==", token).get();
+          if (snap.empty) return res.status(403).json({ error: "Unauthorized portal access" });
+          const group = snap.docs.map((d: any) => ({ id: d.id, ...d.data() }));
+          portalInfo = {
+            scraperIds: group.map(s => s.id),
+            primaryScraper: group[0],
+            userId: group[0].userId,
+            clientName: group[0].clientName || "Client",
+            isPaid: group.some(s => s.isPaid === true),
+            isAiEnabled: group.some(s => s.isAiEnabled === true),
+            scrapers: group.map(s => ({ id: s.id, name: s.name }))
+          } as any;
+          portalTokenCache.set(token, portalInfo);
         }
 
         // 2. Fetch Lead
@@ -644,10 +662,8 @@ async function startServer() {
         }
         const leadData = leadSnap.data();
 
-        // 3. Find the specific monitor for this lead
-        const scraper = scrapersSnap.docs
-          .find((d) => d.id === leadData.scraperId)
-          ?.data();
+        // 3. Find the specific monitor for this lead using portalInfo sub-scrapers
+        const scraper = portalInfo.scrapers.find((s: any) => s.id === leadData.scraperId);
         if (!scraper) {
           return res
             .status(403)
@@ -725,7 +741,7 @@ ABSOLUTE RULES:
 Return ONLY the comment text. No labels, no intro, no quotes around it.`;
 
         const aiResponse = await ai.models.generateContent({
-          model: "gemini-3-flash-preview",
+          model: "gemini-1.5-flash",
           contents: prompt,
           config: {
             maxOutputTokens: 3000,
@@ -762,20 +778,15 @@ Return ONLY the comment text. No labels, no intro, no quotes around it.`;
         clientTone,
       } = req.body;
 
-      // 1. Verify Portal Token and get scrapers
-      const scrapersSnap = await adminDb
-        .collection("scrapers")
-        .where("portalToken", "==", token)
-        .get();
-
-      if (scrapersSnap.empty) {
+      const portalInfo = await getPortalInfo(token);
+      if (!portalInfo) {
         return res.status(404).json({ error: "Portal not found" });
       }
 
-      // 2. Batch update all scrapers for this client
       const batch = adminDb.batch();
-      scrapersSnap.docs.forEach((doc: any) => {
-        batch.update(doc.ref, {
+      portalInfo.scraperIds.forEach((id) => {
+        const ref = adminDb.collection("scrapers").doc(id);
+        batch.update(ref, {
           isSoloFreelancer,
           clientBusiness,
           clientSells,
@@ -786,7 +797,6 @@ Return ONLY the comment text. No labels, no intro, no quotes around it.`;
       });
 
       await batch.commit();
-
       res.json({ success: true });
     } catch (error: any) {
       await logSystemError("portal_setup", "Setup failed", {
@@ -802,13 +812,8 @@ Return ONLY the comment text. No labels, no intro, no quotes around it.`;
   app.post("/api/portal/:token/delete/:leadId", async (req, res) => {
     const { token, leadId } = req.params;
     try {
-      const scrapersSnap = await adminDb
-        .collection("scrapers")
-        .where("portalToken", "==", token)
-        .limit(1)
-        .get();
-
-      if (scrapersSnap.empty) {
+      const portalInfo = await getPortalInfo(token);
+      if (!portalInfo) {
         return res.status(404).json({ error: "Portal not found" });
       }
 
@@ -833,17 +838,12 @@ Return ONLY the comment text. No labels, no intro, no quotes around it.`;
   app.post("/api/portal/:token/click/:leadId", async (req, res) => {
     const { token, leadId } = req.params;
     try {
-      // Verify token maps to a valid scraper
-      const scrapersSnap = await adminDb
-        .collection("scrapers")
-        .where("portalToken", "==", token)
-        .get();
-
-      if (scrapersSnap.empty) {
+      const portalInfo = await getPortalInfo(token);
+      if (!portalInfo) {
         return res.status(404).json({ error: "Portal not found" });
       }
 
-      const scraperIds = scrapersSnap.docs.map((d) => d.id);
+      const scraperIds = portalInfo.scraperIds;
 
       // Verify lead belongs to this scraper
       const leadRef = adminDb.collection("leads").doc(leadId);
@@ -860,17 +860,14 @@ Return ONLY the comment text. No labels, no intro, no quotes around it.`;
         clientViewCount: (leadSnap.data().clientViewCount || 0) + 1,
       });
 
-      // Increment aggregate scraper click count for the specific scraper this lead belongs to
+      // Increment aggregate scraper click count
       const actualScraperId = leadSnap.data().scraperId;
-      const actualScraperRef = adminDb
-        .collection("scrapers")
-        .doc(actualScraperId);
+      const actualScraperRef = adminDb.collection("scrapers").doc(actualScraperId);
       const actualScraperSnap = await actualScraperRef.get();
 
       if (actualScraperSnap.exists) {
         await actualScraperRef.update({
-          totalClientClicks:
-            (actualScraperSnap.data().totalClientClicks || 0) + 1,
+          totalClientClicks: (actualScraperSnap.data().totalClientClicks || 0) + 1,
         });
       }
 
@@ -903,16 +900,12 @@ Return ONLY the comment text. No labels, no intro, no quotes around it.`;
           return res.status(400).json({ error: "Invalid feedback" });
         }
 
-        const scrapersSnap = await adminDb
-          .collection("scrapers")
-          .where("portalToken", "==", token)
-          .get();
-
-        if (scrapersSnap.empty) {
+        const portalInfo = await getPortalInfo(token);
+        if (!portalInfo) {
           return res.status(404).json({ error: "Portal not found" });
         }
 
-        const scraperIds = scrapersSnap.docs.map((d: any) => d.id);
+        const scraperIds = portalInfo.scraperIds;
 
         const leadRef = adminDb.collection("leads").doc(leadId);
         const leadSnap = await leadRef.get();
@@ -950,16 +943,12 @@ Return ONLY the comment text. No labels, no intro, no quotes around it.`;
           return res.status(400).json({ error: "Invalid outcome" });
         }
 
-        const scrapersSnap = await adminDb
-          .collection("scrapers")
-          .where("portalToken", "==", token)
-          .get();
-
-        if (scrapersSnap.empty) {
+        const portalInfo = await getPortalInfo(token);
+        if (!portalInfo) {
           return res.status(404).json({ error: "Portal not found" });
         }
 
-        const scraperIds = scrapersSnap.docs.map((d: any) => d.id);
+        const scraperIds = portalInfo.scraperIds;
 
         const leadRef = adminDb.collection("leads").doc(leadId);
         const leadSnap = await leadRef.get();
@@ -1012,12 +1001,9 @@ Return ONLY the comment text. No labels, no intro, no quotes around it.`;
         throw new Error("Firestore Admin SDK not initialized");
       }
 
-      const scrapersSnap = await adminDb
-        .collection("scrapers")
-        .where("portalToken", "==", token)
-        .get();
+      const portalInfo = await getPortalInfo(token);
 
-      if (scrapersSnap.empty) {
+      if (!portalInfo) {
         console.warn(`[SSE] Portal not found for token: ${token}`);
         res.write('event: error\ndata: {"error":"Portal not found"}\n\n');
         clearInterval(heartbeat);
@@ -1101,17 +1087,14 @@ Return ONLY the comment text. No labels, no intro, no quotes around it.`;
 
         const safeSender = sender === "admin" ? "admin" : "client";
 
-        const scrapersSnap = await adminDb
-          .collection("scrapers")
-          .where("portalToken", "==", token)
-          .get();
+        const portalInfo = await getPortalInfo(token);
 
-        if (scrapersSnap.empty) {
+        if (!portalInfo) {
           return res.status(404).json({ error: "Portal not found" });
         }
 
-        const clientName = scrapersSnap.docs[0].data().clientName || "Client";
-        const userId = scrapersSnap.docs[0].data().userId;
+        const clientName = portalInfo.clientName;
+        const userId = portalInfo.userId;
 
         await adminDb
           .collection("portal_chats")
@@ -1143,6 +1126,8 @@ Return ONLY the comment text. No labels, no intro, no quotes around it.`;
               userId: userId,
               hasUnreadAdmin: safeSender === "client",
               hasUnreadClient: safeSender === "admin",
+              // Optimization: Update lastSeen on every message send
+              ...(safeSender === "client" ? { clientLastSeen: FieldValue.serverTimestamp() } : {}),
             },
             { merge: true },
           );
@@ -1202,14 +1187,8 @@ Return ONLY the comment text. No labels, no intro, no quotes around it.`;
   app.delete("/api/portal/:token/chat/messages/:msgId", async (req, res) => {
     const { token, msgId } = req.params;
     try {
-      // Verify token
-      const scrapersSnap = await adminDb
-        .collection("scrapers")
-        .where("portalToken", "==", token)
-        .limit(1)
-        .get();
-
-      if (scrapersSnap.empty) {
+      const portalInfo = await getPortalInfo(token);
+      if (!portalInfo) {
         return res.status(404).json({ error: "Portal not found" });
       }
 
@@ -1229,13 +1208,8 @@ Return ONLY the comment text. No labels, no intro, no quotes around it.`;
   app.delete("/api/portal/:token/chat", async (req, res) => {
     const { token } = req.params;
     try {
-      const scrapersSnap = await adminDb
-        .collection("scrapers")
-        .where("portalToken", "==", token)
-        .limit(1)
-        .get();
-
-      if (scrapersSnap.empty) {
+      const portalInfo = await getPortalInfo(token);
+      if (!portalInfo) {
         return res.status(404).json({ error: "Portal not found" });
       }
 
@@ -1264,26 +1238,19 @@ Return ONLY the comment text. No labels, no intro, no quotes around it.`;
     try {
       const { online } = req.body;
 
-      // Verify token is valid before writing presence
-      const scrapersSnap = await adminDb
-        .collection("scrapers")
-        .where("portalToken", "==", token)
-        .limit(1)
-        .get();
-
-      if (scrapersSnap.empty) {
+      const portalInfo = await getPortalInfo(token);
+      if (!portalInfo) {
         return res.status(404).json({ error: "Portal not found" });
       }
 
-      const clientName = scrapersSnap.docs[0].data().clientName || "Client";
-      const userId = scrapersSnap.docs[0].data().userId;
+      const clientName = portalInfo.clientName;
+      const userId = portalInfo.userId;
 
       await adminDb
         .collection("portal_chats")
         .doc(token)
         .set(
           {
-            clientOnline: Boolean(online),
             clientLastSeen: FieldValue.serverTimestamp(),
             // Ensure the room doc always has identity fields for the Start Chat panel
             clientName,
@@ -1384,6 +1351,93 @@ const MAX_BACKOFF_MINUTES = 60;
 // This is a massive cost saver for long-running servers.
 let activeScrapersCache: any[] = [];
 let scrapersListenerStarted = false;
+const inMemoryLastRun = new Map<string, number>();
+
+// In-Memory Portal Token Cache to avoid redundant Firestore reads on every portal API call
+// This maps portalToken -> { scraperIds, primaryScraper, userId, clientName, anyPaid }
+interface PortalCacheInfo {
+  scraperIds: string[];
+  primaryScraper: any;
+  userId: string;
+  clientName: string;
+  isPaid: boolean;
+  isAiEnabled: boolean;
+  scrapers: any[];
+}
+const portalTokenCache = new Map<string, PortalCacheInfo>();
+
+function updatePortalTokenCache(scrapers: any[]) {
+  const tokenGroups = new Map<string, any[]>();
+  scrapers.forEach(s => {
+    if (s.portalToken) {
+      if (!tokenGroups.has(s.portalToken)) tokenGroups.set(s.portalToken, []);
+      tokenGroups.get(s.portalToken)!.push(s);
+    }
+  });
+
+  portalTokenCache.clear();
+  tokenGroups.forEach((group, token) => {
+    portalTokenCache.set(token, {
+      scraperIds: group.map(s => s.id),
+      primaryScraper: group[0],
+      userId: group[0].userId,
+      clientName: group[0].clientName || "Client",
+      isPaid: group.some(s => s.isPaid === true),
+      isAiEnabled: group.some(s => s.isAiEnabled === true),
+      scrapers: group.map(s => ({
+        id: s.id,
+        name: s.name,
+        clientName: s.clientName,
+        portalSetupCompleted: s.portalSetupCompleted,
+        isAiEnabled: s.isAiEnabled,
+        trialLimit: s.trialLimit
+      }))
+    });
+  });
+  console.log(`[Background Engine] Portal token cache updated: ${portalTokenCache.size} portals indexed.`);
+}
+
+/**
+ * Helper to fetch portal info from cache, or fallback to Firestore
+ */
+async function getPortalInfo(token: string): Promise<PortalCacheInfo | null> {
+  if (!token) return null;
+  
+  // 1. Try Cache
+  const cached = portalTokenCache.get(token);
+  if (cached) return cached;
+  
+  // 2. Fallback to Firestore (Query by portalToken)
+  try {
+    const snap = await adminDb.collection("scrapers").where("portalToken", "==", token).get();
+    if (snap.empty) return null;
+    
+    const group = snap.docs.map((d: any) => ({ id: d.id, ...d.data() }));
+    const info: PortalCacheInfo = {
+      scraperIds: group.map(s => s.id),
+      primaryScraper: group[0],
+      userId: group[0].userId,
+      clientName: group[0].clientName || "Client",
+      isPaid: group.some(s => s.isPaid === true),
+      isAiEnabled: group.some(s => s.isAiEnabled === true),
+      scrapers: group.map(s => ({
+        id: s.id,
+        name: s.name,
+        clientName: s.clientName,
+        portalSetupCompleted: s.portalSetupCompleted,
+        isAiEnabled: s.isAiEnabled,
+        trialLimit: s.trialLimit
+      }))
+    };
+    
+    // Proactively cache it
+    portalTokenCache.set(token, info);
+    return info;
+  } catch (error) {
+    console.error(`[Portal Auth] Failed to verify token ${token}:`, error);
+    return null;
+  }
+}
 
 function startScrapersListener() {
   if (scrapersListenerStarted) return;
@@ -1399,6 +1453,10 @@ function startScrapersListener() {
           id: doc.id,
           ...doc.data(),
         }));
+        
+        // Update the token lookup cache derived from active scrapers
+        updatePortalTokenCache(activeScrapersCache);
+
         console.log(
           `[Background Engine] Active scrapers updated: ${activeScrapersCache.length} trackers currently monitoring.`,
         );
@@ -1425,8 +1483,12 @@ async function runBackgroundScrapers() {
     );
 
     for (const scraper of currentScrapers) {
+      // Use in-memory tracker if available to avoid unnecessary DB reads/writes
       const lastRun =
-        scraper.lastRunAt?.toMillis?.() || scraper.createdAt?.toMillis?.() || 0;
+        inMemoryLastRun.get(scraper.id) ||
+        scraper.lastRunAt?.toMillis?.() ||
+        scraper.createdAt?.toMillis?.() ||
+        0;
 
       // Phase 2.0: Apply exponential backoff if the scraper has consecutive errors.
       // Normal interval + backoff penalty = effective cooldown between retries.
@@ -1747,7 +1809,7 @@ async function executeScraper(scraper: any) {
         if (!apiKey) throw new Error("No Gemini API key configured");
 
         const aiResponse = await ai.models.generateContent({
-          model: "gemini-3-flash-preview",
+          model: "gemini-1.5-flash",
           contents: prompt,
         });
 
@@ -1968,17 +2030,16 @@ async function executeScraper(scraper: any) {
 
 async function updateScraperLastRun(scraper: any, force: boolean = false) {
   try {
-    const scraperRef = adminDb.collection("scrapers").doc(scraper.id);
+    // Update in-memory tracker first
+    inMemoryLastRun.set(scraper.id, Date.now());
 
-    // Throttling: Only update DB if leads found (force) or every 15 minutes
-    const lastRunTime = scraper.lastRunAt?.toMillis?.() || 0;
-    const fifteenMinutesAgo = Date.now() - 15 * 60 * 1000;
-
-    if (!force && lastRunTime > fifteenMinutesAgo) {
-      // Heartbeat not needed yet
+    // Only update Firestore if leads were found (force) 
+    // "Silent" successes do not need a database write to save on costs.
+    if (!force) {
       return;
     }
 
+    const scraperRef = adminDb.collection("scrapers").doc(scraper.id);
     await scraperRef.update({
       lastRunAt: FieldValue.serverTimestamp(),
       errorLastRun: null,
