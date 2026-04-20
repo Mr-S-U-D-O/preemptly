@@ -36,6 +36,8 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
     console.error(`Firestore error on ${collection}:`, msg);
   };
 
+  const lastFetchTime = useRef<number>(0);
+
   useEffect(() => {
     if (!user || !isAuthorized) return;
     // If quota is exhausted, don't set up new listeners
@@ -55,6 +57,12 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
 
     // Leads: One-time fetch to save costs. Users can refresh to see new matches.
     const fetchLeadsAndLogs = async () => {
+      // Throttle fetches: Only allow one fetch every 45 seconds to prevent
+      // remount/refresh storms from burning the quota.
+      const now = Date.now();
+      if (now - lastFetchTime.current < 45000) return;
+      lastFetchTime.current = now;
+
       try {
         const leadsQuery = query(
           collection(db, 'leads'), 

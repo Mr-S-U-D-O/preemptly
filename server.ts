@@ -137,7 +137,7 @@ try {
     const aiTest = new GoogleGenAI({ apiKey });
     aiTest.models
       .generateContent({
-        model: "gemini-3-flash-preview",
+        model: "gemini-1.5-flash",
         contents: "stability_test_ping",
       })
       .then(() => console.log("[Gemini AI] Connection test successful"))
@@ -326,7 +326,7 @@ async function startServer() {
       Format: ["keyphrase1", "keyphrase2", ...]`;
 
       const aiResponse = await ai.models.generateContent({
-        model: "gemini-3-flash-preview",
+        model: "gemini-1.5-flash",
         contents: prompt,
         config: {
           maxOutputTokens: 1500,
@@ -379,7 +379,7 @@ async function startServer() {
       Format: ["target1", "target2", ...]`;
 
       const aiResponse = await ai.models.generateContent({
-        model: "gemini-3-flash-preview",
+        model: "gemini-1.5-flash",
         contents: prompt,
         config: {
           maxOutputTokens: 1500,
@@ -1719,20 +1719,37 @@ async function executeScraper(scraper: any) {
       return { ...post, postUrl, leadId };
     });
 
-    // Phase 1.3: Check In-Memory Cache first before hitting Firestore
+    // Phase 1.3: Check In-Memory Cache first before hitting Firestore (Cheap deduplication)
     const uncachedPosts = rawPostsWithUrls.filter(
       (p) => !processedLeadsCache.has(p.leadId),
     );
 
     if (uncachedPosts.length === 0) {
       // All posts in this feed have already been processed in this server session
-      // Skip the DB update to save writes/reads
+      // Update memory heartbeat only to save writes/reads
+      inMemoryLastRun.set(scraper.id, Date.now());
+      return;
+    }
+
+    // Phase 1.4: Apply Date-Fence Filtering
+    // To save thousands of reads, we only check Firestore for posts newer than the last run.
+    const lastRunTime = scraper.lastRunAt?.toMillis?.() || scraper.createdAt?.toMillis?.() || 0;
+    const bufferMs = 10 * 60 * 1000; // 10-minute safety buffer for RSS propagation drift
+    
+    const relevantPosts = uncachedPosts.filter(post => {
+      if (!post.data.pubDate) return true; // If no date, play it safe and check
+      const pubTime = new Date(post.data.pubDate).getTime();
+      return pubTime > (lastRunTime - bufferMs);
+    });
+
+    if (relevantPosts.length === 0) {
+      await updateScraperLastRun(scraper);
       return;
     }
 
     // Batch-check existence for remaining posts: getAll() returns stubs for missing docs (cheap read)
     const leadsRef = adminDb.collection("leads");
-    const docRefs = uncachedPosts.map((p: any) => leadsRef.doc(p.leadId));
+    const docRefs = relevantPosts.map((p: any) => leadsRef.doc(p.leadId));
     const existingDocs =
       docRefs.length > 0 ? await adminDb.getAll(...docRefs) : [];
     const existingIds = new Set(
@@ -1742,8 +1759,8 @@ async function executeScraper(scraper: any) {
     // Update memory cache with existing IDs from Firestore so we don't check them again
     existingIds.forEach((id: any) => addToLeadCache(String(id)));
 
-    // Only posts whose hash-ID does not yet exist in Firestore (and not in cache) are truly new
-    const newPosts = uncachedPosts.filter(
+    // Only posts whose hash-ID does not yet exist in Firestore are truly new
+    const newPosts = relevantPosts.filter(
       (post: any) => !existingIds.has(post.leadId),
     );
 
