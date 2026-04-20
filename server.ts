@@ -108,7 +108,7 @@ try {
       const apiKey = process.env.GEMINI_API_KEY || process.env.LEAD_SCORER_API_KEY || "";
       const aiTest = new GoogleGenAI({ apiKey });
       aiTest.models.generateContent({ 
-        model: 'gemini-3-flash-preview', 
+        model: 'gemini-1.5-flash', 
         contents: 'stability_test_ping' 
       }).then(() => console.log("[Gemini AI] Connection test successful"))
         .catch(err => console.warn("[Gemini AI] Connection test failed. AI features may be unavailable.", err.message));
@@ -262,7 +262,7 @@ async function startServer() {
       Format: ["keyphrase1", "keyphrase2", ...]`;
 
       const aiResponse = await ai.models.generateContent({
-        model: 'gemini-3-flash-preview',
+        model: 'gemini-1.5-flash',
         contents: prompt,
         config: {
           maxOutputTokens: 600,
@@ -312,7 +312,7 @@ async function startServer() {
       Format: ["target1", "target2", ...]`;
 
       const aiResponse = await ai.models.generateContent({
-        model: 'gemini-3-flash-preview',
+        model: 'gemini-1.5-flash',
         contents: prompt,
         config: {
           maxOutputTokens: 600,
@@ -610,7 +610,7 @@ Return ONLY the comment text. No labels, no intro, no quotes around it.`;
 
 
       const aiResponse = await ai.models.generateContent({
-        model: 'gemini-3-flash-preview',
+        model: 'gemini-1.5-flash',
         contents: prompt,
         config: {
           maxOutputTokens: 3000,
@@ -1446,7 +1446,7 @@ async function executeScraper(scraper: any) {
         if (!apiKey) throw new Error("No Gemini API key configured");
         
         const aiResponse = await ai.models.generateContent({
-          model: 'gemini-3-flash-preview',
+          model: 'gemini-1.5-flash',
           contents: prompt,
         });
 
