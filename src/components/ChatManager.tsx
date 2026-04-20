@@ -222,9 +222,11 @@ export function ChatManager() {
         });
       });
       setMessages(msgs);
-      // Mark unread admin messages as read
-      if (msgs.some(m => m.sender === 'client' && !m.isRead)) {
-        setDoc(doc(db, 'portal_chats', activeToken), { hasUnreadAdmin: false }, { merge: true });
+      // Mark unread admin messages as read in the room meta
+      // ONLY if the room currently says it has unread messages.
+      // This prevents an infinite loop of updates.
+      if (msgs.some(m => m.sender === 'client' && !m.isRead) && activeRoom?.hasUnreadAdmin) {
+        setDoc(doc(db, 'portal_chats', activeToken), { hasUnreadAdmin: false }, { merge: true }).catch(console.error);
       }
       setTimeout(() => {
         messagesEndRef.current?.scrollIntoView({ behavior: initial ? 'auto' : 'smooth' });

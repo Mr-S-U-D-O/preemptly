@@ -13,6 +13,14 @@ import { getSecurityRules } from 'firebase-admin/security-rules';
 import Parser from 'rss-parser';
 import { pseoData } from "./src/data/pseo";
 
+// Global Error Handlers to prevent silent crashes and help debugging
+process.on('uncaughtException', (err) => {
+  console.error('[CRITICAL] Uncaught Exception:', err);
+});
+process.on('unhandledRejection', (reason, promise) => {
+  console.error('[CRITICAL] Unhandled Rejection at:', promise, 'reason:', reason);
+});
+
 /**
  * Phase 1.2: Generates a deterministic, collision-resistant document ID for
  * each lead based on a SHA-256 hash of its URL and scraperId.
@@ -92,10 +100,19 @@ try {
     adminDb.collection('health_check').limit(1).get()
       .then(() => console.log("[Firebase Admin] Connection test successful"))
       .catch((err: any) => {
-        console.error("[Firebase Admin] Connection test failed with error code:", err.code);
-        console.error("[Firebase Admin] Connection test failed with message:", err.message);
-        if (err.stack) console.error("[Firebase Admin] Stack trace:", err.stack);
+        console.error("[Firebase Admin] Connection test failed:", err.message);
       });
+
+    // Test Gemini AI Connectivity
+    if (process.env.GEMINI_API_KEY || process.env.LEAD_SCORER_API_KEY) {
+      const apiKey = process.env.GEMINI_API_KEY || process.env.LEAD_SCORER_API_KEY || "";
+      const aiTest = new GoogleGenAI({ apiKey });
+      aiTest.models.generateContent({ 
+        model: 'gemini-3-flash-preview', 
+        contents: 'stability_test_ping' 
+      }).then(() => console.log("[Gemini AI] Connection test successful"))
+        .catch(err => console.warn("[Gemini AI] Connection test failed. AI features may be unavailable.", err.message));
+    }
 
 } catch (e) {
   console.error("[Firebase Admin] Firestore critical init failed:", e);
@@ -1113,14 +1130,37 @@ function addToLeadCache(leadId: string) {
 const MAX_CONSECUTIVE_ERRORS = 5;
 const MAX_BACKOFF_MINUTES = 60;
 
+// Phase 2.1: Server-Side Scraper Cache using Real-Time Listener
+// This replaces periodic polling (O(N) reads per minute) with O(1) change-based reads.
+// This is a massive cost saver for long-running servers.
+let activeScrapersCache: any[] = [];
+let scrapersListenerStarted = false;
+
+function startScrapersListener() {
+  if (scrapersListenerStarted) return;
+  console.log("[Background Engine] Initializing server-side scraper listener...");
+  adminDb.collection('scrapers').where('status', '==', 'active').onSnapshot(snapshot => {
+    activeScrapersCache = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+    console.log(`[Background Engine] Active scrapers updated: ${activeScrapersCache.length} trackers currently monitoring.`);
+  }, error => {
+    console.error("[Background Engine] Scraper listener failed:", error);
+    scrapersListenerStarted = false; // Allow retry
+  });
+  scrapersListenerStarted = true;
+}
+
 async function runBackgroundScrapers() {
   try {
-    console.log(`[Background Engine] Checking for scrapers to run... ${new Date().toISOString()}`);
-    const scrapersRef = adminDb.collection('scrapers');
-    const querySnapshot = await scrapersRef.where('status', '==', 'active').get();
+    if (!scrapersListenerStarted) startScrapersListener();
     
-    for (const scraperDoc of querySnapshot.docs) {
-      const scraper = { id: scraperDoc.id, ...scraperDoc.data() } as any;
+    // Use the memory cache instead of hitting Firestore .get() every minute
+    const currentScrapers = [...activeScrapersCache];
+    
+    if (currentScrapers.length === 0) return;
+
+    console.log(`[Background Engine] Processing ${currentScrapers.length} active scrapers... ${new Date().toLocaleTimeString()}`);
+    
+    for (const scraper of currentScrapers) {
       const lastRun = scraper.lastRunAt?.toMillis?.() || scraper.createdAt?.toMillis?.() || 0;
       
       // Phase 2.0: Apply exponential backoff if the scraper has consecutive errors.
@@ -1319,7 +1359,7 @@ async function executeScraper(scraper: any) {
     
     if (uncachedPosts.length === 0) {
       // All posts in this feed have already been processed in this server session
-      await updateScraperLastRun(scraper);
+      // Skip the DB update to save writes/reads
       return;
     }
 
@@ -1330,7 +1370,7 @@ async function executeScraper(scraper: any) {
     const existingIds = new Set(existingDocs.filter((d: any) => d.exists).map((d: any) => d.id));
 
     // Update memory cache with existing IDs from Firestore so we don't check them again
-    existingIds.forEach(id => addToLeadCache(id));
+    existingIds.forEach((id: any) => addToLeadCache(String(id)));
 
     // Only posts whose hash-ID does not yet exist in Firestore (and not in cache) are truly new
     const newPosts = uncachedPosts.filter((post: any) => !existingIds.has(post.leadId));
@@ -1508,7 +1548,7 @@ async function executeScraper(scraper: any) {
       await batchWrite.commit();
     }
 
-    await updateScraperLastRun(scraper);
+    await updateScraperLastRun(scraper, newLeadsCount > 0);
 
     // Phase 2.0: Clear consecutive errors on success — the scraper is healthy again.
     if ((scraper.consecutiveErrors || 0) > 0) {
@@ -1582,16 +1622,27 @@ async function executeScraper(scraper: any) {
   }
 }
 
-async function updateScraperLastRun(scraper: any) {
-  const scraperRef = adminDb.collection('scrapers').doc(scraper.id);
-  const scraperSnap = await scraperRef.get();
-  if (!scraperSnap.exists) {
-    console.warn(`Scraper ${scraper.id} not found in DB, skipping update.`);
-    return;
+async function updateScraperLastRun(scraper: any, force: boolean = false) {
+  try {
+    const scraperRef = adminDb.collection('scrapers').doc(scraper.id);
+    
+    // Throttling: Only update DB if leads found (force) or every 15 minutes
+    const lastRunTime = scraper.lastRunAt?.toMillis?.() || 0;
+    const fifteenMinutesAgo = Date.now() - (15 * 60 * 1000);
+    
+    if (!force && lastRunTime > fifteenMinutesAgo) {
+      // Heartbeat not needed yet
+      return;
+    }
+
+    await scraperRef.update({
+      lastRunAt: FieldValue.serverTimestamp(),
+      errorLastRun: null,
+      consecutiveErrors: 0
+    });
+  } catch (err) {
+    console.error(`[Background Engine] Failed to update heartbeat for ${scraper.id}:`, err);
   }
-  await scraperRef.update({
-    lastRunAt: FieldValue.serverTimestamp()
-  });
 }
 
 startServer();
