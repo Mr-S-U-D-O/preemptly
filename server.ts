@@ -329,7 +329,7 @@ async function startServer() {
         model: "gemini-3-flash-preview",
         contents: prompt,
         config: {
-          maxOutputTokens: 600,
+          maxOutputTokens: 900,
           temperature: 0.7,
         },
       });
@@ -344,7 +344,7 @@ async function startServer() {
       res.json({ keywords });
     } catch (error: any) {
       console.error("[API] Keyword suggestion failed:", error);
-      const status = error.status || 500;
+      const status = error.status || 900;
       res.status(status).json({
         error: error.message || "Failed to suggest keywords",
         code: status === 429 ? "QUOTA_EXCEEDED" : "INTERNAL_ERROR",
@@ -382,7 +382,7 @@ async function startServer() {
         model: "gemini-3-flash-preview",
         contents: prompt,
         config: {
-          maxOutputTokens: 600,
+          maxOutputTokens: 900,
           temperature: 0.7,
         },
       });

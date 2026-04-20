@@ -85,6 +85,11 @@ export function AddScraperModal({
   const [clientPhone, setClientPhone] = useState('');
   const [selectedPlatforms, setSelectedPlatforms] = useState<string[]>(['reddit']);
   const [target, setTarget] = useState('');
+  const [city, setCity] = useState('');
+  const [citySearch, setCitySearch] = useState('');
+  const [showCityResults, setShowCityResults] = useState(false);
+  const [category, setCategory] = useState('sss');
+  const [hnCategory, setHnCategory] = useState('newest');
   const [keyword, setKeyword] = useState('');
   const [idealCustomerProfile, setIdealCustomerProfile] = useState('');
   const [suggestedKeywords, setSuggestedKeywords] = useState<string[]>([]);
@@ -115,13 +120,164 @@ export function AddScraperModal({
         setClientPhone('');
         setSelectedPlatforms(['reddit']);
         setTarget('');
+        setCity('');
+        setCitySearch('');
         setKeyword('');
         setIdealCustomerProfile('');
       }
     }
   }, [open, initialData]);
 
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (cityDropdownRef.current && !cityDropdownRef.current.contains(event.target as Node)) {
+        setShowCityResults(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
 
+  const CRAIGSLIST_CITIES = [
+    // North America - USA
+    { name: 'SF Bay Area', id: 'sfbay' },
+    { name: 'New York City', id: 'newyork' },
+    { name: 'Los Angeles', id: 'losangeles' },
+    { name: 'Chicago', id: 'chicago' },
+    { name: 'Houston', id: 'houston' },
+    { name: 'Philadelphia', id: 'philadelphia' },
+    { name: 'Phoenix', id: 'phoenix' },
+    { name: 'San Diego', id: 'sandiego' },
+    { name: 'Dallas', id: 'dallas' },
+    { name: 'Austin', id: 'austin' },
+    { name: 'Seattle', id: 'seattle' },
+    { name: 'Boston', id: 'boston' },
+    { name: 'Atlanta', id: 'atlanta' },
+    { name: 'Miami', id: 'miami' },
+    { name: 'Denver', id: 'denver' },
+    { name: 'Portland', id: 'portland' },
+    { name: 'Las Vegas', id: 'lasvegas' },
+    { name: 'Washington DC', id: 'washingtondc' },
+    { name: 'Minneapolis', id: 'minneapolis' },
+    { name: 'Detroit', id: 'detroit' },
+    { name: 'San Antonio', id: 'sanantonio' },
+    { name: 'Columbus', id: 'columbus' },
+    { name: 'Indianapolis', id: 'indianapolis' },
+    { name: 'Charlotte', id: 'charlotte' },
+    { name: 'Nashville', id: 'nashville' },
+    { name: 'Jacksonville', id: 'jacksonville' },
+    { name: 'Oklahoma City', id: 'oklahomacity' },
+    { name: 'Memphis', id: 'memphis' },
+    { name: 'Louisville', id: 'louisville' },
+    { name: 'Milwaukee', id: 'milwaukee' },
+    { name: 'Albuquerque', id: 'albuquerque' },
+    { name: 'Tucson', id: 'tucson' },
+    { name: 'Fresno', id: 'fresno' },
+    { name: 'Sacramento', id: 'sacramento' },
+    { name: 'Kansas City', id: 'kansascity' },
+    { name: 'Mesa', id: 'mesa' },
+    { name: 'Virginia Beach', id: 'virginiabeach' },
+    { name: 'Atlanta', id: 'atlanta' },
+    { name: 'Colorado Springs', id: 'cosprings' },
+    { name: 'Raleigh', id: 'raleigh' },
+    { name: 'Omaha', id: 'omaha' },
+    { name: 'Miami', id: 'miami' },
+    
+    // North America - Canada
+    { name: 'Toronto', id: 'toronto' },
+    { name: 'Vancouver', id: 'vancouver' },
+    { name: 'Montreal', id: 'montreal' },
+    { name: 'Ottawa', id: 'ottawa' },
+    { name: 'Calgary', id: 'calgary' },
+    { name: 'Edmonton', id: 'edmonton' },
+    { name: 'Winnipeg', id: 'winnipeg' },
+    { name: 'Quebec City', id: 'quebec' },
+    { name: 'Victoria', id: 'victoria' },
+    
+    // Europe
+    { name: 'London', id: 'london' },
+    { name: 'Paris', id: 'paris' },
+    { name: 'Berlin', id: 'berlin' },
+    { name: 'Madrid', id: 'madrid' },
+    { name: 'Rome', id: 'rome' },
+    { name: 'Amsterdam', id: 'amsterdam' },
+    { name: 'Brussels', id: 'brussels' },
+    { name: 'Vienna', id: 'vienna' },
+    { name: 'Stockholm', id: 'stockholm' },
+    { name: 'Dublin', id: 'dublin' },
+    { name: 'Copenhagen', id: 'copenhagen' },
+    { name: 'Oslo', id: 'oslo' },
+    { name: 'Helsinki', id: 'helsinki' },
+    { name: 'Lisbon', id: 'lisbon' },
+    { name: 'Athens', id: 'athens' },
+    { name: 'Prague', id: 'prague' },
+    { name: 'Warsaw', id: 'warsaw' },
+    { name: 'Budapest', id: 'budapest' },
+    { name: 'Zurich', id: 'zurich' },
+    { name: 'Geneva', id: 'geneva' },
+    { name: 'Milan', id: 'milan' },
+    { name: 'Barcelona', id: 'barcelona' },
+    { name: 'Munich', id: 'munich' },
+    { name: 'Frankfurt', id: 'frankfurt' },
+    { name: 'Hamburg', id: 'hamburg' },
+    { name: 'Luxembourg', id: 'luxembourg' },
+    
+    // Asia & Middle East
+    { name: 'Tokyo', id: 'tokyo' },
+    { name: 'Seoul', id: 'seoul' },
+    { name: 'Hong Kong', id: 'hongkong' },
+    { name: 'Singapore', id: 'singapore' },
+    { name: 'Bangkok', id: 'bangkok' },
+    { name: 'Manila', id: 'manila' },
+    { name: 'Jakarta', id: 'jakarta' },
+    { name: 'Mumbai', id: 'mumbai' },
+    { name: 'Delhi', id: 'delhi' },
+    { name: 'Dubai', id: 'dubai' },
+    { name: 'Abu Dhabi', id: 'abudhabi' },
+    { name: 'Tel Aviv', id: 'telaviv' },
+    { name: 'Istanbul', id: 'istanbul' },
+    { name: 'Shanghai', id: 'shanghai' },
+    { name: 'Beijing', id: 'beijing' },
+    { name: 'Taipei', id: 'taipei' },
+    
+    // Oceania
+    { name: 'Sydney', id: 'sydney' },
+    { name: 'Melbourne', id: 'melbourne' },
+    { name: 'Brisbane', id: 'brisbane' },
+    { name: 'Perth', id: 'perth' },
+    { name: 'Adelaide', id: 'adelaide' },
+    { name: 'Auckland', id: 'auckland' },
+    { name: 'Wellington', id: 'wellington' },
+    { name: 'Christchurch', id: 'christchurch' },
+    
+    // Latin America
+    { name: 'Mexico City', id: 'mexicocity' },
+    { name: 'Sao Paulo', id: 'saopaulo' },
+    { name: 'Rio de Janeiro', id: 'rio' },
+    { name: 'Buenos Aires', id: 'buenosaires' },
+    { name: 'Santiago', id: 'santiago' },
+    { name: 'Bogota', id: 'bogota' },
+    { name: 'Lima', id: 'lima' },
+    { name: 'Caracas', id: 'caracas' },
+    { name: 'Panama City', id: 'panama' },
+    { name: 'San Jose', id: 'sanjose' },
+    
+    // Africa
+    { name: 'Cairo', id: 'cairo' },
+    { name: 'Johannesburg', id: 'johannesburg' },
+    { name: 'Cape Town', id: 'capetown' },
+    { name: 'Nairobi', id: 'nairobi' },
+    { name: 'Lagos', id: 'lagos' },
+    { name: 'Casablanca', id: 'casablanca' },
+    { name: 'Addis Ababa', id: 'addisababa' },
+  ].sort((a, b) => a.name.localeCompare(b.name));
+
+  const filteredCities = citySearch.trim() === '' 
+    ? [] 
+    : CRAIGSLIST_CITIES.filter(c => 
+        c.name.toLowerCase().includes(citySearch.toLowerCase()) || 
+        c.id.toLowerCase().includes(citySearch.toLowerCase())
+      );
 
   const handleSuggestKeywords = async () => {
     if (!idealCustomerProfile.trim()) {
@@ -251,13 +407,21 @@ export function AddScraperModal({
             scraperData.subreddit = individualTarget.replace(/^r\//, '');
           }
 
+          if (platform === 'craigslist') {
+            scraperData.city = city.trim();
+            scraperData.category = category;
+          }
 
+          if (platform === 'hackernews') {
+            scraperData.category = hnCategory;
+          }
 
           await setDoc(newScraperRef, scraperData);
 
           try {
             let displayTarget = scraperData.target;
             if (platform === 'reddit') displayTarget = `r/${scraperData.target}`;
+            if (platform === 'craigslist') displayTarget = `${scraperData.city} (${scraperData.category})`;
 
             await addDoc(collection(db, 'logs'), {
               type: 'scraper_created',
@@ -280,6 +444,11 @@ export function AddScraperModal({
       setClientPhone('');
       setSelectedPlatforms(['reddit']);
       setTarget('');
+      setCity('');
+      setCitySearch('');
+      setShowCityResults(false);
+      setCategory('sss');
+      setHnCategory('newest');
       setKeyword('');
       setIdealCustomerProfile('');
       setInterval('15');
@@ -348,7 +517,9 @@ export function AddScraperModal({
             <div className="grid grid-cols-2 gap-2">
               {[
                 { id: 'reddit', name: 'Reddit', icon: Icons.MessageSquare },
+                { id: 'hackernews', name: 'Hacker News', icon: Icons.Hash },
                 { id: 'stackoverflow', name: 'Stack Overflow', icon: Icons.Code },
+                { id: 'craigslist', name: 'Craigslist', icon: Icons.MapPin },
               ].map((p) => (
                 <button
                   key={p.id}
@@ -380,7 +551,79 @@ export function AddScraperModal({
             <p className="text-[10px] text-slate-500">Our AI uses this definition to score matches and identify your growth visibility potential.</p>
           </div>
 
+          {selectedPlatforms.includes('craigslist') && (
+            <div className="grid grid-cols-2 gap-4 p-4 bg-slate-50 dark:bg-slate-800/50 rounded-2xl border border-slate-100 dark:border-slate-800">
+              <div className="space-y-2 relative" ref={cityDropdownRef}>
+                <Label htmlFor="city" className="text-slate-700 font-semibold">Craigslist City</Label>
+                <div className="relative">
+                  <Input 
+                    id="city" 
+                    placeholder="Search city..." 
+                    value={citySearch} 
+                    onChange={(e) => {
+                      setCitySearch(e.target.value);
+                      setShowCityResults(true);
+                      if (e.target.value === '') setCity('');
+                    }} 
+                    onFocus={() => setShowCityResults(true)}
+                    required={selectedPlatforms.includes('craigslist') && !city}
+                    className="rounded-xl border-slate-200 focus-visible:ring-[#5a8c12] bg-white dark:bg-slate-900"
+                  />
+                  {showCityResults && filteredCities.length > 0 && (
+                    <div className="absolute z-50 w-full mt-1 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl shadow-xl max-h-48 overflow-y-auto">
+                      {filteredCities.map(c => (
+                        <button
+                          key={c.id}
+                          type="button"
+                          className="w-full text-left px-4 py-2 text-sm hover:bg-[#5a8c12]/10 transition-colors dark:text-slate-200"
+                          onClick={() => {
+                            setCity(c.id);
+                            setCitySearch(c.name);
+                            setShowCityResults(false);
+                          }}
+                        >
+                          <div className="font-medium">{c.name}</div>
+                          <div className="text-[10px] text-slate-500">{c.id}.craigslist.org</div>
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="category" className="text-slate-700 font-semibold">CL Category</Label>
+                <Select value={category} onValueChange={setCategory}>
+                  <SelectTrigger className="rounded-xl border-slate-200 focus:ring-[#5a8c12] bg-white dark:bg-slate-900">
+                    <SelectValue placeholder="Select" />
+                  </SelectTrigger>
+                  <SelectContent className="rounded-xl border-[#5a8c12]">
+                    <SelectItem value="sss">All For Sale</SelectItem>
+                    <SelectItem value="ggg">All Gigs</SelectItem>
+                    <SelectItem value="bbb">All Services</SelectItem>
+                    <SelectItem value="jjj">All Jobs</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+          )}
 
+          {selectedPlatforms.includes('hackernews') && (
+            <div className="space-y-2 p-4 bg-slate-50 dark:bg-slate-800/50 rounded-2xl border border-slate-100 dark:border-slate-800">
+              <Label htmlFor="hnCategory" className="text-slate-700 font-semibold">Hacker News Category</Label>
+              <Select value={hnCategory} onValueChange={setHnCategory}>
+                <SelectTrigger className="rounded-xl border-slate-200 focus:ring-[#5a8c12] bg-white dark:bg-slate-900">
+                  <SelectValue placeholder="Select category" />
+                </SelectTrigger>
+                <SelectContent className="rounded-xl border-[#5a8c12]">
+                  <SelectItem value="newest">Newest</SelectItem>
+                  <SelectItem value="frontpage">Front Page</SelectItem>
+                  <SelectItem value="ask">Ask HN</SelectItem>
+                  <SelectItem value="show">Show HN</SelectItem>
+                  <SelectItem value="jobs">Jobs</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          )}
 
           <div className="space-y-2">
             <div className="flex items-center justify-between">
@@ -413,7 +656,7 @@ export function AddScraperModal({
                 className={`${selectedPlatforms.includes('reddit') && !selectedPlatforms.includes('stackoverflow') ? 'rounded-l-none' : ''} rounded-r-xl border-slate-200 focus-visible:ring-[#5a8c12]`}
                 value={target} 
                 onChange={(e) => setTarget(e.target.value)} 
-                required
+                required={!selectedPlatforms.includes('hackernews') || selectedPlatforms.length > 1} 
               />
             </div>
             {suggestedTargets.length > 0 && (
