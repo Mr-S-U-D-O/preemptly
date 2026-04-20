@@ -1446,16 +1446,19 @@ function startScrapersListener() {
   );
   adminDb
     .collection("scrapers")
-    .where("status", "==", "active")
     .onSnapshot(
       (snapshot) => {
-        activeScrapersCache = snapshot.docs.map((doc) => ({
+        const allScrapers = snapshot.docs.map((doc) => ({
           id: doc.id,
           ...doc.data(),
         }));
         
-        // Update the token lookup cache derived from active scrapers
-        updatePortalTokenCache(activeScrapersCache);
+        // Filter out those for the execution engine cache (only active)
+        activeScrapersCache = allScrapers.filter(s => s.status === "active");
+        
+        // Update the token lookup cache derived from ALL scrapers (active or paused)
+        // to ensure portal lookups never hit Firestore.
+        updatePortalTokenCache(allScrapers);
 
         console.log(
           `[Background Engine] Active scrapers updated: ${activeScrapersCache.length} trackers currently monitoring.`,
