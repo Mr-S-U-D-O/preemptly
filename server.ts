@@ -1092,6 +1092,19 @@ Return ONLY the comment text. No labels, no intro, no quotes around it.`;
 }
 
 // Background Scraper Logic
+// Phase 1.3: In-Memory Deduplication Cache
+// This prevents redundant Firestore reads for the same posts across consecutive runs.
+// Since RSS feeds are often the same for minutes at a time, this can save 90%+ in read costs.
+const processedLeadsCache = new Set<string>();
+const MAX_CACHE_SIZE = 5000;
+
+function addToLeadCache(leadId: string) {
+  if (processedLeadsCache.size >= MAX_CACHE_SIZE) {
+    const firstKey = processedLeadsCache.values().next().value;
+    if (firstKey) processedLeadsCache.delete(firstKey);
+  }
+  processedLeadsCache.add(leadId);
+}
 // Phase 2.0: Smart error handling with exponential backoff.
 // - After each consecutive failure, the scraper waits 2^N minutes (capped at 60 min)
 //   before retrying, preventing rapid-fire failures from hammering external APIs.
@@ -1301,14 +1314,26 @@ async function executeScraper(scraper: any) {
       return { ...post, postUrl, leadId };
     });
 
-    // Batch-check existence: getAll() returns stubs for missing docs (cheap read)
+    // Phase 1.3: Check In-Memory Cache first before hitting Firestore
+    const uncachedPosts = rawPostsWithUrls.filter(p => !processedLeadsCache.has(p.leadId));
+    
+    if (uncachedPosts.length === 0) {
+      // All posts in this feed have already been processed in this server session
+      await updateScraperLastRun(scraper);
+      return;
+    }
+
+    // Batch-check existence for remaining posts: getAll() returns stubs for missing docs (cheap read)
     const leadsRef = adminDb.collection('leads');
-    const docRefs = rawPostsWithUrls.map((p: any) => leadsRef.doc(p.leadId));
+    const docRefs = uncachedPosts.map((p: any) => leadsRef.doc(p.leadId));
     const existingDocs = docRefs.length > 0 ? await adminDb.getAll(...docRefs) : [];
     const existingIds = new Set(existingDocs.filter((d: any) => d.exists).map((d: any) => d.id));
 
-    // Only posts whose hash-ID does not yet exist in Firestore are truly new
-    const newPosts = rawPostsWithUrls.filter((post: any) => !existingIds.has(post.leadId));
+    // Update memory cache with existing IDs from Firestore so we don't check them again
+    existingIds.forEach(id => addToLeadCache(id));
+
+    // Only posts whose hash-ID does not yet exist in Firestore (and not in cache) are truly new
+    const newPosts = uncachedPosts.filter((post: any) => !existingIds.has(post.leadId));
 
     if (newPosts.length === 0) {
       console.log(`[Background Engine] No new posts found for ${scraper.name}`);
@@ -1467,6 +1492,9 @@ async function executeScraper(scraper: any) {
         }, { merge: true });
         newLeadsCount++;
         batchOperations++;
+        
+        // Add to cache so we don't process it again
+        addToLeadCache(post.leadId);
 
         // Firestore batches are limited to 500 operations
         if (batchOperations >= 400) {
