@@ -91,6 +91,7 @@ try {
 
     initializeApp({
       credential,
+      projectId: firebaseConfig.projectId,
     });
   }
   console.log("Admin Project ID:", getApp().options.projectId);
@@ -135,7 +136,7 @@ try {
     const aiTest = new GoogleGenAI({ apiKey });
     aiTest.models
       .generateContent({
-        model: "gemini-3-flash",
+        model: "gemini-1.5-flash",
         contents: "stability_test_ping",
       })
       .then(() => console.log("[Gemini AI] Connection test successful"))
@@ -1632,38 +1633,43 @@ async function executeScraper(scraper: any) {
       return { ...post, postUrl, leadId };
     });
 
-    // Phase 1.3: Check In-Memory Cache first before hitting Firestore (Cheap deduplication)
-    const uncachedPosts = rawPostsWithUrls.filter(
-      (p) => !processedLeadsCache.has(p.leadId),
-    );
-
-    if (uncachedPosts.length === 0) {
-      // All posts in this feed have already been processed in this server session
-      // Update memory heartbeat only to save writes/reads
-      inMemoryLastRun.set(scraper.id, Date.now());
-      return;
-    }
-
-    // Phase 1.4: Apply Date-Fence Filtering
+    // Phase 1.3: Apply Date-Fence Filtering FIRST (Massive Cost Saver)
+    // We only care about posts newer than the most recent of (Firestore lastRun OR Memory lastRun)
     // To save thousands of reads, we only check Firestore for posts newer than the last run.
-    const lastRunTime = scraper.lastRunAt?.toMillis?.() || scraper.createdAt?.toMillis?.() || 0;
-    const bufferMs = 10 * 60 * 1000; // 10-minute safety buffer for RSS propagation drift
+    const firestoreLastRun = scraper.lastRunAt?.toMillis?.() || scraper.createdAt?.toMillis?.() || 0;
+    const memoryLastRun = inMemoryLastRun.get(scraper.id) || 0;
+    const lastRunTime = Math.max(firestoreLastRun, memoryLastRun);
     
-    const relevantPosts = uncachedPosts.filter(post => {
+    const bufferMs = 15 * 60 * 1000; // 15-minute safety buffer for RSS propagation drift
+    
+    const freshPosts = rawPostsWithUrls.filter(post => {
       if (!post.data.pubDate) return true; // If no date, play it safe and check
       const pubTime = new Date(post.data.pubDate).getTime();
       return pubTime > (lastRunTime - bufferMs);
     });
 
-    if (relevantPosts.length === 0) {
-      // Persist the run time even if empty to keep the Date-Fence moving forward
+    if (freshPosts.length === 0) {
+      // Keep the gate moving forward even if feed is old or static
       await updateScraperLastRun(scraper, true); 
       return;
     }
 
-    // Batch-check existence for remaining posts: getAll() returns stubs for missing docs (cheap read)
+    // Phase 1.4: Check In-Memory Cache (Cheap deduplication)
+    const uncachedPosts = freshPosts.filter(
+      (p) => !processedLeadsCache.has(p.leadId),
+    );
+
+    if (uncachedPosts.length === 0) {
+      // All fresh posts have already been processed in this server session
+      // Persistent silence is critical to keep the Date-Fence updated in Firestore
+      // so that restarts don't trigger re-scans of the whole feed.
+      await updateScraperLastRun(scraper, true);
+      return;
+    }
+
+    // Phase 1.5: Batch-check existence for remaining posts: getAll() returns stubs for missing docs (cheap read)
     const leadsRef = adminDb.collection("leads");
-    const docRefs = relevantPosts.map((p: any) => leadsRef.doc(p.leadId));
+    const docRefs = uncachedPosts.map((p: any) => leadsRef.doc(p.leadId));
     const existingDocs =
       docRefs.length > 0 ? await adminDb.getAll(...docRefs) : [];
     const existingIds = new Set(
@@ -1674,13 +1680,13 @@ async function executeScraper(scraper: any) {
     existingIds.forEach((id: any) => addToLeadCache(String(id)));
 
     // Only posts whose hash-ID does not yet exist in Firestore are truly new
-    const newPosts = relevantPosts.filter(
+    const newPosts = uncachedPosts.filter(
       (post: any) => !existingIds.has(post.leadId),
     );
 
     if (newPosts.length === 0) {
       console.log(`[Background Engine] No new posts found for ${scraper.name}`);
-      // Persist the run time even if no new leads found
+      // Persist the run time even if no new leads found to keep the gate closed
       await updateScraperLastRun(scraper, true); 
       return;
     }
@@ -1867,7 +1873,7 @@ async function executeScraper(scraper: any) {
       await batchWrite.commit();
     }
 
-    await updateScraperLastRun(scraper, newLeadsCount > 0);
+    await updateScraperLastRun(scraper, true);
 
     // Phase 2.0: Clear consecutive errors on success — the scraper is healthy again.
     if ((scraper.consecutiveErrors || 0) > 0) {
