@@ -260,6 +260,7 @@ export function LandingPage() {
           "@context": "https://schema.org",
           "@type": "Product",
           "name": "Preemptly",
+          "image": "https://bepreemptly.com/preemptly-mascot.png", // FIXED: Added missing image field
           "description": nicheData 
             ? `Preemptly helps ${nicheData.industry} experts find and respond to ${nicheData.nichePersona} on ${nicheData.platform} who are actively experiencing ${nicheData.painPoint}.`
             : "Preemptly monitors Reddit and Stack Overflow for high-intent posts, delivering scored leads to B2B experts who want to build public authority instead of cold pitching.",
@@ -272,7 +273,36 @@ export function LandingPage() {
             "url": "https://bepreemptly.com",
             "price": "500.00",
             "priceCurrency": "ZAR",
-            "priceValidUntil": "2026-12-31"
+            "priceValidUntil": "2026-12-31",
+            "availability": "https://schema.org/InStock", // FIXED: Added availability
+            "hasMerchantReturnPolicy": { // FIXED: Added return policy for Merchant listings
+              "@type": "MerchantReturnPolicy",
+              "applicableCountry": "ZA",
+              "returnPolicyCategory": "https://schema.org/NoReturns"
+            },
+            "shippingDetails": { // FIXED: Added shipping details (Digital Delivery)
+              "@type": "OfferShippingDetails",
+              "shippingRate": {
+                "@type": "MonetaryAmount",
+                "value": "0",
+                "currency": "ZAR"
+              },
+              "deliveryTime": {
+                "@type": "ShippingDeliveryTime",
+                "handlingTime": {
+                  "@type": "QuantitativeValue",
+                  "minValue": 0,
+                  "maxValue": 0,
+                  "unitCode": "DAY"
+                },
+                "transitTime": {
+                  "@type": "QuantitativeValue",
+                  "minValue": 0,
+                  "maxValue": 0,
+                  "unitCode": "DAY"
+                }
+              }
+            }
           },
           "aggregateRating": {
             "@type": "AggregateRating",
