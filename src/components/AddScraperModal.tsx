@@ -1,4 +1,4 @@
-﻿import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -738,8 +738,8 @@ export function AddScraperModal({
                 <SelectValue placeholder="Select interval" />
               </SelectTrigger>
               <SelectContent className="rounded-xl border-[#5a8c12]">
-                <SelectItem value="1">Every 1 minute (Fast)</SelectItem>
-                <SelectItem value="5">Every 5 minutes</SelectItem>
+                <SelectItem value="5">Every 5 minutes (Fast)</SelectItem>
+                <SelectItem value="10">Every 10 minutes</SelectItem>
                 <SelectItem value="15">Every 15 minutes</SelectItem>
                 <SelectItem value="30">Every 30 minutes</SelectItem>
                 <SelectItem value="60">Every 1 hour</SelectItem>

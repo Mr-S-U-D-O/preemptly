@@ -7,7 +7,7 @@ import { ChatWidget } from './ChatWidget';
 import { SEO } from '../SEO';
 import { getPSEODataBySlug, pseoData, NicheData } from '../../data/pseo';
 
-// Use a simple Intersection Observer hook for scroll animations
+// Use a simple Intersection Observer hook for scroll animations indefinately
 function useIntersectionObserver(options = {}) {
   const [isIntersecting, setIsIntersecting] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
@@ -67,6 +67,17 @@ export function LandingPage() {
   const nicheData = slug ? getPSEODataBySlug(slug) : undefined;
   
   const currentFAQS = getDynamicFAQS(nicheData);
+  
+  // Combine generic and niche FAQs into one list to avoid "Duplicate field 'FAQPage'" error in Google Search Console
+  // This ensures a single top-level FAQPage object for better AI snippet attribution (Perplexity/Gemini)
+  const nicheFAQs = nicheData ? [
+    { q: `How do I find ${nicheData.nichePersona} on ${nicheData.platform}?`, a: `Preemptly monitors ${nicheData.platform} 24/7 for posts from ${nicheData.nichePersona} experiencing ${nicheData.painPoint}. When a qualifying post appears, it is scored on a 1–10 intent scale and delivered to your dashboard within 60 seconds.` },
+    { q: `What types of ${nicheData.industry} leads does Preemptly find?`, a: `Preemptly specifically identifies ${nicheData.nichePersona} who are ${nicheData.actionWord} ${nicheData.industry} solutions on ${nicheData.platform}. These are not cold contacts — they are people who have publicly stated a problem that your service solves.` },
+    { q: `Is there a free trial for ${nicheData.industry} monitoring?`, a: `Yes. Preemptly delivers your first 10 high-intent ${nicheData.industry} intercepts completely free. No credit card required. You only upgrade when you have seen real proof that the leads are relevant to your offer.` },
+    { q: `How is Preemptly different from a ${nicheData.platform} scraper?`, a: `Scrapers return volume. Preemptly returns high-intent signal via Intent Logic. Every intercept is scored for purchase intent, filtered for ${nicheData.nichePersona} relevance, and accompanied by an expert strategy brief — so you know exactly how to respond.` }
+  ] : [];
+
+  const combinedFAQS = [...nicheFAQs, ...currentFAQS];
   const [heroRef, heroInView] = useIntersectionObserver();
   const [painRef, painInView] = useIntersectionObserver();
   const [engineRef, engineInView] = useIntersectionObserver();
@@ -378,7 +389,7 @@ export function LandingPage() {
         {JSON.stringify({
           "@context": "https://schema.org",
           "@type": "FAQPage",
-          "mainEntity": currentFAQS.map(faq => ({
+          "mainEntity": combinedFAQS.map(faq => ({
             "@type": "Question",
             "name": faq.q,
             "acceptedAnswer": {
@@ -436,37 +447,7 @@ export function LandingPage() {
         </script>
       )}
 
-      {/* === SCHEMA BLOCK 9: Standalone FAQPage per pSEO page with unique persona-specific Q&A === */}
-      {nicheData && (
-        <script type="application/ld+json">
-          {JSON.stringify({
-            "@context": "https://schema.org",
-            "@type": "FAQPage",
-            "mainEntity": [
-              {
-                "@type": "Question",
-                "name": `How do I find ${nicheData.nichePersona} on ${nicheData.platform}?`,
-                "acceptedAnswer": { "@type": "Answer", "text": `Preemptly monitors ${nicheData.platform} 24/7 for posts from ${nicheData.nichePersona} experiencing ${nicheData.painPoint}. When a qualifying post appears, it is scored on a 1–10 intent scale and delivered to your dashboard within 60 seconds.` }
-              },
-              {
-                "@type": "Question",
-                "name": `What types of ${nicheData.industry} leads does Preemptly find?`,
-                "acceptedAnswer": { "@type": "Answer", "text": `Preemptly specifically identifies ${nicheData.nichePersona} who are ${nicheData.actionWord} ${nicheData.industry} solutions on ${nicheData.platform}. These are not cold contacts — they are people who have publicly stated a problem that your service solves.` }
-              },
-              {
-                "@type": "Question",
-                "name": `Is there a free trial for ${nicheData.industry} monitoring?`,
-                "acceptedAnswer": { "@type": "Answer", "text": `Yes. Preemptly delivers your first 10 high-intent ${nicheData.industry} intercepts completely free. No credit card required. You only upgrade when you have seen real proof that the leads are relevant to your offer.` }
-              },
-              {
-                "@type": "Question",
-                "name": `How is Preemptly different from a ${nicheData.platform} scraper?`,
-                "acceptedAnswer": { "@type": "Answer", "text": `Scrapers return volume. Preemptly returns high-intent signal via Intent Logic. Every intercept is scored for purchase intent, filtered for ${nicheData.nichePersona} relevance, and accompanied by an expert strategy brief — so you know exactly how to respond.` }
-              }
-            ]
-          })}
-        </script>
-      )}
+
 
       {/* Navigation */}
       <header>
@@ -1188,7 +1169,7 @@ export function LandingPage() {
         </div>
 
         <div className="px-6 md:px-0">
-          {currentFAQS.map((faq, index) => (
+          {combinedFAQS.map((faq, index) => (
             <FAQItem key={index} question={faq.q} answer={faq.a} />
           ))}
         </div>

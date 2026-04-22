@@ -15,10 +15,8 @@ import {
   cert,
 } from "firebase-admin/app";
 import { getFirestore, FieldValue } from "firebase-admin/firestore";
-import { getSecurityRules } from "firebase-admin/security-rules";
 import Parser from "rss-parser";
 import { pseoData } from "./src/data/pseo";
-
 // Global Error Handlers to prevent silent crashes and help debugging
 process.on("uncaughtException", (err) => {
   console.error("[CRITICAL] Uncaught Exception:", err);
@@ -137,7 +135,7 @@ try {
     const aiTest = new GoogleGenAI({ apiKey });
     aiTest.models
       .generateContent({
-        model: "gemini-1.5-flash",
+        model: "gemini-3-flash",
         contents: "stability_test_ping",
       })
       .then(() => console.log("[Gemini AI] Connection test successful"))
@@ -254,57 +252,6 @@ async function startServer() {
     }
   });
 
-  app.post("/api/admin/update-rules", async (req, res) => {
-    try {
-      const rules = readFileSync(
-        path.join(process.cwd(), "firestore.rules"),
-        "utf8",
-      );
-      const projectId = firebaseConfig.projectId;
-
-      console.log(
-        `[Rules Update] Deploying to Project: ${projectId}, Database: ${databaseId || "(default)"}`,
-      );
-
-      // Use the security rules API to update rules for the named database
-      const rulesClient = getSecurityRules(getApp()) as any;
-      const ruleset = await rulesClient.createRuleset({
-        files: [{ name: "firestore.rules", content: rules }],
-      });
-
-      // Explicit database path for AI Studio instances
-      const releaseName = databaseId
-        ? `projects/${projectId}/databases/${databaseId}/documents`
-        : `projects/${projectId}/databases/(default)/documents`;
-
-      console.log(
-        `[Rules Update] Releasing ruleset: ${ruleset.name} to ${releaseName}`,
-      );
-
-      try {
-        await rulesClient.releaseRuleset(releaseName, ruleset.name);
-      } catch (releaseError: any) {
-        console.warn(
-          `[Rules Update] Primary release failed, trying fallback: ${releaseError.message}`,
-        );
-        await rulesClient.releaseRuleset(
-          `cloud.firestore${databaseId ? `/${databaseId}` : ""}`,
-          ruleset.name,
-        );
-      }
-
-      res.json({ success: true });
-    } catch (error: any) {
-      await logSystemError("admin_rules", "Failed to update rules", {
-        error: error.message,
-        stack: error.stack,
-      });
-      res
-        .status(500)
-        .json({ error: "Failed to update rules", details: error.message });
-    }
-  });
-
   app.post("/api/suggest-keywords", express.json(), async (req, res) => {
     try {
       const { clientName, idealCustomerProfile } = req.body;
@@ -326,7 +273,7 @@ async function startServer() {
       Format: ["keyphrase1", "keyphrase2", ...]`;
 
       const aiResponse = await ai.models.generateContent({
-        model: "gemini-1.5-flash",
+        model: "gemini-3-flash",
         contents: prompt,
         config: {
           maxOutputTokens: 1500,
@@ -379,7 +326,7 @@ async function startServer() {
       Format: ["target1", "target2", ...]`;
 
       const aiResponse = await ai.models.generateContent({
-        model: "gemini-1.5-flash",
+        model: "gemini-3-flash",
         contents: prompt,
         config: {
           maxOutputTokens: 1500,
@@ -741,7 +688,7 @@ ABSOLUTE RULES:
 Return ONLY the comment text. No labels, no intro, no quotes around it.`;
 
         const aiResponse = await ai.models.generateContent({
-          model: "gemini-1.5-flash",
+          model: "gemini-3-flash",
           contents: prompt,
           config: {
             maxOutputTokens: 3000,
@@ -1283,43 +1230,9 @@ Return ONLY the comment text. No labels, no intro, no quotes around it.`;
   app.listen(PORT, "0.0.0.0", () => {
     console.log(`Server is listening on port ${PORT}`);
 
-    // Deploy rules to named database on startup
-    const deployRules = async () => {
-      try {
-        const response = await fetch(
-          `http://localhost:${PORT}/api/admin/update-rules`,
-          { method: "POST" },
-        );
-        const contentType = response.headers.get("content-type");
-
-        if (contentType && contentType.includes("application/json")) {
-          const data = await response.json();
-          if (data.error) {
-            console.error(
-              "[Firebase Admin] Rules deployment ERROR:",
-              data.error,
-              data.details || "",
-            );
-          } else {
-            console.log("[Firebase Admin] Rules deployment:", data);
-          }
-        } else {
-          const text = await response.text();
-          console.warn(
-            "[Firebase Admin] Rules deployment returned non-JSON response:",
-            text.substring(0, 100),
-          );
-        }
-      } catch (err) {
-        console.error("[Firebase Admin] Rules deployment request failed:", err);
-      }
-    };
-
-    deployRules();
-
     // Start background scraper engine
     console.log("Starting background scraper engine...");
-    setInterval(runBackgroundScrapers, 60 * 1000); // Check every minute
+    setInterval(runBackgroundScrapers, 2 * 60 * 1000); // Check every 2 minutes (Balanced for responsiveness and cost)
     setTimeout(runBackgroundScrapers, 10000); // Run once after 10 seconds to allow server to fully start
   });
 }
@@ -1743,7 +1656,8 @@ async function executeScraper(scraper: any) {
     });
 
     if (relevantPosts.length === 0) {
-      await updateScraperLastRun(scraper);
+      // Persist the run time even if empty to keep the Date-Fence moving forward
+      await updateScraperLastRun(scraper, true); 
       return;
     }
 
@@ -1766,7 +1680,8 @@ async function executeScraper(scraper: any) {
 
     if (newPosts.length === 0) {
       console.log(`[Background Engine] No new posts found for ${scraper.name}`);
-      await updateScraperLastRun(scraper);
+      // Persist the run time even if no new leads found
+      await updateScraperLastRun(scraper, true); 
       return;
     }
 
@@ -1829,7 +1744,7 @@ async function executeScraper(scraper: any) {
         if (!apiKey) throw new Error("No Gemini API key configured");
 
         const aiResponse = await ai.models.generateContent({
-          model: "gemini-1.5-flash",
+          model: "gemini-3-flash",
           contents: prompt,
         });
 
@@ -2053,8 +1968,8 @@ async function updateScraperLastRun(scraper: any, force: boolean = false) {
     // Update in-memory tracker first
     inMemoryLastRun.set(scraper.id, Date.now());
 
-    // Only update Firestore if leads were found (force) 
-    // "Silent" successes do not need a database write to save on costs.
+    // Optimization: Only update Firestore if leads were found OR if we explicitly want to persist the "silence"
+    // Persistent silence is critical to keep the Date-Fence updated and avoid "Goldfish Memory" reads after a restart.
     if (!force) {
       return;
     }
