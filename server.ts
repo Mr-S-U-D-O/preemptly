@@ -1640,7 +1640,7 @@ async function executeScraper(scraper: any) {
     const memoryLastRun = inMemoryLastRun.get(scraper.id) || 0;
     const lastRunTime = Math.max(firestoreLastRun, memoryLastRun);
     
-    const bufferMs = 15 * 60 * 1000; // 15-minute safety buffer for RSS propagation drift
+    const bufferMs = 2 * 60 * 60 * 1000; // 2-hour safety buffer for RSS propagation drift
     
     const freshPosts = rawPostsWithUrls.filter(post => {
       if (!post.data.pubDate) return true; // If no date, play it safe and check
@@ -1808,6 +1808,9 @@ async function executeScraper(scraper: any) {
 
       const isAiLead = scoreObj.isLead === true || scoreObj.score >= 7;
 
+      // Add to cache so we don't process it again regardless of whether it's a match
+      addToLeadCache(post.leadId);
+
       if (hasKeyword || isAiLead) {
         // Phase 1.2: Use the pre-computed hash ID for the document — guarantees
         // idempotency; a second write of the same post is a no-op.
@@ -1857,9 +1860,6 @@ async function executeScraper(scraper: any) {
         );
         newLeadsCount++;
         batchOperations++;
-
-        // Add to cache so we don't process it again
-        addToLeadCache(post.leadId);
 
         // Firestore batches are limited to 500 operations
         if (batchOperations >= 400) {
@@ -1912,6 +1912,7 @@ async function executeScraper(scraper: any) {
     );
 
     // Phase 2.0: Smart error handling with exponential backoff + auto-pause.
+    inMemoryLastRun.set(scraper.id, Date.now()); // ALWAYS update memory to prevent Date Fence sticking
     try {
       const scraperRef = adminDb.collection("scrapers").doc(scraper.id);
       const updatePayload: any = {
