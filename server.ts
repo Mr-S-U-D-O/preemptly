@@ -65,6 +65,9 @@ if (firebaseConfig.projectId) {
   process.env.GCLOUD_PROJECT = firebaseConfig.projectId;
 }
 
+// Initialize AI configuration
+const GEMINI_MODEL = process.env.GEMINI_MODEL || "gemini-1.5-flash";
+
 // Initialize Firebase Admin (for background tasks to bypass rules)
 console.log("[Firebase Admin] Initializing...");
 try {
@@ -129,14 +132,15 @@ try {
       console.error("[Firebase Admin] Connection test failed:", err.message);
     });
 
-  // Test Gemini AI Connectivity
+
+// Test Gemini AI Connectivity
   if (process.env.GEMINI_API_KEY || process.env.LEAD_SCORER_API_KEY) {
     const apiKey =
       process.env.GEMINI_API_KEY || process.env.LEAD_SCORER_API_KEY || "";
     const aiTest = new GoogleGenAI({ apiKey });
     aiTest.models
       .generateContent({
-        model: "gemini-3-flash",
+        model: GEMINI_MODEL,
         contents: "stability_test_ping",
       })
       .then(() => console.log("[Gemini AI] Connection test successful"))
@@ -274,7 +278,7 @@ async function startServer() {
       Format: ["keyphrase1", "keyphrase2", ...]`;
 
       const aiResponse = await ai.models.generateContent({
-        model: "gemini-3-flash",
+        model: GEMINI_MODEL,
         contents: prompt,
         config: {
           maxOutputTokens: 1500,
@@ -327,7 +331,7 @@ async function startServer() {
       Format: ["target1", "target2", ...]`;
 
       const aiResponse = await ai.models.generateContent({
-        model: "gemini-3-flash",
+        model: GEMINI_MODEL,
         contents: prompt,
         config: {
           maxOutputTokens: 1500,
@@ -469,13 +473,14 @@ async function startServer() {
     res.setHeader("Pragma", "no-cache");
     res.setHeader("Expires", "0");
     const { token } = req.params;
+    let portalInfo: any = null;
     try {
       if (!token || token.length < 10) {
         return res.status(400).json({ error: "Invalid portal token" });
       }
 
       // Optimization: Try to get scraper data from in-memory cache first
-      let portalInfo = portalTokenCache.get(token);
+      portalInfo = portalTokenCache.get(token);
       
       // Fallback to Firestore if not in cache (e.g. server just restarted or scraper is newly active)
       if (!portalInfo) {
@@ -583,9 +588,10 @@ async function startServer() {
     express.json(),
     async (req, res) => {
       const { token, leadId } = req.params;
+      let portalInfo: any = null;
       try {
         // 1. Verify Portal Token via Cache
-        let portalInfo = portalTokenCache.get(token);
+        portalInfo = portalTokenCache.get(token);
         if (!portalInfo) {
           // One-shot fallback
           const snap = await adminDb.collection("scrapers").where("portalToken", "==", token).get();
@@ -689,7 +695,7 @@ ABSOLUTE RULES:
 Return ONLY the comment text. No labels, no intro, no quotes around it.`;
 
         const aiResponse = await ai.models.generateContent({
-          model: "gemini-3-flash",
+          model: GEMINI_MODEL,
           contents: prompt,
           config: {
             maxOutputTokens: 3000,
@@ -717,6 +723,7 @@ Return ONLY the comment text. No labels, no intro, no quotes around it.`;
   // POST /api/portal/:token/setup - Client completes portal setup
   app.post("/api/portal/:token/setup", express.json(), async (req, res) => {
     const { token } = req.params;
+    let portalInfo: any = null;
     try {
       const {
         isSoloFreelancer,
@@ -726,7 +733,7 @@ Return ONLY the comment text. No labels, no intro, no quotes around it.`;
         clientTone,
       } = req.body;
 
-      const portalInfo = await getPortalInfo(token);
+      portalInfo = await getPortalInfo(token);
       if (!portalInfo) {
         return res.status(404).json({ error: "Portal not found" });
       }
@@ -759,8 +766,9 @@ Return ONLY the comment text. No labels, no intro, no quotes around it.`;
   // POST /api/portal/:token/delete/:leadId - Client deletes a lead
   app.post("/api/portal/:token/delete/:leadId", async (req, res) => {
     const { token, leadId } = req.params;
+    let portalInfo: any = null;
     try {
-      const portalInfo = await getPortalInfo(token);
+      portalInfo = await getPortalInfo(token);
       if (!portalInfo) {
         return res.status(404).json({ error: "Portal not found" });
       }
@@ -785,8 +793,9 @@ Return ONLY the comment text. No labels, no intro, no quotes around it.`;
   // POST /api/portal/:token/click/:leadId - Track lead click
   app.post("/api/portal/:token/click/:leadId", async (req, res) => {
     const { token, leadId } = req.params;
+    let portalInfo: any = null;
     try {
-      const portalInfo = await getPortalInfo(token);
+      portalInfo = await getPortalInfo(token);
       if (!portalInfo) {
         return res.status(404).json({ error: "Portal not found" });
       }
@@ -837,6 +846,7 @@ Return ONLY the comment text. No labels, no intro, no quotes around it.`;
     express.json(),
     async (req, res) => {
       const { token, leadId } = req.params;
+      let portalInfo: any = null;
       try {
         const { feedback } = req.body;
 
@@ -848,7 +858,7 @@ Return ONLY the comment text. No labels, no intro, no quotes around it.`;
           return res.status(400).json({ error: "Invalid feedback" });
         }
 
-        const portalInfo = await getPortalInfo(token);
+        portalInfo = await getPortalInfo(token);
         if (!portalInfo) {
           return res.status(404).json({ error: "Portal not found" });
         }
@@ -884,6 +894,7 @@ Return ONLY the comment text. No labels, no intro, no quotes around it.`;
     express.json(),
     async (req, res) => {
       const { token, leadId } = req.params;
+      let portalInfo: any = null;
       try {
         const { outcome } = req.body;
 
@@ -891,7 +902,7 @@ Return ONLY the comment text. No labels, no intro, no quotes around it.`;
           return res.status(400).json({ error: "Invalid outcome" });
         }
 
-        const portalInfo = await getPortalInfo(token);
+        portalInfo = await getPortalInfo(token);
         if (!portalInfo) {
           return res.status(404).json({ error: "Portal not found" });
         }
@@ -1026,6 +1037,7 @@ Return ONLY the comment text. No labels, no intro, no quotes around it.`;
     express.json({ limit: "10mb" }),
     async (req, res) => {
       const { token } = req.params;
+      let portalInfo: any = null;
       try {
         const { text, sender, fileData, fileName, fileType } = req.body;
 
@@ -1134,8 +1146,9 @@ Return ONLY the comment text. No labels, no intro, no quotes around it.`;
   // DELETE /api/portal/:token/chat/messages/:msgId - Delete single message
   app.delete("/api/portal/:token/chat/messages/:msgId", async (req, res) => {
     const { token, msgId } = req.params;
+    let portalInfo: any = null;
     try {
-      const portalInfo = await getPortalInfo(token);
+      portalInfo = await getPortalInfo(token);
       if (!portalInfo) {
         return res.status(404).json({ error: "Portal not found" });
       }
@@ -1155,8 +1168,9 @@ Return ONLY the comment text. No labels, no intro, no quotes around it.`;
   // DELETE /api/portal/:token/chat - Delete whole chat
   app.delete("/api/portal/:token/chat", async (req, res) => {
     const { token } = req.params;
+    let portalInfo: any = null;
     try {
-      const portalInfo = await getPortalInfo(token);
+      portalInfo = await getPortalInfo(token);
       if (!portalInfo) {
         return res.status(404).json({ error: "Portal not found" });
       }
@@ -1183,10 +1197,11 @@ Return ONLY the comment text. No labels, no intro, no quotes around it.`;
   // POST /api/portal/:token/presence - Client online/offline heartbeat
   app.post("/api/portal/:token/presence", express.json(), async (req, res) => {
     const { token } = req.params;
+    let portalInfo: any = null;
     try {
       const { online } = req.body;
 
-      const portalInfo = await getPortalInfo(token);
+      portalInfo = await getPortalInfo(token);
       if (!portalInfo) {
         return res.status(404).json({ error: "Portal not found" });
       }
@@ -1713,7 +1728,7 @@ async function executeScraper(scraper: any) {
         if (!apiKey) throw new Error("No Gemini API key configured");
 
         const aiResponse = await ai.models.generateContent({
-          model: "gemini-3-flash",
+          model: GEMINI_MODEL,
           contents: prompt,
         });
 
