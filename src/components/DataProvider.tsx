@@ -39,7 +39,12 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
   const lastFetchTime = useRef<number>(0);
 
   useEffect(() => {
-    if (!user || !isAuthorized) return;
+    if (!user || !isAuthorized) {
+      setScrapers([]);
+      setLeads([]);
+      setLogs([]);
+      return;
+    }
     // If quota is exhausted, don't set up new listeners
     if (quotaExhausted) return;
 

@@ -572,7 +572,7 @@ async function startServer() {
         error: error.message,
         stack: error.stack,
         token: token,
-      });
+      }, portalInfo?.userId);
       res.status(500).json({ error: "Internal server error" });
     }
   });
@@ -708,7 +708,7 @@ Return ONLY the comment text. No labels, no intro, no quotes around it.`;
           stack: error.stack,
           token,
           leadId,
-        });
+        }, portalInfo?.userId);
         res.status(500).json({ error: "Failed to generate AI comment" });
       }
     },
@@ -751,7 +751,7 @@ Return ONLY the comment text. No labels, no intro, no quotes around it.`;
         error: error.message,
         stack: error.stack,
         token,
-      });
+      }, portalInfo?.userId);
       res.status(500).json({ error: "Internal server error" });
     }
   });
@@ -777,7 +777,7 @@ Return ONLY the comment text. No labels, no intro, no quotes around it.`;
         stack: error.stack,
         token,
         leadId,
-      });
+      }, portalInfo?.userId);
       res.status(500).json({ error: "Internal server error" });
     }
   });
@@ -826,7 +826,7 @@ Return ONLY the comment text. No labels, no intro, no quotes around it.`;
         stack: error.stack,
         token,
         leadId,
-      });
+      }, portalInfo?.userId);
       res.status(500).json({ error: "Internal server error" });
     }
   });
@@ -872,7 +872,7 @@ Return ONLY the comment text. No labels, no intro, no quotes around it.`;
           stack: error.stack,
           token,
           leadId,
-        });
+        }, portalInfo?.userId);
         res.status(500).json({ error: "Internal server error" });
       }
     },
@@ -915,7 +915,7 @@ Return ONLY the comment text. No labels, no intro, no quotes around it.`;
           stack: error.stack,
           token,
           leadId,
-        });
+        }, portalInfo?.userId);
         res.status(500).json({ error: "Internal server error" });
       }
     },
@@ -1096,7 +1096,7 @@ Return ONLY the comment text. No labels, no intro, no quotes around it.`;
           error: error.message,
           stack: error.stack,
           token,
-        });
+        }, portalInfo?.userId);
         res.status(500).json({ error: "Internal server error" });
       }
     },
@@ -1866,6 +1866,7 @@ async function executeScraper(scraper: any) {
       "scraper_execution",
       `Scraper ${scraper.name} execution failed`,
       { error: error.message, stack: error.stack, scraperId: scraper.id },
+      scraper.userId,
     );
     const errorMessage = error instanceof Error ? error.message : String(error);
     const newConsecutiveErrors = (scraper.consecutiveErrors || 0) + 1;
