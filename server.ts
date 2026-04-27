@@ -1620,11 +1620,12 @@ async function executeScraper(scraper: any) {
     const memoryLastRun = inMemoryLastRun.get(scraper.id) || 0;
     const lastRunTime = Math.max(firestoreLastRun, memoryLastRun);
     
-    const bufferMs = 15 * 60 * 1000; // 15-minute safety buffer for RSS propagation drift
+    const bufferMs = 12 * 60 * 60 * 1000; // 12-hour safety buffer for RSS propagation drift
     
     const freshPosts = rawPostsWithUrls.filter(post => {
       if (!post.data.pubDate) return true; // If no date, play it safe and check
       const pubTime = new Date(post.data.pubDate).getTime();
+      if (isNaN(pubTime)) return true; // If date parsing failed, don't accidentally block it
       return pubTime > (lastRunTime - bufferMs);
     });
 
