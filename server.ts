@@ -283,6 +283,7 @@ async function startServer() {
         config: {
           maxOutputTokens: 1500,
           temperature: 0.7,
+          responseMimeType: "application/json",
         },
       });
 
@@ -296,7 +297,7 @@ async function startServer() {
       res.json({ keywords });
     } catch (error: any) {
       console.error("[API] Keyword suggestion failed:", error);
-      const status = error.status || 900;
+      const status = error.status || 500;
       res.status(status).json({
         error: error.message || "Failed to suggest keywords",
         code: status === 429 ? "QUOTA_EXCEEDED" : "INTERNAL_ERROR",
@@ -336,6 +337,7 @@ async function startServer() {
         config: {
           maxOutputTokens: 1500,
           temperature: 0.7,
+          responseMimeType: "application/json",
         },
       });
 
