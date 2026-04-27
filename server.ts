@@ -136,7 +136,7 @@ try {
     const aiTest = new GoogleGenAI({ apiKey });
     aiTest.models
       .generateContent({
-        model: "gemini-1.5-flash",
+        model: "gemini-3-flash",
         contents: "stability_test_ping",
       })
       .then(() => console.log("[Gemini AI] Connection test successful"))
@@ -1445,26 +1445,22 @@ async function runBackgroundScrapers() {
   }
 }
 
-// Helper function to fetch Reddit posts directly (avoids self-HTTP calls)
+// Helper function to fetch Reddit posts directly via Cloudflare Proxy
 async function fetchRedditPosts(subreddit: string, limit: number = 25) {
   const rssUrl = `https://www.reddit.com/r/${subreddit.trim()}/new.rss`;
-  const rss2jsonUrl = `https://api.rss2json.com/v1/api.json?rss_url=${encodeURIComponent(rssUrl)}`;
+  const proxyUrl = `https://bepreemptly.com/api/rss/proxy?url=${encodeURIComponent(rssUrl)}`;
 
   try {
-    console.log(`[Reddit RSS Fetch] Fetching via rss2json for r/${subreddit}`);
-    const response = await fetch(rss2jsonUrl);
+    console.log(`[Reddit RSS Fetch] Fetching via custom CF proxy for r/${subreddit}`);
+    const response = await fetch(proxyUrl);
 
     if (!response.ok) {
-      throw new Error(`RSS Service Error: ${response.status}`);
+      throw new Error(`Proxy Service Error: ${response.status}`);
     }
 
-    const data = await response.json();
-
-    if (data.status !== "ok") {
-      throw new Error(data.message || "Unknown RSS error");
-    }
-
-    const items = data.items || [];
+    const xml = await response.text();
+    const feed = await parser.parseString(xml);
+    const items = feed.items || [];
 
     const mappedPosts = items.map((item: any, index: number) => {
       let permalink = item.link || "";
@@ -1483,13 +1479,14 @@ async function fetchRedditPosts(subreddit: string, limit: number = 25) {
           selftext: rawContent.replace(/<[^>]*>?/gm, ""), // strip HTML tags
           author: (item.author || "").replace("/u/", ""),
           permalink: permalink,
-          pubDate: item.pubDate,
+          pubDate: item.isoDate || item.pubDate, // parser provides valid ISO date
         },
       };
     });
 
     const fortyEightHoursAgo = Date.now() - 48 * 60 * 60 * 1000;
     const recentPosts = mappedPosts.filter((post: any) => {
+      if (!post.data.pubDate) return true;
       const postDate = new Date(post.data.pubDate).getTime();
       return postDate > fortyEightHoursAgo;
     });
@@ -1506,23 +1503,20 @@ async function fetchRedditPosts(subreddit: string, limit: number = 25) {
 // Helper function to fetch Stack Overflow posts
 async function fetchStackOverflowPosts(tag: string, limit: number = 25) {
   const rssUrl = `https://stackoverflow.com/feeds/tag?tagnames=${encodeURIComponent(tag.trim())}&sort=newest`;
-  const rss2jsonUrl = `https://api.rss2json.com/v1/api.json?rss_url=${encodeURIComponent(rssUrl)}`;
+  const proxyUrl = `https://bepreemptly.com/api/rss/proxy?url=${encodeURIComponent(rssUrl)}`;
 
   try {
-    console.log(`[Stack Overflow Fetch] Fetching via rss2json for tag: ${tag}`);
-    const response = await fetch(rss2jsonUrl);
+    console.log(`[Stack Overflow Fetch] Fetching via custom CF proxy for tag: ${tag}`);
+    const response = await fetch(proxyUrl);
 
     if (!response.ok) {
-      throw new Error(`RSS Service Error: ${response.status}`);
+      throw new Error(`Proxy Service Error: ${response.status}`);
     }
 
-    const data = await response.json();
-
-    if (data.status !== "ok") {
-      throw new Error(data.message || "Unknown RSS error");
-    }
-
-    const items = data.items || [];
+    const xml = await response.text();
+    const feed = await parser.parseString(xml);
+    const items = feed.items || [];
+    
     const mappedPosts = items.map((item: any, index: number) => {
       let permalink = item.link || "";
       try {
@@ -1539,53 +1533,22 @@ async function fetchStackOverflowPosts(tag: string, limit: number = 25) {
           selftext: rawContent.replace(/<[^>]*>?/gm, ""),
           author: item.author || "unknown",
           permalink: permalink,
-          pubDate: item.pubDate,
+          pubDate: item.isoDate || item.pubDate,
         },
       };
     });
 
     const fortyEightHoursAgo = Date.now() - 48 * 60 * 60 * 1000;
-    const recentPosts = mappedPosts.filter(
-      (post: any) => new Date(post.data.pubDate).getTime() > fortyEightHoursAgo,
-    );
+    const recentPosts = mappedPosts.filter((post: any) => {
+      if (!post.data.pubDate) return true;
+      return new Date(post.data.pubDate).getTime() > fortyEightHoursAgo;
+    });
     return recentPosts.slice(0, limit);
   } catch (error) {
     console.error(
-      `[Stack Overflow Fetch] Primary failed, trying direct:`,
+      `[Stack Overflow Fetch] Failed:`,
       error,
     );
-    try {
-      const response = await fetch(rssUrl, {
-        headers: {
-          "User-Agent":
-            "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36",
-          Accept: "application/atom+xml, application/xml, text/xml",
-        },
-      });
-      if (response.ok) {
-        const xml = await response.text();
-        const feed = await parser.parseString(xml);
-        const items = feed.items || [];
-        return items
-          .map((item: any, index: number) => ({
-            data: {
-              index,
-              title: item.title || "",
-              selftext: (item.content || item.description || "").replace(
-                /<[^>]*>?/gm,
-                "",
-              ),
-              author: item.author || "unknown",
-              permalink:
-                item.link?.replace("https://stackoverflow.com", "") || "",
-              pubDate: item.pubDate || item.isoDate,
-            },
-          }))
-          .slice(0, limit);
-      }
-    } catch (directError) {
-      console.error(`[Stack Overflow Fetch] Direct also failed:`, directError);
-    }
     throw new Error(
       `Failed to fetch Stack Overflow RSS: ${error instanceof Error ? error.message : String(error)}`,
     );
@@ -1640,7 +1603,7 @@ async function executeScraper(scraper: any) {
     const memoryLastRun = inMemoryLastRun.get(scraper.id) || 0;
     const lastRunTime = Math.max(firestoreLastRun, memoryLastRun);
     
-    const bufferMs = 2 * 60 * 60 * 1000; // 2-hour safety buffer for RSS propagation drift
+    const bufferMs = 15 * 60 * 1000; // 15-minute safety buffer for RSS propagation drift
     
     const freshPosts = rawPostsWithUrls.filter(post => {
       if (!post.data.pubDate) return true; // If no date, play it safe and check
@@ -1808,9 +1771,6 @@ async function executeScraper(scraper: any) {
 
       const isAiLead = scoreObj.isLead === true || scoreObj.score >= 7;
 
-      // Add to cache so we don't process it again regardless of whether it's a match
-      addToLeadCache(post.leadId);
-
       if (hasKeyword || isAiLead) {
         // Phase 1.2: Use the pre-computed hash ID for the document — guarantees
         // idempotency; a second write of the same post is a no-op.
@@ -1860,6 +1820,9 @@ async function executeScraper(scraper: any) {
         );
         newLeadsCount++;
         batchOperations++;
+
+        // Add to cache so we don't process it again
+        addToLeadCache(post.leadId);
 
         // Firestore batches are limited to 500 operations
         if (batchOperations >= 400) {
@@ -1912,7 +1875,6 @@ async function executeScraper(scraper: any) {
     );
 
     // Phase 2.0: Smart error handling with exponential backoff + auto-pause.
-    inMemoryLastRun.set(scraper.id, Date.now()); // ALWAYS update memory to prevent Date Fence sticking
     try {
       const scraperRef = adminDb.collection("scrapers").doc(scraper.id);
       const updatePayload: any = {
