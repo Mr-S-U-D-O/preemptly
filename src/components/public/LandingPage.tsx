@@ -53,13 +53,12 @@ const FAQItem: React.FC<{ question: string, answer: string }> = ({ question, ans
 };
 
 const getDynamicFAQS = (nicheData?: NicheData) => [
-  { q: `How exactly does Preemptly find leads?`, a: `We continuously monitor ${nicheData ? nicheData.platform : 'public communities'} for posts containing specific pain points like ${nicheData ? `"${nicheData.painPoint}"` : 'frustration with a current provider'}. When someone in ${nicheData ? nicheData.industry : 'your industry'} posts a question or complaint, our system alerts you immediately.` },
-  { q: "Is this a scraping tool?", a: `No. Typical scraping tools return lists of emails or basic company data. Preemptly identifies specific ${nicheData ? nicheData.nichePersona : 'conversations'} where someone is asking for help right now, allowing you to build trust by answering them in public.` },
-  { q: "What do I do when I receive an alert?", a: `You review the conversation, and if you can help, you provide professional advice in the public thread. By solving the problem where others can see it, you prove your expertise to the entire community at once.` },
-  { q: "How does the Free Trial work?", a: `Every time we find a highly relevant post matching your exact configured criteria, it counts as 1 intercept. The trial is complete when we have delivered 10 actionable leads directly to your dashboard.` },
-  { q: "Can I connect this to my current CRM?", a: `Right now, Preemptly acts as a standalone dashboard so your CRM isn't filled with unfiltered data. You review the leads here first. Direct CRM exports are currently in development.` },
-  { q: "How does the Strategic Match Engine work?", a: `The system reads the full context of the user's post and drafts a relevant, helpful response. It does not auto-post anything; it simply provides a draft for you to edit, approve, and post from your own authentic account.` },
-  { q: "What happens if I join the Beta now?", a: `Closed Beta partners lock in a permanent rate of R500/mo. When the platform opens to the public at standard pricing, your priority discount remains forever.` }
+  { q: `How exactly does Preemptly find leads?`, a: `We search ${nicheData ? nicheData.platform : 'Reddit'} for posts where people are asking for help. When we find a question you can answer, we tell you immediately.` },
+  { q: "Is this a scraping tool?", a: `No. We don't just scrape emails. We find specific people asking for help right now, so you can talk to them directly.` },
+  { q: "What do I do when I receive an alert?", a: `You click the link to the post and answer the person's question. If you help them, they are likely to hire you.` },
+  { q: "How does the Free Trial work?", a: `We will find you 10 real leads for free. Once we've sent you 10 links to people who need your help, the trial is finished.` },
+  { q: "How do I reply to posts?", a: `Our AI reads the post and writes a draft reply for you. You can copy it, change it, and post it yourself.` },
+  { q: "What do I get for joining now?", a: `Early users get a Founder's rate of R500/mo. Plus, you'll get 50% off our official pricing for a full year once we launch, and double the alerts for free.` }
 ];
 
 export function LandingPage() {
@@ -213,11 +212,11 @@ export function LandingPage() {
           ],
           "offers": {
             "@type": "Offer",
+            "description": "Founding Member Beta Access - Includes 2x Lead Capacity and Priority Strategy Tuning.",
             "price": "500.00",
             "priceCurrency": "ZAR",
             "priceValidUntil": "2026-12-31",
-            "availability": "https://schema.org/LimitedAvailability",
-            "description": "Closed Beta pricing, permanently locked for early partners"
+            "availability": "https://schema.org/LimitedAvailability"
           },
           "provider": {
             "@type": "Organization",
@@ -241,7 +240,7 @@ export function LandingPage() {
             "width": 400,
             "height": 400
           },
-          "description": "Preemptly is a B2B growth intelligence platform that monitors public communities like Reddit and Stack Overflow, identifying the exact moment prospective clients publicly ask for help — enabling experts to intercept, build authority, and convert with zero cold outreach.",
+          "description": "Preemptly helps you find people asking for help on Reddit and Stack Overflow. Stop sending cold emails and start talking to people who actually need you.",
           "foundingDate": "2025",
           "contactPoint": {
             "@type": "ContactPoint",
@@ -271,10 +270,10 @@ export function LandingPage() {
           "@context": "https://schema.org",
           "@type": "Product",
           "name": "Preemptly",
-          "image": "https://bepreemptly.com/preemptly-mascot.png", // FIXED: Added missing image field
+          "image": "https://bepreemptly.com/preemptly-mascot.png",
           "description": nicheData 
-            ? `Preemptly helps ${nicheData.industry} experts find and respond to ${nicheData.nichePersona} on ${nicheData.platform} who are actively experiencing ${nicheData.painPoint}.`
-            : "Preemptly monitors Reddit and Stack Overflow for high-intent posts, delivering scored leads to B2B experts who want to build public authority instead of cold pitching.",
+            ? `Preemptly helps ${nicheData.industry} experts find and talk to ${nicheData.nichePersona} on ${nicheData.platform} who need help with ${nicheData.painPoint}.`
+            : "Preemptly finds posts on Reddit and Stack Overflow where people are asking for help. We tell you exactly who is looking to hire someone like you.",
           "brand": {
             "@type": "Brand",
             "name": "Preemptly"
@@ -285,13 +284,13 @@ export function LandingPage() {
             "price": "500.00",
             "priceCurrency": "ZAR",
             "priceValidUntil": "2026-12-31",
-            "availability": "https://schema.org/InStock", // FIXED: Added availability
-            "hasMerchantReturnPolicy": { // FIXED: Added return policy for Merchant listings
+            "availability": "https://schema.org/InStock",
+            "hasMerchantReturnPolicy": {
               "@type": "MerchantReturnPolicy",
               "applicableCountry": "ZA",
               "returnPolicyCategory": "https://schema.org/NoReturns"
             },
-            "shippingDetails": { // FIXED: Added shipping details (Digital Delivery)
+            "shippingDetails": {
               "@type": "OfferShippingDetails",
               "shippingRate": {
                 "@type": "MonetaryAmount",
@@ -514,12 +513,11 @@ export function LandingPage() {
             </div>
             
             <h1 className="text-4xl md:text-5xl lg:text-6xl font-extralight tracking-tighter leading-[1.05] text-black">
-              Be the expert {nicheData ? <span className="font-bold text-black border-b-4 border-[#5a8c12]">{nicheData.nichePersona.toLowerCase()}</span> : 'they'} need,<br className="hidden md:block"/>
-              exactly when they <span className="font-bold text-black border-b-4 border-[#5a8c12]">need it</span>.
+              Get hired by helping people on <span className="font-bold text-black border-b-4 border-[#5a8c12]">{nicheData ? nicheData.platform : 'Reddit'}</span>.
             </h1>
             
             <p className="mt-8 text-lg md:text-xl text-slate-600 font-light leading-relaxed max-w-xl hero-description">
-              Don't cold pitch. Just answer questions. We find the exact posts {nicheData ? `on ${nicheData.platform}` : 'across public forums'} where people are actively asking for help with {nicheData ? `${nicheData.industry.toLowerCase()}` : 'problems you solve'}, so you can demonstrate your authority in the open.
+              Stop sending cold emails that get ignored. We find the exact **Matches** where people are asking for help with {nicheData ? `${nicheData.industry.toLowerCase()}` : 'problems you solve'}, so you can reach out and capture the **Opportunity**.
             </p>
 
             <div className="mt-8 flex flex-col sm:flex-row items-center sm:items-start gap-3 w-full">
@@ -582,20 +580,20 @@ export function LandingPage() {
                 </div>
              </div>
 
-             {/* The AI Reasoning Card (Overlapping & Animated) */}
-             <div className="absolute z-20 bottom-4 md:bottom-12 right-0 md:-right-8 lg:-right-16 w-[280px] md:w-80 bg-white border-2 border-slate-200 p-5 shadow-2xl shadow-black/15 hover:border-black transition-colors rounded-xl animate-bounce" style={{ animationDuration: '4s' }}>
-                <div className="flex items-center justify-between mb-3 border-b-2 border-slate-100 pb-3">
-                   <div className="flex items-center gap-2">
-                     <Zap className="text-[#5a8c12] w-5 h-5 fill-[#5a8c12]" />
-                     <span className="text-xs font-black uppercase tracking-widest text-[#5a8c12]">Peak Visibility</span>
-                   </div>
-                   <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest bg-slate-100 px-2 py-1 rounded-sm">Actionable</span>
-                </div>
-                <p className="text-[13px] text-slate-700 font-medium leading-relaxed">
-                  <span className="font-bold text-black border-b border-[#5a8c12] inline-block mb-1">Expertise Strategy:</span><br/>
-                  The community is looking for a leader. Step in with a high-value breakdown of how to solve this pain point to convert the thread into an organic growth loop.
-                </p>
-             </div>
+              {/* The AI Reasoning Card (Overlapping & Animated) */}
+              <div className="absolute z-20 bottom-4 md:bottom-12 right-0 md:-right-8 lg:-right-16 w-[280px] md:w-80 bg-white border-2 border-slate-200 p-5 shadow-2xl shadow-black/15 hover:border-black transition-colors rounded-xl animate-bounce" style={{ animationDuration: '4s' }}>
+                 <div className="flex items-center justify-between mb-3 border-b-2 border-slate-100 pb-3">
+                    <div className="flex items-center gap-2">
+                      <Zap className="text-[#5a8c12] w-5 h-5 fill-[#5a8c12]" />
+                      <span className="text-xs font-black uppercase tracking-widest text-[#5a8c12]">Lead Analysis</span>
+                    </div>
+                    <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest bg-slate-100 px-2 py-1 rounded-sm">High Quality</span>
+                 </div>
+                 <p className="text-[13px] text-slate-700 font-medium leading-relaxed">
+                   <span className="font-bold text-black border-b border-[#5a8c12] inline-block mb-1">Why this is a good lead:</span><br/>
+                   This person is asking for exactly what you do. You should reply and explain how you can help.
+                 </p>
+              </div>
           </div>
 
         </div>
@@ -1117,7 +1115,7 @@ export function LandingPage() {
                     <div className="text-[10px] text-slate-400 font-bold uppercase tracking-widest line-through decoration-slate-300 ml-2">R2500</div>
                  </div>
                  <p className="text-slate-600 font-light leading-relaxed mb-10 max-w-sm">
-                   Once you see the evidence, upgrade to unlock unlimited {nicheData ? `${nicheData.industry.toLowerCase()} opportunities` : 'opportunities'}, advanced expertise strategies, and priority access to our upcoming {nicheData ? nicheData.pricingContext : 'CRM integrations'}.
+                   Once you see the evidence, upgrade to unlock high-volume {nicheData ? `${nicheData.industry.toLowerCase()} matches` : 'matches'}, advanced expertise strategies, and priority access to our upcoming {nicheData ? nicheData.pricingContext : 'CRM integrations'}.
                  </p>
                </div>
                <button 
@@ -1128,14 +1126,14 @@ export function LandingPage() {
                </button>
             </div>
 
-            {/* Box 3: Lifetime Lock (Full width span bottom) */}
+            {/* Box 3: Early User Access */}
             <div className="group relative bg-white p-10 md:p-14 md:col-span-2 flex flex-col md:flex-row md:items-center justify-between gap-10 overflow-hidden">
                <div className="absolute inset-0 shadow-[inset_0_0_50px_rgba(90,140,18,0)] group-hover:shadow-[inset_0_0_50px_rgba(90,140,18,0.12)] transition-shadow duration-700 pointer-events-none z-10" />
                
                 <div className="relative z-20 flex-1">
-                  <h3 className="text-lg font-bold text-slate-900 mb-2">Lifetime Pricing Lock</h3>
+                  <h3 className="text-lg font-bold text-slate-900 mb-2">Early User Benefits</h3>
                   <p className="text-slate-600 font-light leading-relaxed max-w-3xl">
-                    By boarding during the closed beta application phase, your rate gets permanently locked at R500/mo. When self-serve launches at R2,500/mo, you will retain your priority discount forever.
+                    Early users get a Founder's rate of R500/mo and double the alerts for free. Plus, you'll lock in a **50% discount for 1 year** when we launch our official pricing. We don't offer unlimited matches, but we ensure every match is high-intent.
                   </p>
                 </div>
 
@@ -1144,7 +1142,7 @@ export function LandingPage() {
                     onClick={() => setIsModalOpen(true)}
                     className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-[#5a8c12] hover:text-black transition-colors"
                   >
-                     Start The Process <ArrowRight size={14} />
+                     Get Started <ArrowRight size={14} />
                   </button>
                </div>
             </div>
@@ -1183,7 +1181,7 @@ export function LandingPage() {
           <div className="text-[10px] font-black uppercase tracking-[0.3em] text-[#5a8c12] mb-8 bg-[#5a8c12]/5 px-4 py-2 rounded-full border border-[#5a8c12]/10">
             Final Beta Intake
           </div>
-          <h2 className="text-4xl md:text-5xl font-black tracking-tighter mb-4 text-black">Start intercepting leads today.</h2>
+          <h2 className="text-4xl md:text-5xl font-black tracking-tighter mb-4 text-black">Start matching with opportunities today.</h2>
           <p className="text-slate-400 text-lg mb-10 font-light max-w-xl mx-auto">
             Stop waiting for inbound. Tell us who you want to talk to, and we'll deliver them directly to your Command Center.
           </p>
@@ -1273,38 +1271,28 @@ export function LandingPage() {
                 <a href="mailto:hello@bepreemptly.com" className="text-xs text-slate-500 hover:text-[#5a8c12] transition-colors">Contact</a>
              </div>
 
-             {/* Dynamic Niche Links Grouped by Platform */}
-             <div className="flex flex-col gap-4 col-span-2 md:col-span-1">
-                <h4 className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-900 border-b border-slate-100 pb-2">Reddit Intercepts</h4>
-                <div className="flex flex-col gap-1.5">
-                   {pseoData.filter(d => d.platform === 'Reddit').map(niche => (
-                      <a 
-                        key={niche.slug} 
-                        href={`/intercept/${niche.slug}`} 
-                        className="text-[10px] text-slate-400 hover:text-[#5a8c12] transition-colors leading-relaxed"
-                        title={`${niche.industry} for ${niche.nichePersona} on Reddit`}
-                      >
-                         {niche.industry} → {niche.nichePersona}
-                      </a>
-                   ))}
-                </div>
-             </div>
+            {/* Dynamic Niche Links Grouped by Platform */}
+            <div className="flex flex-col gap-6">
+              <h4 className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-900 border-b border-slate-100 pb-2">Reddit</h4>
+              <ul className="flex flex-col gap-3">
+                {pseoData.filter(d => d.platform === 'Reddit').slice(0, 4).map(niche => (
+                  <li key={niche.slug}>
+                    <a href={`/intercept/${niche.slug}`} className="text-xs text-slate-500 hover:text-black transition-colors">{niche.industry} matches</a>
+                  </li>
+                ))}
+              </ul>
+            </div>
 
-             <div className="flex flex-col gap-4 col-span-2 md:col-span-1">
-                <h4 className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-900 border-b border-slate-100 pb-2">Stack Intercepts</h4>
-                <div className="flex flex-col gap-1.5">
-                   {pseoData.filter(d => d.platform === 'StackOverflow').map(niche => (
-                      <a 
-                        key={niche.slug} 
-                        href={`/intercept/${niche.slug}`} 
-                        className="text-[10px] text-slate-400 hover:text-[#5a8c12] transition-colors leading-relaxed"
-                        title={`${niche.industry} for ${niche.nichePersona} on Stack Overflow`}
-                      >
-                         {niche.industry} → {niche.nichePersona}
-                      </a>
-                   ))}
-                </div>
-             </div>
+            <div className="flex flex-col gap-6">
+              <h4 className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-900 border-b border-slate-100 pb-2">Stack Overflow</h4>
+              <ul className="flex flex-col gap-3">
+                {pseoData.filter(d => d.platform === 'StackOverflow').slice(0, 4).map(niche => (
+                  <li key={niche.slug}>
+                    <a href={`/intercept/${niche.slug}`} className="text-xs text-slate-500 hover:text-black transition-colors">{niche.industry} matches</a>
+                  </li>
+                ))}
+              </ul>
+            </div>
           </div>
 
           <div className="border-t border-slate-100 pt-12 flex flex-col md:flex-row items-center justify-between gap-6">

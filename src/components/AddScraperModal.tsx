@@ -262,7 +262,7 @@ export function AddScraperModal({
               type: 'scraper_created',
               scraperId: newScraperRef.id,
               scraperName: scraperData.name,
-              message: `New visibility tracker "${scraperData.name}" deployed for ${displayTarget || 'all'}`,
+              message: `New monitor "${scraperData.name}" created for ${displayTarget || 'all'}`,
               createdAt: serverTimestamp(),
               userId: user.uid
             });
@@ -294,7 +294,7 @@ export function AddScraperModal({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-[425px] rounded-2xl border-2 border-[#5a8c12] max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle className="text-xl font-bold text-slate-800">Launch Visibility Tracker</DialogTitle>
+          <DialogTitle className="text-xl font-bold text-slate-800">Create Monitor</DialogTitle>
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-4 py-4">
           {error && (
@@ -304,7 +304,7 @@ export function AddScraperModal({
             </div>
           )}
           <div className="space-y-2">
-            <Label htmlFor="name" className="text-slate-700 font-semibold">Tracker Label (Internal)</Label>
+            <Label htmlFor="name" className="text-slate-700 font-semibold">Monitor Name (Internal)</Label>
             <Input 
               id="name" 
               placeholder="e.g. Web Design Leads" 
@@ -367,16 +367,16 @@ export function AddScraperModal({
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="idealCustomerProfile" className="text-slate-700 font-semibold">Ideal Customer Profile (AI Instructions)</Label>
+            <Label htmlFor="idealCustomerProfile" className="text-slate-700 font-semibold">Who are you looking for?</Label>
             <textarea 
               id="idealCustomerProfile" 
-              placeholder="Describe the client's perfect lead... e.g. Someone asking for a lightweight CRM because Salesforce is too expensive." 
+              placeholder="Describe the person who needs your help... e.g. Someone asking for a new website because their current one is slow." 
               value={idealCustomerProfile} 
               onChange={(e) => setIdealCustomerProfile(e.target.value)} 
               required 
               className="w-full min-h-[80px] p-3 rounded-xl border-2 border-slate-200 focus:border-[#5a8c12] focus:ring-0 transition-colors text-sm dark:bg-slate-900 dark:border-slate-800 dark:text-slate-100"
             />
-            <p className="text-[10px] text-slate-500">Our AI uses this definition to score matches and identify your growth visibility potential.</p>
+            <p className="text-[10px] text-slate-500">Our AI will use this description to find the best posts for you.</p>
           </div>
 
 
@@ -384,7 +384,7 @@ export function AddScraperModal({
           <div className="space-y-2">
             <div className="flex items-center justify-between">
               <Label htmlFor="target" className="text-slate-700 font-semibold">
-                Target (Subreddit / Tag / Search Term)
+                Where should we look?
               </Label>
               <Button 
                 type="button" 
@@ -436,7 +436,7 @@ export function AddScraperModal({
                 ))}
               </div>
             )}
-            <p className="text-[10px] text-slate-500 italic">This will be used as the subreddit for Reddit and the tag for Stack Overflow.</p>
+            <p className="text-[10px] text-slate-500 italic">Example: Enter a subreddit name like "Entrepreneur" or a tag like "reactjs".</p>
           </div>
           <div className="space-y-2">
             <div className="flex items-center justify-between">
@@ -529,7 +529,7 @@ export function AddScraperModal({
             <Button type="button" variant="outline" onClick={() => onOpenChange(false)} className="rounded-xl border-slate-200 hover:bg-slate-50">Cancel</Button>
             <Button type="submit" disabled={loading} className="rounded-xl bg-[#5a8c12] hover:bg-[#446715] text-white font-semibold shadow-md gap-2">
               <Plus size={16} strokeWidth={1.5} />
-              {loading ? 'Launching...' : 'Launch Tracker'}
+              {loading ? 'Creating...' : 'Create Monitor'}
             </Button>
           </DialogFooter>
         </form>

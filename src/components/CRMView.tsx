@@ -139,9 +139,9 @@ export function CRMView() {
         <div className="flex flex-col md:flex-row md:items-start justify-between gap-6 mb-8">
           <div>
             <h1 className="text-3xl font-black text-slate-900 tracking-tight flex items-center gap-3">
-              <Users size={28} className="text-[#5a8c12]" /> Growth Pipeline
+              <Users size={28} className="text-[#5a8c12]" /> Inbound Requests
             </h1>
-            <p className="text-slate-500 mt-1 font-medium">Manage visibility applications and launch client operations.</p>
+            <p className="text-slate-500 mt-1 font-medium">Manage new requests and create monitors for them.</p>
             
             <div className="flex items-center gap-4 mt-4">
                <div className="flex flex-col">
@@ -166,7 +166,7 @@ export function CRMView() {
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 w-4 h-4" />
               <input 
                 type="text" 
-                placeholder="Search leads..." 
+                placeholder="Search requests..." 
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 className="w-full bg-white border border-slate-200 rounded-xl pl-10 pr-4 py-2 text-sm font-medium focus:outline-none focus:border-black transition-colors"
@@ -208,7 +208,7 @@ export function CRMView() {
               <tbody className="divide-y relative">
                 {loading ? (
                   <tr>
-                    <td colSpan={5} className="text-center p-12 text-slate-400">Loading pipeline...</td>
+                    <td colSpan={5} className="text-center p-12 text-slate-400">Loading requests...</td>
                   </tr>
                 ) : filteredApplicants.length === 0 ? (
                   <tr>
@@ -258,7 +258,7 @@ export function CRMView() {
                            <button 
                              onClick={(e) => { e.stopPropagation(); setDeleteId(app.id); }}
                              className="p-2 text-slate-300 hover:text-red-500 transition-colors rounded-lg hover:bg-red-50"
-                             title="Delete Lead"
+                             title="Delete Request"
                            >
                              <Trash2 size={16} />
                            </button>
@@ -288,7 +288,7 @@ export function CRMView() {
           <div className="relative w-full max-w-md bg-white h-full border-l shadow-2xl flex flex-col animate-in slide-in-from-right duration-500">
             
             <div className="p-6 border-b flex items-center justify-between">
-              <h2 className="text-xl font-black tracking-tight">Growth Visibility Profile</h2>
+              <h2 className="text-xl font-black tracking-tight">Applicant Profile</h2>
               <button onClick={() => setSelectedApplicant(null)} className="text-slate-400 hover:text-black font-bold text-xs uppercase tracking-widest">Close</button>
             </div>
 
@@ -312,7 +312,7 @@ export function CRMView() {
                    onClick={() => handleLaunchTracker(selectedApplicant)}
                    className="flex items-center justify-center gap-2 bg-black text-white p-4 rounded-2xl font-bold uppercase tracking-widest text-[10px] hover:bg-[#5a8c12] transition-colors"
                  >
-                   <Zap size={14} className="fill-current" /> Launch Tracker
+                   <Zap size={14} className="fill-current" /> Launch Monitor
                  </button>
                  <button 
                     onClick={() => openWhatsApp(selectedApplicant)}
@@ -335,7 +335,7 @@ export function CRMView() {
 
               <div>
                 <div className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-3 flex items-center gap-2">
-                   <Target size={12} className="text-[#5a8c12]" /> The Frustration (ICP)
+                   <Target size={12} className="text-[#5a8c12]" /> Who are they looking for?
                 </div>
                 <div className="p-5 bg-[#FAFAFA] border-2 border-slate-100 rounded-2xl text-sm leading-relaxed text-slate-700 italic font-medium">
                   "{selectedApplicant.prospect}"
@@ -364,8 +364,8 @@ export function CRMView() {
                   className="w-full bg-white border-2 border-slate-100 p-4 rounded-2xl font-bold text-sm outline-none focus:border-black transition-colors appearance-none"
                 >
                   <option value="pending">Pending Review</option>
-                  <option value="contacted">Phase 1: Contacted</option>
-                  <option value="approved">Phase 2: Approved / Active</option>
+                  <option value="contacted">Step 1: Contacted</option>
+                  <option value="approved">Step 2: Approved / Active</option>
                 </select>
               </div>
 
@@ -375,7 +375,7 @@ export function CRMView() {
               <button 
                 onClick={() => setDeleteId(selectedApplicant.id)}
                 className="p-4 text-slate-300 hover:text-red-500 transition-colors"
-                title="Permanently Delete Lead"
+                title="Permanently Delete Request"
               >
                 <Trash2 size={20} />
               </button>
@@ -396,7 +396,7 @@ export function CRMView() {
         open={!!deleteId}
         onOpenChange={(open) => !open && setDeleteId(null)}
         title="Delete Applicant?"
-        description="This will permanently remove the lead from your growth pipeline and cannot be undone."
+        description="This will permanently remove the applicant from your list and cannot be undone."
         confirmText="Permanently Delete"
         onConfirm={handleDeleteApplicant}
       />

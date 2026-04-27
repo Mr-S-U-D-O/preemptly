@@ -68,9 +68,9 @@ export const InteractiveOnboarding: React.FC<InteractiveOnboardingProps> = ({ is
         
         {/* Header */}
         <div className="flex items-center justify-between p-6 border-b-2 border-slate-100">
-          <div className="flex items-center gap-3 opacity-50">
-            <div className="w-8 h-8 bg-black flex items-center justify-center rounded-lg">
-              <Target className="text-white w-4 h-4" />
+          <div className="flex items-center gap-3">
+            <div className="w-8 h-8 rounded-lg overflow-hidden flex items-center justify-center shadow-md">
+              <img src="/preemptly-mascot.png" alt="Preemptly" className="w-full h-full object-cover" />
             </div>
             <span className="font-black text-xl tracking-tighter">Preemptly</span>
           </div>
@@ -95,9 +95,9 @@ export const InteractiveOnboarding: React.FC<InteractiveOnboardingProps> = ({ is
               <div className="w-24 h-24 bg-[#5a8c12]/10 border-2 border-[#5a8c12] rounded-full flex items-center justify-center text-[#5a8c12] mb-8">
                  <CheckCircle2 size={48} />
               </div>
-              <h2 className="text-4xl font-black tracking-tight mb-4 text-black">Application Received.</h2>
+              <h2 className="text-4xl font-black tracking-tight mb-4 text-black">We're on it.</h2>
               <p className="text-lg text-slate-500 font-light max-w-md mx-auto leading-relaxed">
-                We're spinning up a dedicated listening environment for your targets. You will receive a WhatsApp message on <span className="font-medium text-black">{formData.whatsapp}</span> shortly with your Command Center access link.
+                We are starting to search for people who need your help. We will send you a WhatsApp message at <span className="font-medium text-black">{formData.whatsapp}</span> as soon as we find your first match.
               </p>
               <button onClick={onClose} className="mt-10 bg-black text-white hover:bg-slate-800 transition-colors px-10 py-5 text-sm font-bold uppercase tracking-widest rounded-2xl shadow-xl shadow-black/10">
                 Return to Site
@@ -159,7 +159,7 @@ export const InteractiveOnboarding: React.FC<InteractiveOnboardingProps> = ({ is
                    <h2 className="text-3xl lg:text-4xl font-extralight tracking-tight text-black leading-tight mb-2">
                      How should we reach you?
                    </h2>
-                   <p className="text-slate-500 mb-4 font-light">We need your email for login, and your WhatsApp number for instant lead alerts.</p>
+                   <p className="text-slate-500 mb-4 font-light">We need your email so you can log in, and your WhatsApp number so we can send you alerts.</p>
                    
                    <div className="flex flex-col gap-8">
                      <div className="relative">
@@ -193,7 +193,7 @@ export const InteractiveOnboarding: React.FC<InteractiveOnboardingProps> = ({ is
                {step === 4 && (
                  <div className="flex flex-col gap-6">
                    <div className="flex items-center gap-2 px-3 py-1 border-2 border-slate-200 text-slate-500 text-[9px] font-black uppercase tracking-widest w-max rounded-lg">
-                      <Target size={12} className="text-[#5a8c12]" /> Target Definition
+                      <Target size={12} className="text-[#5a8c12]" /> Search Settings
                    </div>
                    <h2 className="text-3xl font-extralight tracking-tight text-black leading-tight">
                      Describe your ideal prospect's <span className="font-bold">biggest frustration</span> right now.
@@ -246,21 +246,21 @@ export const InteractiveOnboarding: React.FC<InteractiveOnboardingProps> = ({ is
                    
                    <div className="bg-slate-50 border-2 border-slate-200 rounded-2xl p-6 flex flex-col gap-4">
                       <div className="flex flex-col gap-1">
-                        <div className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Phase 1</div>
+                        <div className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Step 1</div>
                         <h4 className="text-lg font-bold text-black flex items-center gap-2">
-                          <CheckCircle2 size={18} className="text-[#5a8c12]" /> 10-Intercept Free Trial
+                          <CheckCircle2 size={18} className="text-[#5a8c12]" /> 10 Free Matches
                         </h4>
-                        <p className="text-sm text-slate-500 font-light">We will hunt down and deliver 10 highly-qualified, high-intent conversations to your Command Center for completely free.</p>
+                        <p className="text-sm text-slate-500 font-light">We will find 10 people who are looking for exactly what you do and send them to you for free.</p>
                       </div>
                       
                       <div className="h-px w-full bg-slate-200 my-2" />
                       
                       <div className="flex flex-col gap-1">
-                        <div className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Phase 2</div>
+                        <div className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Step 2</div>
                         <h4 className="text-lg font-bold text-black flex items-center gap-2">
-                          <Target size={18} className="text-[#5a8c12]" /> Closed Beta Upgrade
+                          <CheckCircle2 size={18} className="text-[#5a8c12]" /> Early User Benefits
                         </h4>
-                        <p className="text-sm text-slate-500 font-light">After your trial, you have the option to bump up to our Beta Tier for unlimited loop access at <span className="font-bold">R500/mo</span> (Discounted from R2500).</p>
+                        <p className="text-sm text-slate-500 font-light">If you want to keep using the tool after your free trial, you'll get double the number of monitors for being an early user.</p>
                       </div>
                    </div>
 
@@ -272,7 +272,7 @@ export const InteractiveOnboarding: React.FC<InteractiveOnboardingProps> = ({ is
                         {formData.agreedToTerms && <Check size={14} className="text-white" />}
                      </div>
                      <span className="text-sm font-medium text-slate-600 transition-colors group-hover:text-black">
-                       I agree to the deal. Let's hunt.
+                       I'm ready. Let's find some matches.
                      </span>
                    </button>
                  </div>

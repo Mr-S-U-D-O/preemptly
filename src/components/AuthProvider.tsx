@@ -9,8 +9,8 @@ import { AccessDenied } from './AccessDenied';
 const ALLOWED_EMAILS = [
   "launchpadstudioagency@gmail.com",
   "molelekishoez@gmail.com",
-  "investors@intentfirsthunter.co.za",
-  "visitor@intentfirsthunter.co.za",
+  "investors@preemptly.co.za",
+  "visitor@preemptly.co.za",
 ];
 
 interface AuthContextType {

@@ -436,7 +436,7 @@ export function ClientPortal() {
                   {data.clientName}'s Matches
                 </h1>
                 <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">
-                  Growth Visibility Portal
+                  Opportunity Portal
                 </p>
               </div>
             </div>
@@ -451,7 +451,7 @@ export function ClientPortal() {
                 </button>
               )}
               <div className="bg-[#5a8c12]/10 text-[#5a8c12] px-3 py-1.5 rounded-full text-xs font-black">
-                {data.totalLeads} Match{data.totalLeads !== 1 ? 'es' : ''}
+                {data.totalLeads} Lead{data.totalLeads !== 1 ? 's' : ''}
               </div>
             </div>
           </div>
@@ -506,14 +506,14 @@ export function ClientPortal() {
         <div className="max-w-4xl mx-auto px-4 py-3 flex gap-4">
           <div className="flex-1 text-center">
             <p className="text-lg font-black text-slate-900">{data.totalLeads}</p>
-            <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">Opportunities</p>
+            <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">Opportunities Found</p>
           </div>
           <div className="w-px bg-slate-100" />
           <div className="flex-1 text-center">
             <p className="text-lg font-black text-[#5a8c12]">
               {data.leads.filter(l => (l.score || 0) >= 8).length}
             </p>
-            <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">High Intent</p>
+            <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">High Quality</p>
           </div>
           <div className="w-px bg-slate-100" />
           <div className="flex-1 text-center">
@@ -596,7 +596,7 @@ export function ClientPortal() {
                          <Sparkles size={14} className="text-[#5a8c12]" />
                        </div>
                        <p className="text-xs text-slate-600 leading-relaxed">
-                        <span className="font-black text-[#5a8c12] uppercase text-[9px] tracking-wider block mb-1">Strategic Rationale</span>
+                        <span className="font-black text-[#5a8c12] uppercase text-[9px] tracking-wider block mb-1">Match Rationale</span>
                         {lead.reason}
                        </p>
                     </div>
@@ -641,7 +641,7 @@ export function ClientPortal() {
                           ) : (
                             <Sparkles size={14} />
                           )}
-                          Draft Helpful Comment (AI)
+                          Draft a reply
                         </button>
                       )}
                     </div>
@@ -664,7 +664,7 @@ export function ClientPortal() {
                   <div className="px-4 pb-4">
                     <div className="bg-slate-50 rounded-xl p-3">
                       <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-2">
-                        {feedbackSent[lead.id] ? '✓ Feedback Sent!' : 'Was this lead helpful?'}
+                        {feedbackSent[lead.id] ? '✓ Feedback Sent!' : 'Was this match helpful?'}
                       </p>
                       <div className="flex items-center gap-2">
                         <input
@@ -733,8 +733,8 @@ export function ClientPortal() {
               <thead>
                 <tr className="bg-slate-50 border-b border-slate-100">
                   <th className="px-4 py-3 text-[10px] font-black text-slate-400 uppercase tracking-widest">Date</th>
-                  <th className="px-4 py-3 text-[10px] font-black text-slate-400 uppercase tracking-widest">Match</th>
-                  <th className="px-4 py-3 text-[10px] font-black text-slate-400 uppercase tracking-widest">Opportunity</th>
+                  <th className="px-4 py-3 text-[10px] font-black text-slate-400 uppercase tracking-widest">Score</th>
+                  <th className="px-4 py-3 text-[10px] font-black text-slate-400 uppercase tracking-widest">Post</th>
                   <th className="px-4 py-3 text-[10px] font-black text-slate-400 uppercase tracking-widest">Status</th>
                   <th className="px-4 py-3 text-[10px] font-black text-slate-400 uppercase tracking-widest text-right">Actions</th>
                 </tr>

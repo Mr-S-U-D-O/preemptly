@@ -267,7 +267,7 @@ export function Home() {
 
       await addDoc(collection(db, 'logs'), {
         type: 'portal_deployed',
-        message: `Client portal deployed for "${clientName}" across ${scraperIds.length} tracker(s)`,
+        message: `Client portal deployed for "${clientName}" across ${scraperIds.length} monitor(s)`,
         createdAt: serverTimestamp(),
         userId: user?.uid
       });
@@ -315,7 +315,7 @@ export function Home() {
 
       await addDoc(collection(db, 'logs'), {
         type: 'trial_extended',
-        message: `Trial extended for "${clientName}" — new limit: ${newLimit} leads`,
+        message: `Trial extended for "${clientName}" — new limit: ${newLimit} matches`,
         createdAt: serverTimestamp(),
         userId: user?.uid
       });
@@ -325,7 +325,7 @@ export function Home() {
   };
 
   const handleDeleteClient = async (clientName: string, scrapersArray: any[]) => {
-    if (!confirm(`Are you sure you want to delete client "${clientName}" and all ${scrapersArray.length} associated trackers?`)) return;
+    if (!confirm(`Are you sure you want to delete client "${clientName}" and all ${scrapersArray.length} associated monitors?`)) return;
     
     try {
       const batch = writeBatch(db);
@@ -385,7 +385,7 @@ export function Home() {
 
       await addDoc(collection(db, 'logs'), {
         type: 'leads_marked_viewed',
-        message: `All ${clientLeads.length} pending leads marked as viewed for client "${clientName}"`,
+        message: `All ${clientLeads.length} pending matches marked as viewed for client "${clientName}"`,
         createdAt: serverTimestamp(),
         userId: user?.uid
       });
@@ -404,7 +404,7 @@ export function Home() {
 
       await addDoc(collection(db, 'logs'), {
         type: 'scraper_paused',
-        message: `All trackers paused for client "${clientName}"`,
+        message: `All monitors paused for client "${clientName}"`,
         createdAt: serverTimestamp(),
         userId: user?.uid
       });
@@ -413,9 +413,9 @@ export function Home() {
     }
   };
 
-  const getResetTitle = () => ({ leads: 'Reset All Leads', scrapers: 'Reset All Scrapers', logs: 'Reset All Logs', all: 'Reset Entire Dashboard' })[resetType!] || 'Reset';
+  const getResetTitle = () => ({ leads: 'Reset All Matches', scrapers: 'Reset All Monitors', logs: 'Reset All Logs', all: 'Reset Entire Dashboard' })[resetType!] || 'Reset';
   const getResetDescription = () => ({
-    leads: 'Are you sure? All lead data will be permanently deleted.',
+    leads: 'Are you sure? All match data will be permanently deleted.',
     scrapers: 'This will stop all background monitoring permanently.',
     logs: 'All system logs will be cleared.',
     all: 'THIS WILL DELETE EVERYTHING. Your dashboard will be completely wiped.'
@@ -629,7 +629,7 @@ export function Home() {
             Overview
           </span>
           <h1 className="text-2xl font-black text-slate-900 dark:text-slate-100 tracking-tight mt-0.5">
-            Growth Hub
+            Command Center
           </h1>
         </div>
         <div className="flex items-center gap-3">
@@ -656,8 +656,8 @@ export function Home() {
                   Reset Options
                 </DropdownMenuLabel>
                 {[
-                  { icon: Database, label: "Reset Leads", type: "leads" },
-                  { icon: Zap, label: "Reset Trackers", type: "scrapers" },
+                  { icon: Database, label: "Reset Matches", type: "leads" },
+                  { icon: Zap, label: "Reset Monitors", type: "scrapers" },
                   { icon: Activity, label: "Reset Logs", type: "logs" },
                 ].map(({ icon: Icon, label, type }) => (
                   <DropdownMenuItem
@@ -729,7 +729,7 @@ export function Home() {
         />
         <KpiCard
           icon={Star}
-          label="Avg Expertise Score"
+          label="Avg Match Score"
           value={`${stats.avgScore}/10`}
           iconBg="bg-amber-500/10"
           iconColor="text-amber-500"
@@ -739,7 +739,7 @@ export function Home() {
         />
         <KpiCard
           icon={CheckCircle2}
-          label="Evidence Shared"
+          label="Matches Shared"
           value={stats.sentLeads}
           iconBg="bg-blue-500/10"
           iconColor="text-blue-500"
@@ -749,7 +749,7 @@ export function Home() {
         />
         <KpiCard
           icon={Zap}
-          label="Active Trackers"
+          label="Active Monitors"
           value={`${activeScrapers}/${scrapers.length}`}
           iconBg="bg-[#5a8c12]/10"
           iconColor="text-[#5a8c12]"
@@ -771,8 +771,8 @@ export function Home() {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <ChartCard
           className="lg:col-span-2"
-          title="Growth Momentum"
-          subtitle="Real-time visibility frequency and community health"
+          title="Opportunity Velocity"
+          subtitle="How many opportunities we are finding for you"
           action={
             <div className="flex items-center gap-1 bg-slate-100 dark:bg-slate-800 p-1 rounded-xl">
               {(["7d", "30d", "all"] as const).map((r) => (
@@ -1135,7 +1135,7 @@ export function Home() {
           {scraperPerformance.length > 0 && (
             <div className="flex items-center gap-6 mt-3 border-t border-slate-100 dark:border-slate-800 pt-4">
               {[
-                { label: "Total Leads", color: BRAND, opacity: 1 },
+                { label: "Total Matches", color: BRAND, opacity: 1 },
                 { label: "Sent to Client", color: "#3b82f6", opacity: 0.7 },
                 { label: "Has Error", color: "#ef4444", opacity: 1 },
                 { label: "Paused", color: "#94a3b8", opacity: 0.35 },
@@ -1273,7 +1273,7 @@ export function Home() {
                       {/* KPI Grid for Client */}
                       <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
                         <div className="bg-slate-50 dark:bg-slate-800/40 p-4 rounded-2xl border border-slate-100 dark:border-slate-800">
-                          <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Active Trackers</p>
+                          <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Active Monitors</p>
                           <div className="flex items-center gap-2">
                              <Zap size={14} className="text-[#5a8c12]" />
                              <span className="text-lg font-black text-slate-900 dark:text-white">{client.scraperIds.length}</span>
@@ -1388,7 +1388,7 @@ export function Home() {
                                className="h-10 rounded-xl text-[10px] font-black uppercase tracking-widest border-slate-200 hover:bg-slate-50 gap-2"
                                onClick={() => handleExtendTrial(client.name, client.scraperIds, client.trialLimit)}
                              >
-                               <ShieldCheck size={14} /> +10 Leads
+                               <ShieldCheck size={14} /> +10 Matches
                              </Button>
                              <Button 
                                variant="outline" 
@@ -1443,7 +1443,7 @@ export function Home() {
                             onClick={() => handlePauseAllForClient(client.name, client.scraperIds)}
                             disabled={client.scrapers.every(s => s.status === 'paused')}
                           >
-                            <Pause size={14} /> Pause All Trackers
+                            <Pause size={14} /> Pause All Monitors
                           </Button>
                        </div>
                     </div>

@@ -73,7 +73,7 @@ export function ScraperView() {
   if (!scraper) {
     return (
       <div className="flex items-center justify-center h-full text-slate-500">
-        Tracker not found or loading...
+        Monitor not found or loading...
       </div>
     );
   }
@@ -89,7 +89,7 @@ export function ScraperView() {
         type: newStatus === 'active' ? 'scraper_resumed' : 'scraper_paused',
         scraperId: scraper.id,
         scraperName: scraper.name,
-        message: `Tracker "${scraper.name}" ${newStatus === 'active' ? 'resumed' : 'paused'}`,
+        message: `Monitor "${scraper.name}" ${newStatus === 'active' ? 'resumed' : 'paused'}`,
         createdAt: serverTimestamp(),
         userId: user?.uid
       });
@@ -200,7 +200,7 @@ export function ScraperView() {
       // Log the action
       await addDoc(collection(db, 'logs'), {
         type: 'scraper_paused',
-        message: `All trackers paused for client "${scraper.clientName}"`,
+        message: `All monitors paused for client "${scraper.clientName}"`,
         createdAt: serverTimestamp(),
         userId: user?.uid
       });
@@ -215,7 +215,7 @@ export function ScraperView() {
     <div className="max-w-7xl mx-auto space-y-6">
       <SEO title={`${scraper?.name || 'Scraper'} | Preemptly`} />
       <div className="flex flex-col mb-6">
-        <span className="text-xs text-slate-500 dark:text-slate-400 font-medium mb-1 truncate max-w-full">Growth Feed / Trackers / {scraper.name}</span>
+        <span className="text-xs text-slate-500 dark:text-slate-400 font-medium mb-1 truncate max-w-full">Monitors / {scraper.name}</span>
         <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4">
           <div className="flex flex-col gap-2 min-w-0 flex-1">
             <h1 className="text-xl sm:text-2xl font-black text-slate-900 dark:text-slate-100 tracking-tight break-words leading-tight">
@@ -310,7 +310,7 @@ export function ScraperView() {
           </div>
         </div>
         <div className="bg-white dark:bg-slate-900 p-6 rounded-2xl shadow-[0_4px_20px_rgba(0,0,0,0.03)] border-2 border-[#5a8c12] dark:border-[#5a8c12]/50">
-          <p className="text-sm font-semibold text-slate-500 dark:text-slate-400 mb-1">Growth Events</p>
+          <p className="text-sm font-semibold text-slate-500 dark:text-slate-400 mb-1">Leads Found</p>
           <p className="text-xl font-bold text-slate-800 dark:text-slate-100">{scraperLeads.length}</p>
         </div>
         <div className="bg-white dark:bg-slate-900 p-6 rounded-2xl shadow-[0_4px_20px_rgba(0,0,0,0.03)] border-2 border-[#5a8c12] dark:border-[#5a8c12]/50">
@@ -329,7 +329,7 @@ export function ScraperView() {
             </div>
           <p className="text-lg font-bold text-slate-800 dark:text-slate-100">
             {scraper.totalPushedLeads || 0} / {scraper.trialLimit || 10}
-            <span className="text-[10px] text-slate-400 ml-2 font-medium">Moments Shared</span>
+            <span className="text-[10px] text-slate-400 ml-2 font-medium">Matches Sent</span>
           </p>
           <div className="w-full bg-slate-100 dark:bg-slate-800 h-1.5 rounded-full mt-2 overflow-hidden">
             <div 
@@ -353,7 +353,7 @@ export function ScraperView() {
       </div>
 
       <div className="bg-white dark:bg-slate-900 p-6 rounded-2xl shadow-[0_4px_20px_rgba(0,0,0,0.03)] border-2 border-[#5a8c12] dark:border-[#5a8c12]/50">
-        <p className="text-sm font-semibold text-slate-500 dark:text-slate-400 mb-2">Ideal Customer Profile (AI Instructions)</p>
+        <p className="text-sm font-semibold text-slate-500 dark:text-slate-400 mb-2">Who are you looking for? (AI Instructions)</p>
         <p className="text-slate-700 dark:text-slate-300 italic text-sm leading-relaxed">
           "{scraper.idealCustomerProfile || scraper.leadDefinition || 'No specific definition provided. Using general intent scoring.'}"
         </p>
@@ -366,15 +366,15 @@ export function ScraperView() {
               <Activity size={18} strokeWidth={2} className="text-[#5a8c12]" />
             </div>
             <div>
-              <h1 className="text-2xl font-black text-slate-800 tracking-tight">Opportunity Feed</h1>
-            <p className="text-sm text-slate-500 font-medium">Identify conversations where your expertise wins.</p>
+              <h1 className="text-2xl font-black text-slate-800 tracking-tight">Opportunities Found</h1>
+            <p className="text-sm text-slate-500 font-medium">Posts where people need your help.</p>
             </div>
           </div>
           <div className="flex items-center gap-3 flex-1">
             <div className="relative max-w-sm w-full">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
               <Input 
-                placeholder="Search matches..." 
+                placeholder="Search leads..." 
                 className="pl-9 bg-slate-50 dark:bg-slate-800/50 border-slate-200 dark:border-slate-700 rounded-xl h-10 focus-visible:ring-[#5a8c12] dark:text-slate-100"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
@@ -407,9 +407,9 @@ export function ScraperView() {
                 <TableRow className="bg-slate-50/50 dark:bg-slate-800/50">
                   <TableHead className="w-[120px]">Date</TableHead>
                   <TableHead className="w-[80px]">Score</TableHead>
-                  <TableHead>Opportunity Analysis</TableHead>
+                  <TableHead>Match Rationale</TableHead>
                   <TableHead className="w-[120px]">Status</TableHead>
-                  <TableHead className="w-[120px]">🚀 Dispatch</TableHead>
+                  <TableHead className="w-[120px]">🚀 Send to Portal</TableHead>
                   <TableHead className="text-right w-[120px]">Action</TableHead>
                 </TableRow>
               </TableHeader>
@@ -445,7 +445,7 @@ export function ScraperView() {
                                 <div className="p-1.5 rounded-lg bg-gradient-to-br from-[#5a8c12]/20 to-[#84b53b]/10 text-[#5a8c12]">
                                   <BrainCircuit size={14} strokeWidth={2.5} />
                                 </div>
-                                <span className="text-[10px] font-black uppercase tracking-[0.15em] text-slate-700 dark:text-slate-200">Expertise Strategy</span>
+                                <span className="text-[10px] font-black uppercase tracking-[0.15em] text-slate-700 dark:text-slate-200">Match Rationale</span>
                                 <div className={`ml-auto px-2.5 py-1 rounded-full text-[10px] font-black tracking-wide ${
                                   lead.score >= 8 ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400' :
                                   lead.score >= 6 ? 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400' :
@@ -492,7 +492,7 @@ export function ScraperView() {
                                 <div className="p-1.5 rounded-lg bg-gradient-to-br from-blue-500/15 to-indigo-500/10 text-blue-600 dark:text-blue-400">
                                   <MessageCircle size={14} strokeWidth={2.5} />
                                 </div>
-                                <span className="text-[10px] font-black uppercase tracking-[0.15em] text-slate-700 dark:text-slate-200">Full Post Preview</span>
+                                <span className="text-[10px] font-black uppercase tracking-[0.15em] text-slate-700 dark:text-slate-200">Full Post</span>
                               </div>
                               {/* Body */}
                               <div className="p-4 space-y-3">
@@ -570,12 +570,12 @@ export function ScraperView() {
                 <Icons.Zap size={18} className="text-blue-500" />
              </div>
              <div>
-                <h2 className="text-lg font-black text-slate-800 dark:text-slate-100 uppercase tracking-tight">Growth Dispatch</h2>
-                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Track community engagement & profile visits</p>
+                <h2 className="text-lg font-black text-slate-800 dark:text-slate-100 uppercase tracking-tight">Matches Shared</h2>
+                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Check if the client has seen these matches.</p>
              </div>
           </div>
           <div className="flex items-center gap-2 text-xs font-black text-slate-400 uppercase tracking-widest bg-slate-50 px-3 py-1.5 rounded-full">
-             {sentLeads.length} Total Dispatched
+             {sentLeads.length} Total Sent
           </div>
         </div>
 
@@ -589,7 +589,7 @@ export function ScraperView() {
               <TableHeader>
                 <TableRow className="bg-slate-50/50 dark:bg-slate-800/50">
                   <TableHead className="w-[120px]">Sent Date</TableHead>
-                  <TableHead>Opportunity</TableHead>
+                  <TableHead>Post</TableHead>
                   <TableHead className="w-[120px] text-center">Engagement</TableHead>
                   <TableHead className="w-[150px]">Current Status</TableHead>
                   <TableHead>Client Feedback</TableHead>
@@ -650,8 +650,8 @@ export function ScraperView() {
       <ConfirmModal 
         open={isDeleteModalOpen} 
         onOpenChange={setIsDeleteModalOpen} 
-        title="Delete Tracker"
-        description="Are you sure you want to delete this visibility tracker? Community opportunities will remain in the Feed."
+        title="Delete Monitor"
+        description="Are you sure you want to delete this monitor? Matches will remain in the Feed."
         onConfirm={handleDelete}
         confirmText="Delete"
       />
