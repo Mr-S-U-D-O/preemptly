@@ -1,10 +1,11 @@
 import { useParams } from 'react-router-dom';
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { format } from 'date-fns';
-import { ExternalLink, MessageCircle, Star, Clock, Zap, Lock, ChevronDown, ChevronUp, Send, LayoutGrid, List, ArrowUpDown, Trash2, CheckCircle, Sparkles, X, MessageSquare, Paperclip, Smile, ShieldCheck, ArrowRight, Infinity } from 'lucide-react';
+import { ExternalLink, MessageCircle, Star, Clock, Zap, Lock, ChevronDown, ChevronUp, Send, LayoutGrid, List, ArrowUpDown, Trash2, CheckCircle, Sparkles, X, MessageSquare, Paperclip, Smile, ShieldCheck, ArrowRight, Infinity, Settings } from 'lucide-react';
 import { ChatMessage } from '../types';
 import { LiveTimestamp } from './LiveTimestamp';
 import { ClientSetupModal } from './ClientSetupModal';
+import { ClientSettingsModal } from './ClientSettingsModal';
 import { SEO } from './SEO';
 import { reportError } from '../utils/logger';
 import { toast } from './ui/toast';
@@ -34,6 +35,15 @@ interface PortalData {
   isAiEnabled?: boolean;
   setupCompleted?: boolean;
   scrapers?: any[];
+  clientSettings?: {
+    isSoloFreelancer: boolean;
+    clientBusiness: string;
+    clientSells: string;
+    clientDoes: string;
+    clientTone: string;
+    aiAggression: string;
+    aiLength: string;
+  };
 }
 
 export function ClientPortal() {
@@ -54,6 +64,7 @@ export function ClientPortal() {
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
   const [updatingOutcome, setUpdatingOutcome] = useState<string | null>(null);
   const [showUpgradeModal, setShowUpgradeModal] = useState(false);
+  const [showSettings, setShowSettings] = useState(false);
 
   // Chat state
   const [chatOpen, setChatOpen] = useState(false);
@@ -396,6 +407,22 @@ export function ClientPortal() {
         />
       )}
 
+      {/* Settings Modal */}
+      {data.clientSettings && (
+        <ClientSettingsModal
+          open={showSettings}
+          onClose={() => setShowSettings(false)}
+          token={token || ''}
+          currentSettings={data.clientSettings}
+          onSave={(newSettings) => {
+            setData(prev => prev ? {
+              ...prev,
+              clientSettings: newSettings
+            } : null);
+          }}
+        />
+      )}
+
       {/* Header */}
       <header className="bg-white border-b border-slate-100 sticky top-0 z-50">
         <div className="max-w-2xl mx-auto px-4 py-4">
@@ -414,6 +441,15 @@ export function ClientPortal() {
               </div>
             </div>
             <div className="flex items-center gap-2">
+              {data.setupCompleted && data.isAiEnabled && (
+                <button
+                  onClick={() => setShowSettings(true)}
+                  className="p-2 rounded-xl bg-slate-100 hover:bg-[#5a8c12]/10 text-slate-400 hover:text-[#5a8c12] transition-all"
+                  title="AI Settings"
+                >
+                  <Settings size={16} />
+                </button>
+              )}
               <div className="bg-[#5a8c12]/10 text-[#5a8c12] px-3 py-1.5 rounded-full text-xs font-black">
                 {data.totalLeads} Match{data.totalLeads !== 1 ? 'es' : ''}
               </div>

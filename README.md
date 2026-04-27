@@ -1,4 +1,4 @@
-Preemptly is a high-performance **Real-time Growth Intelligence platform** designed to identify and intercept business opportunities the millisecond they appear online. It utilizes **Proprietary AI Scrutiny** to scan social platforms (Reddit, Stack Overflow, Hacker News, Craigslist) for high-intent signals—identifying users who are actively inquiring about solutions and providing a dedicated **Client Engagement Portal** for seamless community interaction.
+Preemptly is a high-performance **Real-time Growth Intelligence platform** designed to identify and intercept business opportunities the millisecond they appear online. It utilizes **Proprietary AI Scrutiny** to scan social platforms (Reddit, Stack Overflow) for high-intent signals—identifying users who are actively inquiring about solutions and providing a dedicated **Client Engagement Portal** for seamless community interaction.
 
 ---
 
@@ -11,8 +11,6 @@ graph TD
     subgraph "The Internet"
         R[Reddit RSS]
         SO[Stack Overflow Feed]
-        HN[Hacker News Feed]
-        CL[Craigslist Feed]
     end
 
     subgraph "Backend Engine (server.ts)"
@@ -30,7 +28,7 @@ graph TD
     end
 
     CRON --> FETCHER
-    FETCHER --> R & SO & HN & CL
+    FETCHER --> R & SO
     FETCHER -- "New Posts" --> GENAI
     GENAI -- "Strategic Match Rationale" --> ADMIN
     ADMIN -- "Sync" --> FS

@@ -38,7 +38,9 @@ export function ClientSetupModal({ scrapers, token, onComplete }: ClientSetupMod
           clientBusiness: isSolo === 'true' ? formData.clientName : formData.businessName,
           clientSells: formData.clientSells,
           clientDoes: formData.clientDoes,
-          clientTone: formData.clientTone
+          clientTone: formData.clientTone,
+          aiAggression: 'subtle',
+          aiLength: 'medium'
         })
       });
 
@@ -207,7 +209,7 @@ export function ClientSetupModal({ scrapers, token, onComplete }: ClientSetupMod
         {/* Footer info */}
         <div className="p-6 bg-slate-50 border-t border-slate-100 text-center">
           <p className="text-[10px] text-slate-400 font-medium uppercase tracking-widest leading-relaxed">
-            This setup is only required once.<br/>Your privacy is our priority.
+            You can update these anytime in <span className="text-[#5a8c12] font-black">AI Settings</span> (gear icon).
           </p>
         </div>
       </div>

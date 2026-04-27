@@ -510,7 +510,14 @@ async function startServer() {
             clientName: s.clientName,
             portalSetupCompleted: s.portalSetupCompleted,
             isAiEnabled: s.isAiEnabled,
-            trialLimit: s.trialLimit
+            trialLimit: s.trialLimit,
+            isSoloFreelancer: s.isSoloFreelancer,
+            clientBusiness: s.clientBusiness,
+            clientSells: s.clientSells,
+            clientDoes: s.clientDoes,
+            clientTone: s.clientTone,
+            aiAggression: s.aiAggression,
+            aiLength: s.aiLength
           }))
         };
         // Add to cache for subsequent requests
@@ -573,6 +580,15 @@ async function startServer() {
           (s: any) => s.portalSetupCompleted === true,
         ),
         scrapers: scrapers,
+        clientSettings: {
+          isSoloFreelancer: primaryScraper.isSoloFreelancer || false,
+          clientBusiness: primaryScraper.clientBusiness || '',
+          clientSells: primaryScraper.clientSells || '',
+          clientDoes: primaryScraper.clientDoes || '',
+          clientTone: primaryScraper.clientTone || 'friendly',
+          aiAggression: primaryScraper.aiAggression || 'subtle',
+          aiLength: primaryScraper.aiLength || 'medium'
+        }
       });
     } catch (error: any) {
       await logSystemError("portal_fetch", "Failed to fetch portal", {
@@ -606,7 +622,19 @@ async function startServer() {
             clientName: group[0].clientName || "Client",
             isPaid: group.some(s => s.isPaid === true),
             isAiEnabled: group.some(s => s.isAiEnabled === true),
-            scrapers: group.map(s => ({ id: s.id, name: s.name }))
+            scrapers: group.map(s => ({
+              id: s.id,
+              name: s.name,
+              clientName: s.clientName,
+              isSoloFreelancer: s.isSoloFreelancer,
+              clientBusiness: s.clientBusiness,
+              clientSells: s.clientSells,
+              clientDoes: s.clientDoes,
+              clientTone: s.clientTone,
+              isAiEnabled: s.isAiEnabled,
+              aiAggression: s.aiAggression,
+              aiLength: s.aiLength
+            }))
           } as any;
           portalTokenCache.set(token, portalInfo);
         }
@@ -637,8 +665,11 @@ async function startServer() {
         }
 
         // 5. Build the Generation Prompt
-        // Philosophy: Be the smartest person in the thread, not a sales rep.
-        // The comment must FIRST earn trust through real expertise, THEN softly signal the business.
+        // The prompt dynamically adapts based on the client's aggression and length settings.
+        const aggressionLevel = scraper.aiAggression || 'subtle';
+        const lengthLevel = scraper.aiLength || 'medium';
+        const businessName = scraper.clientBusiness || scraper.clientName || 'our company';
+        
         const toneGuide =
           scraper.clientTone === "professional"
             ? "Direct, authoritative, and precise. Assume the reader is smart. No corporate fluff, no pep-talk language."
@@ -646,61 +677,72 @@ async function startServer() {
               ? "Peer-to-peer, technical depth. Skip the basics — assume competence. Use correct terminology, acknowledge trade-offs."
               : "Warm, conversational, and genuinely helpful. Sound like a knowledgeable friend, not a consultant.";
 
-        const prompt = `You are a seasoned practitioner and genuine expert in the field of "${scraper.clientSells || "professional services"}". You are not a marketer. You are someone who has done this work for years and can speak with real authority.
+        // Aggression-level specific brand instructions
+        const brandInstructions = aggressionLevel === 'stealth'
+          ? `BRAND VISIBILITY: STEALTH MODE.
+Do NOT mention "${businessName}" or any business name at all. Do NOT hint at being a service provider. Write as a pure peer sharing expertise. The reader should have no idea you run a business in this space. Zero commercial signals.`
+          : aggressionLevel === 'subtle'
+          ? `BRAND VISIBILITY: SUBTLE.
+You MUST mention "${businessName}" exactly ONCE, naturally, near the end of your comment. Frame it as an incidental reference to your real-world work — e.g. "It's actually why we built ${businessName} to focus on [relevant aspect]" or "We ran into this exact scenario at ${businessName} when...". The mention should feel earned — like a practitioner referencing their background, not a pitch. The reader should think "oh, interesting" not "this is an ad."
+You must also briefly hint at what you do: ${scraper.clientSells || 'professional services'}.`
+          : aggressionLevel === 'confident'
+          ? `BRAND VISIBILITY: CONFIDENT.
+You MUST mention "${businessName}" at least ONCE and up to TWICE in your comment. Clearly state what ${businessName} does: "${scraper.clientDoes || scraper.clientSells || 'we solve exactly this kind of problem'}". Connect your expertise directly to the poster's problem — e.g. "At ${businessName}, we ${scraper.clientDoes || 'handle this daily'}, and the biggest mistake we see is...". The reader should walk away knowing your business name AND what you do. However, the comment must still lead with genuine value — advice first, then the business context.`
+          : `BRAND VISIBILITY: DIRECT.
+You MUST mention "${businessName}" at least TWICE and clearly explain what ${businessName} does: "${scraper.clientDoes || scraper.clientSells || 'professional services'}". End with a clear but non-spammy call-to-action — e.g. "If you want to dig deeper on this, ${businessName} is where we do exactly this — happy to chat." or "This is literally our day job at ${businessName}. Feel free to DM if you want specifics."
+The comment must STILL start with genuine, useful advice. Never open with a pitch. But the reader should absolutely know who you are, what you do, and how to find you by the end.`;
 
-YOUR CONTEXT (use to shape your perspective and expertise — do NOT advertise or pitch):
+        // Length-level instructions
+        const lengthGuide = lengthLevel === 'concise'
+          ? 'LENGTH: 80–120 words. Be sharp and punchy. Every sentence must earn its place. No fluff, no padding.'
+          : lengthLevel === 'detailed'
+          ? 'LENGTH: 300–500 words. Go deep. Include examples, edge cases, and nuanced reasoning. This is a mini-essay of genuine expertise.'
+          : 'LENGTH: 150–250 words. Balanced depth — enough to be genuinely helpful without overwhelming.';
+
+        const prompt = `You are a seasoned practitioner and genuine expert in the field of "${scraper.clientSells || "professional services"}". You are someone who has done this work for years and can speak with real authority.
+
+YOUR IDENTITY:
+- Business name: ${businessName}
 - Your speciality: ${scraper.clientSells || "professional services"}
-- What you actually do day-to-day: ${scraper.clientDoes || "Deep hands-on work solving real problems in this industry."}
-- Operating as: ${scraper.isSoloFreelancer ? "an independent specialist" : `a team at ${scraper.clientName || "your company"}`}
+- What you actually do for clients: ${scraper.clientDoes || "Solve real problems in this industry."}
+- Operating as: ${scraper.isSoloFreelancer ? `an independent specialist (${businessName})` : `a team at ${businessName}`}
 
 THE POST YOU ARE RESPONDING TO:
 Title: "${leadData.postTitle}"
 Content: ${leadData.postContent ? leadData.postContent.substring(0, 1500) : "(No body — respond to the title alone)"}
 
+${brandInstructions}
+
 YOUR MISSION:
-Write a substantive, helpful comment that makes the original poster feel like they just got advice from someone who truly knows this space — not someone trying to sell them something.
+Write a substantive, helpful comment that FIRST demonstrates genuine expertise on the poster's specific problem, and THEN (based on the brand visibility level above) positions ${businessName} as relevant.
 
-STRUCTURE YOUR RESPONSE IN 4 PARTS (write as continuous flowing prose, no labels, no bullet points):
+STRUCTURE (write as continuous flowing prose, no labels, no bullet points):
 
-PART 1 — DIAGNOSE (2-3 sentences):
-Directly address the specific pain, question, or frustration raised. Show you actually read and understood the nuances of what they said. Call out the real underlying issue if there is one — the thing they might not have articulated perfectly but that any expert would immediately recognise. Be specific to THEIR situation, not generic.
+1. DIAGNOSE (2-3 sentences): Directly address their specific pain or question. Show you actually read and understood the nuances. Call out the real underlying issue they might not have articulated. Be specific to THEIR situation.
 
-PART 2 — THE MEAT (3-5 sentences):
-This is the core of your response. Give genuinely useful, actionable insight. Include at least ONE of the following:
-  - A "the thing most people miss here is..." observation
-  - A concrete step, framework, or mental model they can apply immediately
-  - A common mistake or misconception you've seen people make in this situation, and why
-  - A nuance or trade-off that changes HOW they should think about this problem
-Do not be vague. Specific > general. Real-world > theoretical.
+2. THE MEAT (3-5 sentences): Give genuinely useful, actionable insight. Include a "the thing most people miss" observation, a concrete step they can apply immediately, a common mistake you've seen, or a trade-off that changes how they should think about this. Specific > general. Real-world > theoretical.
 
-PART 3 — DEPTH AND CREDIBILITY (2-3 sentences):
-Add a layer of depth that signals real-world experience. This could be: edge cases to watch for, a counter-intuitive truth about this domain, something that works in theory but fails in practice, or a more advanced consideration they should factor in once they've handled the basics. This is what separates a genuine expert from someone who just read a blog post.
+3. DEPTH (2-3 sentences): Add a layer that signals real experience — edge cases, counter-intuitive truths, things that work in theory but fail in practice.
 
-PART 4 — SOFT BRAND SIGNAL (1-2 sentences, ONLY if it fits naturally):
-If it feels completely natural given what you just wrote, casually mention how your work relates. This must feel like a practitioner incidentally mentioning their background, not a pitch. The test: would this sentence feel out of place at a dinner party? If yes, cut it.
-- GOOD: "This is honestly the exact kind of problem we run into most with [type of client we work with]."
-- GOOD: "Happy to go deeper on [specific aspect] if useful — it's something we've had to work out the hard way."
-- GOOD: "It's actually part of why [business name] focuses specifically on [relevant principle or approach]."
-- BAD: "At ${scraper.clientName || "our company"}, we offer..."
-- BAD: Any sentence that could be copy-pasted into a LinkedIn ad.
-- OMIT this part entirely if it doesn't fit — a forced mention destroys all the credibility you just built.
+4. BRAND SIGNAL: Follow the BRAND VISIBILITY instructions above precisely.
 
 ABSOLUTE RULES:
-- BANNED OPENERS: "Great question", "This is such a common issue", "I totally understand", "As someone who...", "In my experience..." — these are hollow filler. Start with substance.
+- BANNED OPENERS: "Great question", "This is such a common issue", "I totally understand", "As someone who...", "In my experience..." — start with substance.
 - Do NOT start the comment with the word "I"
 - Do NOT use bullet points or numbered lists — write in natural flowing prose
-- Do NOT use corporate speak: "leverage", "synergy", "circle back", "our approach", "our process", "feel free to reach out", "as a company"
-- BANNED PHRASES: "At ${scraper.clientName || "our company"}, we...", "we specialize in", "our team"
+- Do NOT use corporate speak: "leverage", "synergy", "circle back", "feel free to reach out"
 - TONE: ${toneGuide}
-- LENGTH: Aim for 150–250 words. Too short = unhelpful. Too long = walls of text.
+- ${lengthGuide}
 
 Return ONLY the comment text. No labels, no intro, no quotes around it.`;
+
+        const maxTokens = lengthLevel === 'concise' ? 800 : lengthLevel === 'detailed' ? 4000 : 2000;
 
         const aiResponse = await ai.models.generateContent({
           model: GEMINI_MODEL,
           contents: prompt,
           config: {
-            maxOutputTokens: 3000,
+            maxOutputTokens: maxTokens,
             temperature: 0.75,
           },
         });
@@ -733,6 +775,8 @@ Return ONLY the comment text. No labels, no intro, no quotes around it.`;
         clientSells,
         clientDoes,
         clientTone,
+        aiAggression,
+        aiLength,
       } = req.body;
 
       portalInfo = await getPortalInfo(token);
@@ -749,11 +793,18 @@ Return ONLY the comment text. No labels, no intro, no quotes around it.`;
           clientSells,
           clientDoes,
           clientTone,
+          aiAggression: aiAggression || 'subtle',
+          aiLength: aiLength || 'medium',
           portalSetupCompleted: true,
         });
       });
 
       await batch.commit();
+      
+      // Invalidate the portal token cache so the next AI comment generation
+      // picks up the fresh settings immediately
+      portalTokenCache.delete(token);
+      
       res.json({ success: true });
     } catch (error: any) {
       await logSystemError("portal_setup", "Setup failed", {
@@ -1321,7 +1372,14 @@ function updatePortalTokenCache(scrapers: any[]) {
         clientName: s.clientName,
         portalSetupCompleted: s.portalSetupCompleted,
         isAiEnabled: s.isAiEnabled,
-        trialLimit: s.trialLimit
+        trialLimit: s.trialLimit,
+        isSoloFreelancer: s.isSoloFreelancer,
+        clientBusiness: s.clientBusiness,
+        clientSells: s.clientSells,
+        clientDoes: s.clientDoes,
+        clientTone: s.clientTone,
+        aiAggression: s.aiAggression,
+        aiLength: s.aiLength
       }))
     });
   });
@@ -1357,7 +1415,14 @@ async function getPortalInfo(token: string): Promise<PortalCacheInfo | null> {
         clientName: s.clientName,
         portalSetupCompleted: s.portalSetupCompleted,
         isAiEnabled: s.isAiEnabled,
-        trialLimit: s.trialLimit
+        trialLimit: s.trialLimit,
+        isSoloFreelancer: s.isSoloFreelancer,
+        clientBusiness: s.clientBusiness,
+        clientSells: s.clientSells,
+        clientDoes: s.clientDoes,
+        clientTone: s.clientTone,
+        aiAggression: s.aiAggression,
+        aiLength: s.aiLength
       }))
     };
     
