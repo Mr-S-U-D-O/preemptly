@@ -1,6 +1,32 @@
 <!doctype html>
 <html lang="en">
   <head>
+    <script>
+      /**
+       * Passive Event Listeners Patch
+       * Resolves Chrome [Violation] regarding non-passive event listeners for scroll-blocking events.
+       * This must run before any other script to catch listeners added during module load.
+       */
+      (function() {
+        const passiveEvents = ['touchstart', 'touchmove', 'wheel', 'mousewheel'];
+        const originalAddEventListener = EventTarget.prototype.addEventListener;
+        EventTarget.prototype.addEventListener = function(type, listener, options) {
+          let newOptions = options;
+          if (passiveEvents.includes(type)) {
+            if (typeof options === 'boolean') {
+              newOptions = { capture: options, passive: true };
+            } else if (typeof options === 'object') {
+              if (newOptions.passive === undefined) {
+                newOptions = Object.assign({}, newOptions, { passive: true });
+              }
+            } else {
+              newOptions = { passive: true };
+            }
+          }
+          return originalAddEventListener.call(this, type, listener, newOptions);
+        };
+      })();
+    </script>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     

@@ -1,0 +1,690 @@
+﻿commit 703db86a10d1815041c2ee5144a181c5469cc903
+Author: Molele Kishoez <molelekishoez@gmail.com>
+Date:   Mon Apr 27 10:13:02 2026 +0200
+
+    refactor: unify Gemini model configuration and hoist portalInfo declarations to improve scope management
+
+commit 2816b87c52c5440339dcc94bf576dfd569d54a18
+Author: Molele Kishoez <molelekishoez@gmail.com>
+Date:   Mon Apr 27 09:57:47 2026 +0200
+
+    feat: implement DataProvider with quota awareness and update security rules and server-side logging to include userId context
+
+commit 149b9b7597c6ff5e5fd359d13597ebcd231bbeaa
+Author: Molele Kishoez <molelekishoez@gmail.com>
+Date:   Mon Apr 27 09:38:25 2026 +0200
+
+    feat: add Cloudflare RSS proxy, upgrade Gemini model to 3-flash, and optimize scraper run logic
+
+commit 1820a1c449caeda45eba4f3bf241171d2c91f837
+Author: Molele Kishoez <molelekishoez@gmail.com>
+Date:   Sun Apr 26 21:01:43 2026 +0200
+
+    Fix background scraper infinite read loop and date-fence bugs
+
+commit 95359ffeae13b6cb87a5e674539dcdd8c9f3b743
+Author: Molele Kishoez <molelekishoez@gmail.com>
+Date:   Wed Apr 22 18:18:19 2026 +0200
+
+    refactor: optimize scraper filtering by prioritizing date-fencing and consolidate Firebase initialization and model versioning
+
+commit 0fab2c8a4dce9a2127059022c4d12e15acf08a52
+Author: Molele Kishoez <molelekishoez@gmail.com>
+Date:   Wed Apr 22 17:41:42 2026 +0200
+
+    Gemini v3, scraper tweaks, remove rules API
+    
+    Upgrade AI model references to gemini-3-flash and remove the Firebase security-rules admin endpoint and its startup auto-deploy. Adjust background scraper behavior: change polling cadence to 2 minutes, run once after 10s on startup, and persist scraper last-run timestamps even when no leads are found (updateScraperLastRun now only writes to Firestore when forced). UI tweaks: update AddScraperModal interval options (remove 1-min option, add/rename intervals). LandingPage: combine generic and niche FAQ arrays into a single FAQPage schema and use the combined list for rendering to avoid duplicate FAQPage issues in search consoles.
+
+commit 9ba3be92fc0b92db41249904e1ea82a899d268e8
+Author: Molele Kishoez <molelekishoez@gmail.com>
+Date:   Wed Apr 22 07:29:57 2026 +0200
+
+    feat: implement dynamic landing page with SEO support and interactive lead simulation components
+
+commit f7998e9b120555c78e651ce7fd0fe779b053234f
+Author: Molele Kishoez <molelekishoez@gmail.com>
+Date:   Mon Apr 20 17:47:47 2026 +0200
+
+    feat: implement date-fence filtering in server and add quota-aware DataProvider to reduce Firestore read spikes
+
+commit 8b9b016c58501986c56a53e0fb88a6129bbe6f10
+Author: Molele Kishoez <molelekishoez@gmail.com>
+Date:   Mon Apr 20 16:15:01 2026 +0200
+
+    refactor: update portal token cache to include all scrapers while maintaining active-only execution cache
+
+commit 7c9df3b41a1413cd39c445a7007f216087b7fc66
+Author: Molele Kishoez <molelekishoez@gmail.com>
+Date:   Mon Apr 20 15:32:48 2026 +0200
+
+    feat: implement real-time chat management system with Firestore integration for client portals
+
+commit 1f9dce2a72455fbe82f37cef572437a5bc1ce682
+Author: Molele Kishoez <molelekishoez@gmail.com>
+Date:   Mon Apr 20 14:44:04 2026 +0200
+
+    feat: add LeadsTable component and define Lead and Scraper types to support lead management and portal integration
+
+commit c33106083eff0d24e8c7403768041b74c8d43bc0
+Author: Molele Kishoez <molelekishoez@gmail.com>
+Date:   Mon Apr 20 14:33:45 2026 +0200
+
+    chore: increase maxOutputTokens to 900 and update error status code to 900
+
+commit 96513084f627d49dc66f6f5a4e03b3ed1563ee23
+Author: Molele Kishoez <molelekishoez@gmail.com>
+Date:   Mon Apr 20 14:31:48 2026 +0200
+
+    feat: add AddScraperModal component for creating and configuring new scrapers with AI-powered keyword and target suggestions
+
+commit 5cb5a6bec49a515d197e82fdd06726ee892f3a22
+Author: Molele Kishoez <molelekishoez@gmail.com>
+Date:   Mon Apr 20 14:10:12 2026 +0200
+
+    chore: update Gemini model from gemini-3-flash-preview to gemini-1.5-flash
+
+commit 741dd0d7e5a0d63662e23aee0558a1b0771fa304
+Author: Molele Kishoez <molelekishoez@gmail.com>
+Date:   Mon Apr 20 13:54:14 2026 +0200
+
+    feat: implement ChatManager component for real-time portal messaging and add Firestore integration for chat rooms
+
+commit ca3cb558286c6e4da7c81fb31ed4d199b8c5fa28
+Author: Molele Kishoez <molelekishoez@gmail.com>
+Date:   Mon Apr 20 09:57:37 2026 +0200
+
+    feat: implement in-memory deduplication cache to reduce redundant Firestore reads
+
+commit 69b43a66e8e82378386302f539e6bdac891dfc58
+Author: Molele Kishoez <molelekishoez@gmail.com>
+Date:   Mon Apr 20 05:06:30 2026 +0200
+
+    refactor: remove Craigslist and Hacker News support, modularize pSEO data, and add new UI components for scraper management
+
+commit ce5010292802a85a378e58d3b05b0008eb80ceaa
+Author: Molele Kishoez <molelekishoez@gmail.com>
+Date:   Mon Apr 20 04:05:32 2026 +0200
+
+    refactor: implement DataProvider for centralized Firestore state management and reduced read operations
+
+commit 84a787436eba99a2f0b9e7eda67b0f34d5dd5f1f
+Author: Molele Kishoez <molelekishoez@gmail.com>
+Date:   Mon Apr 20 03:42:23 2026 +0200
+
+    feat: add ScraperView and Home components for managing scraper status and lead workflows
+
+commit ecb4021a060cf60a781ba54dd4dfb7fdac4f01c8
+Author: Molele Kishoez <molelekishoez@gmail.com>
+Date:   Mon Apr 20 03:12:44 2026 +0200
+
+    chore: remove word count constraint and increase max output tokens for AI responses
+
+commit 29ba060a5cfbfd91bb646be89f9cd1ee293e4769
+Author: Molele Kishoez <molelekishoez@gmail.com>
+Date:   Mon Apr 20 02:57:15 2026 +0200
+
+    feat: add ChatManager component with portal chat support and ConfirmModal for destructive actions
+
+commit a5cd30b8416ad69675bf011262f75a60568e2078
+Author: Molele Kishoez <molelekishoez@gmail.com>
+Date:   Mon Apr 20 02:47:30 2026 +0200
+
+    feat: implement SEO infrastructure with sitemap and robots.txt, add new UI components, and refine AI lead response prompting.
+
+commit 770047dcd84dce5bab1d13a1de8da0ebff9e96d4
+Author: Molele Kishoez <molelekishoez@gmail.com>
+Date:   Mon Apr 20 02:24:55 2026 +0200
+
+    checkout: temporary commit for worktree checkout
+
+commit ae2ea24f2e87dbf03181391e49fd9959716f2729
+Author: Molele Kishoez <molelekishoez@gmail.com>
+Date:   Mon Apr 20 02:24:42 2026 +0200
+
+    feat: implement sidebar component with navigation and real-time monitor status tracking
+
+commit a7810a3089709bde564c304b55efc63c932fc40e
+Author: Molele Kishoez <molelekishoez@gmail.com>
+Date:   Mon Apr 20 02:15:27 2026 +0200
+
+    feat: implement sidebar navigation with real-time inbox and monitor tracking components
+
+commit 8138b3c18001a3fd11bd9a24c169357c9130ca21
+Author: Molele Kishoez <molelekishoez@gmail.com>
+Date:   Mon Apr 20 01:23:10 2026 +0200
+
+    feat: implement dynamic landing page with SEO support and niche-specific content generation
+
+commit b5e5c694bc2f719c9fbf51e89b4957e23fb038ad
+Author: Molele Kishoez <molelekishoez@gmail.com>
+Date:   Mon Apr 20 01:13:49 2026 +0200
+
+    feat: implement dynamic LandingPage component with intent-based lead filtering and SEO support
+
+commit f2431c5c46d9b0be260dff4e87a85848a213c2bf
+Author: Molele Kishoez <molelekishoez@gmail.com>
+Date:   Mon Apr 20 01:08:06 2026 +0200
+
+    refactor: update AI prompt structure to enforce a 3-beat conversational format and refine brand signal guidelines
+
+commit 852b0b4cc9eea403adbd3a71605549baf387eb82
+Author: Molele Kishoez <molelekishoez@gmail.com>
+Date:   Sun Apr 19 18:44:27 2026 +0200
+
+    feat: implement client portal presence tracking, refine AI comment generation prompts, and add core data interfaces
+
+commit 838723f37ecc687194f44cbfd29a2bce75e19742
+Author: Molele Kishoez <molelekishoez@gmail.com>
+Date:   Sun Apr 19 18:16:06 2026 +0200
+
+    chore: increase max output tokens and adjust temperature settings for model configurations
+
+commit f817de23611cb4d4e8f07c2f9922ebe8e554204d
+Author: Molele Kishoez <molelekishoez@gmail.com>
+Date:   Sun Apr 19 17:04:43 2026 +0200
+
+    feat: implement client portal chat interface with real-time SSE updates and SEO optimization
+
+commit 5582cf88609ac4b166bb214a448179270adbcdbe
+Author: Molele Kishoez <molelekishoez@gmail.com>
+Date:   Sun Apr 19 15:25:38 2026 +0200
+
+    feat(seo): implement programmatic SEO engine with 17 hyper-targeted niche pages, dynamic sitemap automation, and authority-focused copy refactor
+
+commit 9dac289e819db6c83b5a441261ca2ce1d2a07635
+Author: Molele Kishoez <molelekishoez@gmail.com>
+Date:   Sun Apr 19 02:06:55 2026 +0200
+
+    feat: implement client portal with real-time chat and lead management functionality
+
+commit 9e8f6d4b04c8747e99d31a8acee2925fa8b06263
+Author: Molele Kishoez <molelekishoez@gmail.com>
+Date:   Sun Apr 19 01:41:03 2026 +0200
+
+    feat: implement client portal dashboard with real-time SSE chat and lead management features
+
+commit 02c5e3c681f4b3228ff52aa2c0526b77499e3978
+Author: Molele Kishoez <molelekishoez@gmail.com>
+Date:   Sun Apr 19 00:53:02 2026 +0200
+
+    feat: add engagement outcome tracking to server and client portal UI
+
+commit 35d36d5cad326de6d305fbe2bd8393d9573bca00
+Author: Molele Kishoez <molelekishoez@gmail.com>
+Date:   Sun Apr 19 00:30:11 2026 +0200
+
+    feat: implement custom smooth cursor component and integrate global styling and routing configuration
+
+commit f83ebd06dd7f871623155a2f433572557c29fb20
+Author: Molele Kishoez <molelekishoez@gmail.com>
+Date:   Sat Apr 18 22:55:40 2026 +0200
+
+    feat: implement CRM dashboard with lead management, status tracking, and automated onboarding workflows
+
+commit 784a3c64fe65efaec8c5a6bfe3b13d1624c489dc
+Author: Molele Kishoez <molelekishoez@gmail.com>
+Date:   Sat Apr 18 21:59:16 2026 +0200
+
+    feat: implement client onboarding flow with setup modal, centralized error logging, and supporting UI components
+
+commit f5d107eccade81663b4932fa1a2781ee90bf4232
+Author: Molele Kishoez <molelekishoez@gmail.com>
+Date:   Sat Apr 18 18:14:41 2026 +0200
+
+    feat: implement landing page with interactive intent-matching demo and integrated chat widget
+
+commit 8c79691aeeb24552266246e0c02ee0b6eb4cff96
+Author: Molele Kishoez <molelekishoez@gmail.com>
+Date:   Sat Apr 18 17:03:00 2026 +0200
+
+    feat: implement authentication system with split visitor and team login views
+
+commit 423f21a6b6bb5829ab672235b4ad5f8ae104e09e
+Author: Molele Kishoez <molelekishoez@gmail.com>
+Date:   Fri Apr 17 08:10:31 2026 +0200
+
+    feat: add SmoothCursor component with spring-based motion and custom cursor states
+
+commit d41c2937bd9384369d414585ea0303b56c65bf45
+Author: Molele Kishoez <molelekishoez@gmail.com>
+Date:   Fri Apr 17 07:58:04 2026 +0200
+
+    feat: add scraper configuration modal, CRM view, and interactive onboarding components
+
+commit 09dfa60e921ef42f15e46434724fe7f2ea378ae3
+Author: Molele Kishoez <molelekishoez@gmail.com>
+Date:   Fri Apr 17 07:36:53 2026 +0200
+
+    feat: implement dashboard UI with analytics charts and portal management features
+
+commit 7b44a313615be12ffb66114521ba8a886e464a58
+Author: Molele Kishoez <molelekishoez@gmail.com>
+Date:   Fri Apr 17 07:26:24 2026 +0200
+
+    feat: add beta_applicants collection to firestore rules and improve admin rules deployment logic with explicit pathing and error handling
+
+commit 8e7e9434b3983edcfd0a9864f74a4c228cd926e9
+Author: Molele Kishoez <molelekishoez@gmail.com>
+Date:   Fri Apr 17 06:59:20 2026 +0200
+
+    feat: implement core application components, lead management table, and SEO utilities
+
+commit 54acb3b3949ca12569ae1d82869dfc007e64b1fa
+Author: Molele Kishoez <molelekishoez@gmail.com>
+Date:   Fri Apr 17 06:03:06 2026 +0200
+
+    feat: implement responsive login screen with dual-user authentication modes
+
+commit 55101aea72135bf15ac08c571a3a22d59dbb9df8
+Author: Molele Kishoez <molelekishoez@gmail.com>
+Date:   Fri Apr 17 05:37:00 2026 +0200
+
+    feat: implement authentication system with LoginScreen, Firebase integration, and landing page components
+
+commit af40a33c99a967adcef9163a59da157551b98de0
+Author: Molele Kishoez <molelekishoez@gmail.com>
+Date:   Thu Apr 16 18:13:16 2026 +0200
+
+    feat: initialize core application structure, UI components, and onboarding flow
+
+commit ca6dd82744c16ef585d6f08e6634fe92aa9df48e
+Author: Molele Kishoez <molelekishoez@gmail.com>
+Date:   Thu Apr 16 04:30:46 2026 +0200
+
+    feat: implement LoginScreen component with email and Google authentication flows
+
+commit 230f2376bed81cc7d522fa7cfcec75ba152c24b2
+Author: Molele Kishoez <molelekishoez@gmail.com>
+Date:   Wed Apr 15 15:23:06 2026 +0200
+
+    feat: add ScraperView component to manage and monitor individual scraper status and leads
+
+commit 0b67f1976b0f020244c45bfa14478201e9a96b32
+Author: Molele Kishoez <molelekishoez@gmail.com>
+Date:   Wed Apr 15 14:25:51 2026 +0200
+
+    feat: implement Client Engagement Portal with AI-powered comment generation and radar background UI.
+
+commit c942879f2d952e91cb6da8d2adb32b5f7ab1e50b
+Author: Molele Kishoez <molelekishoez@gmail.com>
+Date:   Wed Apr 15 13:44:34 2026 +0200
+
+    feat: implement on-demand AI comment generation and add ClientPortal UI for lead management
+
+commit b82112aae2bd7c9911f8ebece590a435000c8497
+Author: Molele Kishoez <molelekishoez@gmail.com>
+Date:   Wed Apr 15 12:39:14 2026 +0200
+
+    docs: rebrand to Real-time Growth Intelligence Engine and implement new Layout and Sidebar components
+
+commit fc25b2908ccefb0a81a2e72944b31388cd1b02b9
+Author: Molele Kishoez <molelekishoez@gmail.com>
+Date:   Wed Apr 15 12:12:58 2026 +0200
+
+    feat: implement scraper management dashboard with lead tracking and status controls
+
+commit a8b514bd14fe119c9bf7ba08be3902563fd83921
+Author: Molele Kishoez <molelekishoez@gmail.com>
+Date:   Wed Apr 15 10:49:37 2026 +0200
+
+    feat: add AddScraperModal component and update Firestore rules and server configuration
+
+commit 4fc6bd5f5888a97f613ed081de98ea9c5c6df8c1
+Author: Molele Kishoez <molelekishoez@gmail.com>
+Date:   Wed Apr 15 10:30:02 2026 +0200
+
+    feat: Premium glassmorphic hover tooltips + smart scraper error handling with exponential backoff
+    
+    - Redesigned AI Score and Post Content tooltips in ScraperView and LeadsTable with premium glassmorphic styling, gradient headers, and emoji indicators.
+    - Implemented exponential backoff for scrapers, doubling wait time after each failure (capped at 60 min).
+    - Added auto-pause after 5 consecutive failures to prevent infinite retry loops.
+    - Updated lastRunAt on error to ensure backoff timing is honored.
+
+commit 246104fedb0bb38f5f545e90ff496b871018c678
+Author: Molele Kishoez <molelekishoez@gmail.com>
+Date:   Tue Apr 14 14:25:44 2026 +0200
+
+    feat: implement LeadsTable component for managing, sorting, and filtering leads with portal integration and add ScraperView component for scraper management.
+
+commit 4b81579cc047f125f7b7c3aa191bf5acd9f47e47
+Author: Molele Kishoez <molelekishoez@gmail.com>
+Date:   Tue Apr 14 11:52:46 2026 +0200
+
+    feat: implement ScraperView component with lead management and status controls
+
+commit b8cbea716b502b0fa05125f48758f277669c1294
+Author: Molele Kishoez <molelekishoez@gmail.com>
+Date:   Mon Apr 13 16:22:07 2026 +0200
+
+    feat: implement AuthProvider and LoginScreen for secure user authentication and access control
+
+commit 4112b90cf7e0e2420df34972dd2ee5f7f34c3ca4
+Author: Molele Kishoez <molelekishoez@gmail.com>
+Date:   Mon Apr 13 16:07:23 2026 +0200
+
+    feat: implement Firebase authentication provider and route protection logic
+
+commit 1d3ce4d7d6bc1c5acd658a3fe283fa8a36eac24d
+Author: Molele Kishoez <molelekishoez@gmail.com>
+Date:   Mon Apr 13 15:45:31 2026 +0200
+
+    feat: implement Firebase authentication and lead management dashboard with sorting and filtering capabilities
+
+commit b14f85b5be07237d3f191c245b6a5428b135746e
+Author: Molele Kishoez <molelekishoez@gmail.com>
+Date:   Sun Apr 12 18:37:33 2026 +0200
+
+    feat: add read and create permissions for login_attempts collection in firestore rules
+
+commit 9aed947bff62996ffa4b1c410d021efbfa1c8934
+Author: Molele Kishoez <molelekishoez@gmail.com>
+Date:   Sun Apr 12 18:32:31 2026 +0200
+
+    refactor: improve rules deployment error handling and response validation in server startup
+
+commit 87c98a2d4e113924b4efbed0bae2e2669a7a925b
+Author: Molele Kishoez <molelekishoez@gmail.com>
+Date:   Sun Apr 12 18:15:40 2026 +0200
+
+    feat: implement AuthProvider, DataProvider, and AccessDenied components for secure user authentication and data scoping
+
+commit b3ee44c0bc64f5982debdeeb930bb079676992b4
+Author: Molele Kishoez <molelekishoez@gmail.com>
+Date:   Sun Apr 12 14:21:52 2026 +0200
+
+    feat: implement ScraperView component for managing scraper status, lead filtering, and portal integration
+
+commit ac81a520a4bee5e45900b5f9152834124c7b9f19
+Author: Molele Kishoez <molelekishoez@gmail.com>
+Date:   Sun Apr 12 14:19:30 2026 +0200
+
+    feat: implement client-facing lead portal with interactive filtering, feedback, and engagement tracking
+
+commit 1e1ae2603f82853c849e21a286e2c691697ac8ca
+Author: Molele Kishoez <molelekishoez@gmail.com>
+Date:   Sun Apr 12 13:56:20 2026 +0200
+
+    feat: update server to support multi-scraper aggregation and add Home dashboard component with analytics
+
+commit 516ce1ace911834372e50bd3f72b3de7ad20fb89
+Author: Molele Kishoez <molelekishoez@gmail.com>
+Date:   Sun Apr 12 11:56:12 2026 +0200
+
+    feat: implement dashboard home view with KPI metrics and data visualization charts
+
+commit ef6e35c51a5d132bab26f2f6a00995072e3153ee
+Author: Molele Kishoez <molelekishoez@gmail.com>
+Date:   Sun Apr 12 11:45:52 2026 +0200
+
+    feat: implement dashboard home component with KPI metrics and data visualization charts
+
+commit 4d3efb2f420d30de276a9cfb0b51e09f10c37bc4
+Author: Molele Kishoez <molelekishoez@gmail.com>
+Date:   Sun Apr 12 11:29:17 2026 +0200
+
+    feat: implement Home dashboard component with KPI metrics, platform analytics, and data management controls
+
+commit 7ddea39efa30eb9637820d57e788eedf619f0d20
+Author: Molele Kishoez <molelekishoez@gmail.com>
+Date:   Sun Apr 12 11:19:32 2026 +0200
+
+    fix(UI): Resolve Base UI Error #31 Anchor Bug
+    - Placed a native <button> tag inside DropdownMenuTrigger's render prop to ensure a single, valid DOM node for the Dropdown's Positioner anchor.
+    - Imported and utilized 'cn' for standard robust component styling integration.
+
+commit edbc44ad954bd6b187f2004aa8205c6fbff4e6b3
+Author: Molele Kishoez <molelekishoez@gmail.com>
+Date:   Sun Apr 12 11:03:51 2026 +0200
+
+    fix(UI): Resolve Anchor Ref Failure and Error #31
+    - Apply buttonVariants to DropdownMenuTrigger directly instead of nested render prop to avoid Slot/ref issues that caused Base UI Positioner to fail and unmount app.
+    - Implement explicit 'confirmReset' wrapper with setTimeout to prevent DropdownMenu focus race with Dialog mounting.
+
+commit ef4c40ef5b3fd71a04b4c9179d2d8be6aaedc07b
+Author: Molele Kishoez <molelekishoez@gmail.com>
+Date:   Sun Apr 12 10:28:06 2026 +0200
+
+    feat: implement dashboard home view with analytics, KPI cards, and data management controls
+
+commit 7bdd507f802c3c1253da035a58195cee92545163
+Author: Molele Kishoez <molelekishoez@gmail.com>
+Date:   Sun Apr 12 10:06:21 2026 +0200
+
+    fix(UI/Rules): Base UI Dialog crash & Leads Firestore permissions
+    
+    - fix(Home): Added e.preventDefault() and increased setTimeout to 150ms
+      on Reset Dropdown menu items. This guarantees the DropdownMenu doesn't
+      dismantle its portal context while the ConfirmModal is attempting to mount,
+      preventing the Base UI error #31 (Blank screen crash).
+    - fix(firestore.rules): Updated the leads rules with the same granular
+      affectedKeys bypass structure used in scrapers. This bypasses the full
+      isValidLead() checks on partial status updates ('pushedToPortal', 'status'),
+      resolving the 'Missing or insufficient permissions' errors on lead push.
+
+commit d57c073f0c03341e1f9ac4aeec43b03b46585f08
+Author: Molele Kishoez <molelekishoez@gmail.com>
+Date:   Sun Apr 12 09:48:37 2026 +0200
+
+    fix: blank screen on reset + Firestore permissions on portal ops
+
+commit 11803ae6752f1d325c3768738cd2e8d382888b1b
+Author: Molele Kishoez <molelekishoez@gmail.com>
+Date:   Sun Apr 12 09:42:02 2026 +0200
+
+    feat: implement ScraperView component for lead management and client portal deployment
+
+commit e2e18c565a9167eaa92adfab9fe28c9cb7be999e
+Author: Molele Kishoez <molelekishoez@gmail.com>
+Date:   Sun Apr 12 08:49:46 2026 +0200
+
+    feat: implement client portal system with dedicated routing, scraper management, and lead distribution features
+
+commit d9847c6a1467367f9aaa8c86ca4ffb7949e9c2f6
+Author: Molele Kishoez <molelekishoez@gmail.com>
+Date:   Sun Apr 12 07:12:23 2026 +0200
+
+    feat: implement deterministic lead deduplication using SHA-256 hashes and add scraper error logging with UI persistence
+
+commit b74a627547d9901b1324cb1959c078f3d59ced1a
+Author: Molele Kishoez <molelekishoez@gmail.com>
+Date:   Sun Apr 12 06:53:24 2026 +0200
+
+    feat: add ScrollArea component using base-ui primitives
+
+commit a1b37c45eeca0f511e57ee2cc65d72f686dd27a6
+Author: Molele Kishoez <molelekishoez@gmail.com>
+Date:   Sun Apr 12 06:47:42 2026 +0200
+
+    feat: add ScraperView component to manage and display scraper details, leads, and status controls
+
+commit d70b62666bdd722de52623670a3f154c63ce868e
+Author: Molele Kishoez <molelekishoez@gmail.com>
+Date:   Sun Apr 12 06:36:13 2026 +0200
+
+    feat: add ScrollArea and ScrollBar components using base-ui/react
+
+commit 9f00b083d8cd7678124e16ab2e24e410da981d16
+Author: Molele Kishoez <molelekishoez@gmail.com>
+Date:   Sun Apr 12 06:31:47 2026 +0200
+
+    fix: cast process.env.PORT to number to ensure correct port assignment
+
+commit 5e3951591bf484b493ecbb719912d598b50863cd
+Author: Molele Kishoez <molelekishoez@gmail.com>
+Date:   Sat Apr 11 17:12:01 2026 +0200
+
+    feat: add script to synchronize local firestore.rules with firebase project deployment
+
+commit fe205ad5aa9e8f4aa972b914b54888828149b7ff
+Author: Molele Kishoez <molelekishoez@gmail.com>
+Date:   Sat Apr 11 16:45:14 2026 +0200
+
+    Fix build error: replace missing ScrollArea with standard div
+
+commit cf03394da657dc43342a98dfb3f8b49a860e9879
+Author: Molele Kishoez <molelekishoez@gmail.com>
+Date:   Sat Apr 11 16:40:20 2026 +0200
+
+    Fix: move rule sync route into startServer scope
+
+commit a76173ab7bd35fbb69c34ccd865747065796ee6d
+Author: Molele Kishoez <molelekishoez@gmail.com>
+Date:   Sat Apr 11 16:39:04 2026 +0200
+
+    Improve rule sync error handling
+
+commit 0c8b86b068da8af192f8bfd3ad4cffc8ca002afd
+Author: Molele Kishoez <molelekishoez@gmail.com>
+Date:   Sat Apr 11 16:19:05 2026 +0200
+
+    feat: add AddScraperModal and CountryCodeSelector components with Craigslist city support and update Firestore rules and server configurations.
+
+commit a202d2ae1f6e6527f404693a843a7c00475b3d93
+Author: Molele Kishoez <molelekishoez@gmail.com>
+Date:   Sat Apr 11 10:38:13 2026 +0200
+
+    docs: overhaul README with system architecture, AI logic, and technical stack details
+
+commit ad7034e7422d5a5957b3cf042422937dac5a5a9b
+Author: Molele Kishoez <molelekishoez@gmail.com>
+Date:   Sat Apr 11 10:15:47 2026 +0200
+
+    feat: add ScraperView component for managing scraper status, manual runs, and lead interactions
+
+commit 2b34f9b2e8bdfb88cd0473cb69ab6dcccc617607
+Author: Molele Kishoez <molelekishoez@gmail.com>
+Date:   Sat Apr 11 09:51:40 2026 +0200
+
+    feat: add firestoreDatabaseId to firebase configuration
+
+commit 4957e781282aaa56bc0361b09c866c2ada2b2c48
+Author: Molele Kishoez <molelekishoez@gmail.com>
+Date:   Sat Apr 11 09:38:08 2026 +0200
+
+    chore: enable allowed hosts in vite config and set production environment in Dockerfile
+
+commit 24571bcd36b391d0fccdc3e7647b20df47f9cca9
+Author: Molele Kishoez <molelekishoez@gmail.com>
+Date:   Sat Apr 11 09:31:53 2026 +0200
+
+    feat: complete production-ready cloud deployment setup
+    
+    - Upgraded to Node 20-slim for stable native bindings
+    - Fixed Dockerfile truncation and implemented robust single-stage build
+    - Configured production port 8080 for Cloud Run health checks
+    - Moved tsx to dependencies to support TypeScript execution in container
+    - Stabilized background scraper engine initialization
+
+commit bdeeeb8be72a4e47d1898a12c62bd5fa0e4d8aaa
+Author: Molele Kishoez <molelekishoez@gmail.com>
+Date:   Sat Apr 11 08:48:40 2026 +0200
+
+    fix(docker): remove package-lock.json to fix linux bindings error
+
+commit a513187b73ce40770db4d3c8473fd37ccae3c555
+Author: Molele Kishoez <molelekishoez@gmail.com>
+Date:   Sat Apr 11 08:33:45 2026 +0200
+
+    checkout: temporary commit for worktree checkout
+
+commit 92674d67178f6a33dae8811157458a36ddfb4908
+Author: Molele Kishoez <molelekishoez@gmail.com>
+Date:   Sat Apr 11 08:20:11 2026 +0200
+
+    chore: dockerize and prepare for cloud run deployment
+
+commit f9e98834028baa700bce53ff22488915009e8d39
+Author: Mosa Moleleki <molelekishoez@gmail.com>
+Date:   Sat Apr 11 07:38:57 2026 +0200
+
+    feat: Add RSS parsing and keyword suggestion
+    
+    Introduce RSS feed parsing capabilities to the application. This involves adding the `rss-parser` dependency and configuring it with appropriate headers for reliable fetching.
+    
+    Additionally, implement a new API endpoint `/api/suggest-keywords` that leverages Google Gemini to generate high-intent keywords based on client name and ideal customer profile. This feature aids in identifying relevant search terms for lead generation across various platforms.
+    
+    The database schema and security rules have been updated to accommodate new lead fields such as platform, target, city, category, score, reason, status, and communication details (email, phone, location, company). The `Lead` object description has been generalized to encompass more than just Reddit posts.
+    
+    The `server.ts` file has been refactored to include the new RSS parsing logic and the Gemini-powered keyword suggestion endpoint.
+    
+    The `firebase-blueprint.json` and `firestore.rules` files have been updated to reflect the expanded data model for leads. Dependencies in `package.json` and `package-lock.json` have been updated to include `rss-parser`.
+
+commit 6ab8d17276958617576232eea11af7f49e6cf6cd
+Author: Mosa Moleleki <molelekishoez@gmail.com>
+Date:   Fri Apr 10 15:34:18 2026 +0200
+
+    feat: Move scraper engine to backend process
+    
+    The scraper engine is now executed using `tsx server.ts` for both development and production start commands. This change removes the `useScraperEngine` hook and its associated logic from the frontend `DataProvider`, centralizing the scraper execution to a backend process. This improves performance and resource management on the client.
+
+commit ac6621f12868c69df6844984e9abe9faf6b16601
+Author: Mosa Moleleki <molelekishoez@gmail.com>
+Date:   Fri Apr 10 14:28:56 2026 +0200
+
+    feat: Integrate Firebase Admin SDK for server tasks
+    
+    Adds Firebase Admin SDK initialization to the Express backend (`server.ts`). This allows server-side operations, such as writing leads to Firestore, to bypass security rules and use service account credentials.
+    
+    Updates `.env.example` to include `FIREBASE_SERVICE_ACCOUNT`.
+    
+    Refactors scraper creation in `AddScraperModal.tsx` and `firestore.rules` to include new fields (`clientName`, `clientPhone`, `idealCustomerProfile`) for enhanced lead data capture.
+    
+    Adjusts lead scoring thresholds in `README.md` and updates Gemini model reference.
+    
+    Updates `Home.tsx` to display lead scoring information.
+
+commit 906b60f59b2e57f6fafcd97b8ba5b3bd3b71599d
+Author: Mosa Moleleki <molelekishoez@gmail.com>
+Date:   Fri Apr 10 02:20:29 2026 +0200
+
+    feat: Add lead definition to scraper configuration
+    
+    Introduces a new 'leadDefinition' field to the scraper configuration, allowing users to specify custom criteria for identifying ideal leads. This change also updates Firestore rules to validate and enforce this new field during scraper creation and updates.
+    
+    Dependencies updated to include `@google-cloud/firestore` and `firebase-admin`.
+
+commit 018472ad285598314d0e461c47c3501a1b54cb31
+Author: Mosa Moleleki <molelekishoez@gmail.com>
+Date:   Thu Apr 9 18:56:18 2026 +0200
+
+    feat: Implement AI scoring and enhance logs
+    
+    Adds AI scoring to scraped Reddit posts using Gemini.
+    
+    Introduces frontend initialization for Google GenAI to enable AI features client-side.
+    
+    Enhances logging capabilities:
+    - Logs scraper creation events with relevant details.
+    - Logs manual scan attempts and completions, including errors.
+    - Adds detailed error logging for API fetches.
+    
+    Improves user experience and error handling:
+    - Wraps log creation in try-catch to prevent UI blocking.
+    - Closes the scraper modal immediately after successful creation.
+    - Provides more specific error messages for API failures.
+    - Validates subreddit input to prevent empty requests.
+    - Refactors `ScraperView` to handle AI scoring and improve retry logic.
+    - Updates Firestore security rules to allow reading and creating logs.
+    - Removes debug environment variable endpoint.
+    - Refines dropdown menu interactions in `Layout`.
+
+commit e56cee707e4238e17b76fd97437ee716522d1846
+Author: Mosa Moleleki <molelekishoez@gmail.com>
+Date:   Thu Apr 9 17:56:36 2026 +0200
+
+    feat: Expand icon selection for scrapers
+    
+    Adds a comprehensive set of new icons to the scraper icon selection dropdown. This provides users with a much wider variety of visual cues to categorize and identify their scrapers. Also improves dropdown state management in the layout.
+
+commit 93b7d24d0a5217f485b50d60f870615e7bb651b8
+Author: Mosa Moleleki <molelekishoez@gmail.com>
+Date:   Thu Apr 9 17:28:12 2026 +0200
+
+    finish the development
+
+commit 7e7ec620c86bf1c6111655470edea36594aaede9
+Author: Mosa Moleleki <molelekishoez@gmail.com>
+Date:   Thu Apr 9 03:47:45 2026 +0200
+
+    f

@@ -208,7 +208,7 @@ service cloud.firestore {
                       // Lightweight bypass: setup modal context (client-side update)
                       request.resource.data.diff(resource.data).affectedKeys().hasOnly(['portalSetupCompleted', 'isSoloFreelancer', 'clientBusiness', 'clientSells', 'clientDoes', 'clientTone'])
                     );
-      allow delete: if isAuthenticated() && resource.data.userId == request.auth.uid;
+      allow delete: if isAuthenticated() && (resource == null || resource.data.userId == request.auth.uid);
     }
 
     match /leads/{leadId} {
@@ -227,7 +227,7 @@ service cloud.firestore {
                       request.resource.data.diff(resource.data).affectedKeys().hasOnly(['clientViewCount']) ||
                       request.resource.data.diff(resource.data).affectedKeys().hasOnly(['clientFeedback'])
                     );
-      allow delete: if isAuthenticated() && resource.data.userId == request.auth.uid;
+      allow delete: if isAuthenticated() && (resource == null || resource.data.userId == request.auth.uid);
     }
 
     match /logs/{logId} {
