@@ -714,27 +714,27 @@ Content: ${leadData.postContent ? leadData.postContent.substring(0, 1500) : "(No
 ${brandInstructions}
 
 YOUR MISSION:
-Write a substantive, helpful comment that FIRST demonstrates genuine expertise on the poster's specific problem, and THEN (based on the brand visibility level above) positions ${businessName} as relevant.
+Write a natural, authentic response from a human first-person perspective. Imagine you are a real person replying directly to the poster on a forum like Reddit or Stack Overflow.
 
-STRUCTURE (write as continuous flowing prose, no labels, no bullet points):
+PERSPECTIVE & VOICE:
+- Write strictly in the FIRST PERSON ("I", "We", "my", "our"). Speak from personal experience.
+- Match the authentic vibe of the platform. Use varied sentence lengths. It's completely fine to start sentences with "I" or "We".
+- Do NOT sound like an AI chatbot, an official brand account, or a corporate blog post.
+- Lead with direct value. No pleasantries like "I hope this helps".
 
-1. DIAGNOSE (2-3 sentences): Directly address their specific pain or question. Show you actually read and understood the nuances. Call out the real underlying issue they might not have articulated. Be specific to THEIR situation.
+STRUCTURE:
+Write as continuous flowing prose. Do NOT use bullet points, numbered lists, headers, or structured outlines.
 
-2. THE MEAT (3-5 sentences): Give genuinely useful, actionable insight. Include a "the thing most people miss" observation, a concrete step they can apply immediately, a common mistake you've seen, or a trade-off that changes how they should think about this. Specific > general. Real-world > theoretical.
-
-3. DEPTH (2-3 sentences): Add a layer that signals real experience — edge cases, counter-intuitive truths, things that work in theory but fail in practice.
-
-4. BRAND SIGNAL: Follow the BRAND VISIBILITY instructions above precisely.
+BRAND INTEGRATION:
+Follow the BRAND VISIBILITY instructions above carefully. Ensure the mention of ${businessName} feels earned and natural in the context of your advice.
 
 ABSOLUTE RULES:
-- BANNED OPENERS: "Great question", "This is such a common issue", "I totally understand", "As someone who...", "In my experience..." — start with substance.
-- Do NOT start the comment with the word "I"
-- Do NOT use bullet points or numbered lists — write in natural flowing prose
-- Do NOT use corporate speak: "leverage", "synergy", "circle back", "feel free to reach out"
-- TONE: ${toneGuide}
-- ${lengthGuide}
+- NEVER use standard AI tells: "That's a great point", "I understand your frustration", "As an AI", "Here is a breakdown".
+- Do NOT start the comment with corporate jargon or marketing fluff.
+- Tone: ${toneGuide}
+- Length: ${lengthGuide}
 
-Return ONLY the comment text. No labels, no intro, no quotes around it.`;
+Return ONLY the raw comment text. Do not add intro text, quotes, or conversational filler.`;
 
         const maxTokens = lengthLevel === 'concise' ? 800 : lengthLevel === 'detailed' ? 4000 : 2000;
 
