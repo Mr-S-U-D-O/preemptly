@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useEffect, useState, useRef } from 'react';
-import { collection, onSnapshot, query, where, limit, orderBy, getDocs } from 'firebase/firestore';
+import { collection, onSnapshot, query, where, limit, orderBy, getDocs, getCountFromServer, Timestamp } from 'firebase/firestore';
 import { db } from '../firebase';
 import { Scraper, Lead, SystemLog } from '../types';
 import { useAuth } from './AuthProvider';
@@ -9,7 +9,10 @@ interface DataContextType {
   leads: Lead[];
   logs: SystemLog[];
   quotaExhausted: boolean;
+  totalLeadsCount?: number;
+  leadsTodayCount?: number;
 }
+
 
 const DataContext = createContext<DataContextType | undefined>(undefined);
 
@@ -19,6 +22,8 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
   const [leads, setLeads] = useState<Lead[]>([]);
   const [logs, setLogs] = useState<SystemLog[]>([]);
   const [quotaExhausted, setQuotaExhausted] = useState(false);
+  const [totalLeadsCount, setTotalLeadsCount] = useState<number | undefined>(undefined);
+  const [leadsTodayCount, setLeadsTodayCount] = useState<number | undefined>(undefined);
   const quotaErrorShown = useRef(false);
 
   // Graceful error handler that does NOT throw (prevents crash-remount loops)
@@ -43,6 +48,8 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
       setScrapers([]);
       setLeads([]);
       setLogs([]);
+      setTotalLeadsCount(undefined);
+      setLeadsTodayCount(undefined);
       return;
     }
     // If quota is exhausted, don't set up new listeners
@@ -69,11 +76,30 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
       lastFetchTime.current = now;
 
       try {
+        // Fetch absolute counts to bypass the array limits
+        try {
+          const totalQuery = query(collection(db, 'leads'), where('userId', '==', user.uid));
+          const totalSnap = await getCountFromServer(totalQuery);
+          setTotalLeadsCount(totalSnap.data().count);
+
+          const todayStart = new Date();
+          todayStart.setHours(0, 0, 0, 0);
+          const todayQuery = query(
+            collection(db, 'leads'), 
+            where('userId', '==', user.uid),
+            where('createdAt', '>=', Timestamp.fromDate(todayStart))
+          );
+          const todaySnap = await getCountFromServer(todayQuery);
+          setLeadsTodayCount(todaySnap.data().count);
+        } catch (countError) {
+          console.error('Failed to fetch lead counts:', countError);
+        }
+
         const leadsQuery = query(
           collection(db, 'leads'), 
           where('userId', '==', user.uid),
           orderBy('createdAt', 'desc'),
-          limit(50)
+          limit(300)
         );
         const leadsSnap = await getDocs(leadsQuery);
         const leadsData: Lead[] = [];
@@ -86,7 +112,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
           collection(db, 'logs'), 
           where('userId', '==', user.uid),
           orderBy('createdAt', 'desc'),
-          limit(50)
+          limit(300)
         );
         const logsSnap = await getDocs(logsQuery);
         const logsData: SystemLog[] = [];
@@ -107,9 +133,10 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
   }, [user, quotaExhausted]);
 
   return (
-    <DataContext.Provider value={{ scrapers, leads, logs, quotaExhausted }}>
+    <DataContext.Provider value={{ scrapers, leads, logs, quotaExhausted, totalLeadsCount, leadsTodayCount }}>
       {children}
     </DataContext.Provider>
+
   );
 }
 

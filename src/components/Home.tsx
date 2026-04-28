@@ -214,7 +214,7 @@ function ChartCard({ title, subtitle, children, className = '', action }: {
 // Main Component
 // ─────────────────────────────────────────────────────────────
 export function Home() {
-  const { scrapers, leads, logs } = useData();
+  const { scrapers, leads, logs, totalLeadsCount, leadsTodayCount } = useData();
   const { user } = useAuth();
   const navigate = useNavigate();
   const [resetModalOpen, setResetModalOpen] = useState(false);
@@ -721,10 +721,10 @@ export function Home() {
         <KpiCard
           icon={Activity}
           label="Opportunities Found"
-          value={leads.length}
+          value={totalLeadsCount !== undefined ? totalLeadsCount : leads.length}
           iconBg="bg-[#5a8c12]/10"
           iconColor="text-[#5a8c12]"
-          badge={`+${stats.leadsToday} today`}
+          badge={`+${leadsTodayCount !== undefined ? leadsTodayCount : stats.leadsToday} today`}
           badgeColor="bg-green-50 text-green-700 dark:bg-green-900/20 dark:text-green-400"
         />
         <KpiCard
