@@ -342,8 +342,8 @@ export function ClientPortal() {
       const res = await fetch(`/api/portal/${token}/generate-comment/${leadId}`, {
         method: 'POST'
       });
-      if (!res.ok) throw new Error('Failed to generate comment');
       const json = await res.json();
+      if (!res.ok) throw new Error(json.error || 'Failed to generate comment');
       setAiComments(prev => ({ ...prev, [leadId]: json.comment }));
       setShowAiModal(leadId);
     } catch (err: any) {
