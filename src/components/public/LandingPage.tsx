@@ -46,7 +46,7 @@ const FAQItem: React.FC<{ question: string, answer: string }> = ({ question, ans
       <div 
         className={`overflow-hidden transition-all duration-300 ease-in-out ${isOpen ? 'max-h-96 mt-4 opacity-100' : 'max-h-0 opacity-0'}`}
       >
-        <p className="text-slate-600 leading-relaxed font-light">{answer}</p>
+        <p className="text-slate-600 leading-relaxed font-light" dangerouslySetInnerHTML={{ __html: answer }} />
       </div>
     </div>
   );
@@ -58,7 +58,7 @@ const getDynamicFAQS = (nicheData?: NicheData) => [
   { q: "What do I do when I receive an alert?", a: `You click the link to the post and answer the person's question. If you help them, they are likely to hire you.` },
   { q: "How does the Free Trial work?", a: `We will find you 10 real leads for free. Once we've sent you 10 links to people who need your help, the trial is finished.` },
   { q: "How do I reply to posts?", a: `Our AI reads the post and writes a draft reply for you. You can copy it, change it, and post it yourself.` },
-  { q: "What do I get for joining now?", a: `Early users get a Founder's rate of R500/mo. Plus, you'll get 50% off our official pricing for a full year once we launch, and double the alerts for free.` }
+  { q: "What do I get for joining now?", a: `Early users get <span class="text-[#5a8c12] font-bold">5 monitored subreddits</span> and their <span class="text-[#5a8c12] font-bold">first 10 discovered opportunities</span> for free. Plus, you'll lock in a <span class="text-[#5a8c12] font-bold">50% discount for 1 year</span> when we launch our official pricing.` }
 ];
 
 export function LandingPage() {
@@ -72,7 +72,7 @@ export function LandingPage() {
   const nicheFAQs = nicheData ? [
     { q: `How do I find ${nicheData.nichePersona} on ${nicheData.platform}?`, a: `Preemptly monitors ${nicheData.platform} 24/7 for posts from ${nicheData.nichePersona} experiencing ${nicheData.painPoint}. When a qualifying post appears, it is scored on a 1–10 intent scale and delivered to your dashboard within 60 seconds.` },
     { q: `What types of ${nicheData.industry} leads does Preemptly find?`, a: `Preemptly specifically identifies ${nicheData.nichePersona} who are ${nicheData.actionWord} ${nicheData.industry} solutions on ${nicheData.platform}. These are not cold contacts — they are people who have publicly stated a problem that your service solves.` },
-    { q: `Is there a free trial for ${nicheData.industry} monitoring?`, a: `Yes. Preemptly delivers your first 10 high-intent ${nicheData.industry} intercepts completely free. No credit card required. You only upgrade when you have seen real proof that the leads are relevant to your offer.` },
+    { q: `Is there a free trial for ${nicheData.industry} monitoring?`, a: `Yes. Preemptly delivers your <span class="text-[#5a8c12] font-bold">first 10 discovered opportunities</span> completely free. No credit card required. You only upgrade when you have seen real proof that the leads are relevant to your offer.` },
     { q: `How is Preemptly different from a ${nicheData.platform} scraper?`, a: `Scrapers return volume. Preemptly returns high-intent signal via Intent Logic. Every intercept is scored for purchase intent, filtered for ${nicheData.nichePersona} relevance, and accompanied by an expert strategy brief — so you know exactly how to respond.` }
   ] : [];
 
@@ -450,51 +450,60 @@ export function LandingPage() {
 
       {/* Navigation */}
       <header>
-        <nav className="fixed top-0 w-full bg-white/90 backdrop-blur-xl z-50 border-b border-slate-200 shadow-sm transition-all">
-        <div className="max-w-7xl mx-auto px-6 h-16 flex items-center justify-between">
-          <div className="flex items-center gap-3 cursor-pointer">
-            <div className="w-9 h-9 flex items-center justify-center rounded-lg shadow-sm overflow-hidden border border-slate-100">
-              <img src="/preemptly-mascot.png" alt="Preemptly" className="w-full h-full object-cover" />
+        <nav className="fixed top-4 left-1/2 -translate-x-1/2 w-[95%] max-w-7xl bg-white/80 backdrop-blur-md z-50 border border-slate-200/60 shadow-xl shadow-black/5 rounded-2xl transition-all">
+          <div className="px-6 h-16 flex items-center justify-between">
+            <div className="flex items-center gap-3 cursor-pointer group">
+              <div className="w-10 h-10 flex items-center justify-center rounded-xl shadow-sm overflow-hidden border border-slate-100 group-hover:scale-105 transition-transform">
+                <img src="/preemptly-mascot.png" alt="Preemptly" className="w-full h-full object-cover" />
+              </div>
+              <div className="flex flex-col">
+                <span className="font-black text-xl tracking-tighter leading-none">Preemptly</span>
+                <span className="text-[8px] font-black text-[#5a8c12] uppercase tracking-[0.2em] leading-none mt-1">Growth Visibility</span>
+              </div>
             </div>
-            <span className="font-extrabold text-xl tracking-tighter">Preemptly</span>
-          </div>
 
-          {/* Desktop Nav Links */}
-          <div className="hidden md:flex items-center gap-8">
-             <button 
-               onClick={() => document.getElementById('how-it-works')?.scrollIntoView({ behavior: 'smooth' })}
-               className="text-[11px] font-bold uppercase tracking-widest text-slate-500 hover:text-black transition-colors"
-             >
-                The Growth Feed
-             </button>
-             <button 
-               onClick={() => document.getElementById('pricing')?.scrollIntoView({ behavior: 'smooth' })}
-               className="text-[11px] font-bold uppercase tracking-widest text-slate-500 hover:text-black transition-colors"
-             >
-                Pricing
-             </button>
-             <button 
-               onClick={() => document.getElementById('faq')?.scrollIntoView({ behavior: 'smooth' })}
-               className="text-[11px] font-bold uppercase tracking-widest text-slate-500 hover:text-black transition-colors"
-             >
-                FAQ
-             </button>
-          </div>
+            {/* Desktop Nav Links */}
+            <div className="hidden lg:flex items-center gap-10">
+               <button 
+                 onClick={() => document.getElementById('how-it-works')?.scrollIntoView({ behavior: 'smooth' })}
+                 className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 hover:text-black transition-colors"
+               >
+                  The Feed
+               </button>
+               <button 
+                 onClick={() => document.getElementById('pricing')?.scrollIntoView({ behavior: 'smooth' })}
+                 className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 hover:text-black transition-colors"
+               >
+                  Pricing
+               </button>
+               <button 
+                 onClick={() => document.getElementById('faq')?.scrollIntoView({ behavior: 'smooth' })}
+                 className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 hover:text-black transition-colors"
+               >
+                  FAQ
+               </button>
+            </div>
 
-          <div className="flex items-center gap-4">
-            <button 
-              onClick={() => {
-                const isLocal = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
-                const port = window.location.port ? `:${window.location.port}` : '';
-                window.location.href = isLocal ? `http://hq.localhost${port}` : 'https://hq.bepreemptly.com';
-              }}
-              className="hidden md:flex items-center gap-2 bg-white text-black px-5 py-2.5 font-bold text-[10px] tracking-widest uppercase hover:bg-slate-50 border border-slate-200 hover:border-black rounded-lg transition-colors shadow-sm"
-            >
-              Sign In <ArrowRight size={14} />
-            </button>
+            <div className="flex items-center gap-3">
+              <button 
+                onClick={() => {
+                  const isLocal = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+                  const port = window.location.port ? `:${window.location.port}` : '';
+                  window.location.href = isLocal ? `http://hq.localhost${port}` : 'https://hq.bepreemptly.com';
+                }}
+                className="hidden sm:flex text-[10px] font-black uppercase tracking-widest text-slate-500 hover:text-black px-4 py-2 transition-colors"
+              >
+                Log In
+              </button>
+              <button 
+                onClick={() => setIsModalOpen(true)}
+                className="flex items-center gap-2 bg-black text-white px-6 py-3 font-black text-[10px] tracking-[0.15em] uppercase hover:bg-[#5a8c12] rounded-xl transition-all shadow-lg shadow-black/10 hover:shadow-[#5a8c12]/20 active:scale-95"
+              >
+                Join Beta <Zap size={14} className="fill-current" />
+              </button>
+            </div>
           </div>
-        </div>
-      </nav>
+        </nav>
       </header>
 
       <main>
@@ -508,16 +517,16 @@ export function LandingPage() {
           {/* Left Column: Copy & CTAs */}
           <div className="flex flex-col items-start text-left">
             <div className="flex items-center gap-2 px-2.5 py-1 border-2 border-[#5a8c12] text-[#5a8c12] text-[9px] font-black uppercase tracking-widest mb-6 bg-[#5a8c12]/5 rounded-sm">
-              <span className="w-1.5 h-1.5 bg-[#5a8c12] animate-pulse" />
+              <span className="w-1.5 h-1.5 bg-[#5a8c12] animate-slow-flash" />
               Now Available
             </div>
             
             <h1 className="text-4xl md:text-5xl lg:text-6xl font-extralight tracking-tighter leading-[1.05] text-black">
-              Get hired by helping people on <span className="font-bold text-black border-b-4 border-[#5a8c12]">{nicheData ? nicheData.platform : 'Reddit'}</span>.
+              Be the <span className="text-[#5a8c12] font-bold">Expert</span> they need, exactly when they need you.
             </h1>
             
             <p className="mt-8 text-lg md:text-xl text-slate-600 font-light leading-relaxed max-w-xl hero-description">
-              Stop sending cold emails that get ignored. We find the exact **Matches** where people are asking for help with {nicheData ? `${nicheData.industry.toLowerCase()}` : 'problems you solve'}, so you can reach out and capture the **Opportunity**.
+              Stop sending cold emails that get ignored. We find the exact <span className="text-[#5a8c12] font-bold">Conversations</span> where people are asking for help with {nicheData ? `${nicheData.industry.toLowerCase()}` : 'problems you solve'}, so you can <span className="text-[#5a8c12] font-bold">Convert the community</span> by being the <span className="text-[#5a8c12] font-bold">Expert</span>.
             </p>
 
             <div className="mt-8 flex flex-col sm:flex-row items-center sm:items-start gap-3 w-full">
@@ -541,8 +550,8 @@ export function LandingPage() {
                 ))}
               </div>
               <div className="flex flex-col">
-                 <span className="text-xs font-bold tracking-tight text-slate-900">100+ Elite Agencies</span>
-                 <span className="text-[10px] font-medium text-slate-500 uppercase tracking-tighter">building public authority</span>
+                 <span className="text-xs font-bold tracking-tight text-slate-900">120+ Monitored Communities</span>
+                 <span className="text-[10px] font-medium text-slate-500 uppercase tracking-tighter">Replacing doubt with Expert confidence</span>
               </div>
             </div>
           </div>
@@ -557,42 +566,68 @@ export function LandingPage() {
              </div>
              
              {/* The Lead Post (Floating & Tilted) */}
-             <div className="relative z-10 w-full max-w-[340px] md:max-w-md bg-white border-2 border-slate-200 p-6 md:p-8 shadow-2xl -rotate-2 hover:rotate-0 transition-transform duration-500 hover:border-black cursor-default">
-                <div className="flex justify-between items-start mb-4">
+             <div className="relative z-10 w-full max-w-[340px] md:max-w-md bg-white border border-slate-200 rounded-3xl p-6 md:p-8 shadow-[0_32px_64px_-12px_rgba(0,0,0,0.12)] -rotate-1 hover:rotate-0 transition-all duration-700 hover:border-black/10 group/card">
+                <div className="flex justify-between items-center mb-6">
                    <div className="flex items-center gap-3">
-                     <div className="w-10 h-10 rounded-full bg-slate-100 border border-slate-200 flex items-center justify-center overflow-hidden">
-                        <img src={`https://api.dicebear.com/7.x/avataaars/svg?seed=lostfounder`} alt="" aria-hidden="true" className="w-full h-full object-cover opacity-80" />
+                     <div className="w-10 h-10 rounded-2xl bg-orange-50 border border-orange-100 flex items-center justify-center font-black text-orange-600 text-xs">
+                        r/
                      </div>
                      <div className="flex flex-col">
-                       <span className="text-sm font-bold text-slate-800">Frustrated_Founder99</span>
-                       <span className="text-xs text-slate-400 font-medium tracking-wide">posted in r/SaaS</span>
+                       <span className="text-sm font-black text-slate-900 tracking-tight">Founder_Logic</span>
+                       <span className="text-[10px] text-[#5a8c12] font-black uppercase tracking-widest">discovered via intent engine</span>
                      </div>
                    </div>
-                   <div className="text-xs font-bold text-slate-300">2h ago</div>
+                   <div className="px-3 py-1.5 rounded-full bg-slate-50 border border-slate-100 flex items-center gap-2">
+                     <span className="text-[9px] font-black text-slate-400 tracking-tighter uppercase">15 mins ago</span>
+                   </div>
                 </div>
-                <h3 className="font-black text-lg md:text-xl leading-tight mb-3 text-slate-900">Our current growth agency is completely failing us.</h3>
-                <p className="text-sm text-slate-600 line-clamp-3 leading-relaxed">
-                  We just spent $10k on ads with zero return. It feels like they don't even understand our product. Has anyone found an agency that actually knows how to scale technical B2B platforms?
+
+                <h3 className="font-black text-xl md:text-2xl leading-[1.1] mb-4 text-slate-900 tracking-tighter uppercase">
+                  Our current agency is charging $5k/mo but we've seen zero growth in 6 months.
+                </h3>
+                
+                <p className="text-xs md:text-sm text-slate-600 font-medium leading-relaxed mb-6">
+                  It feels like we're just paying for "reports" and no actual results. Does anyone have a recommendation for a team that actually delivers? We need to switch ASAP.
                 </p>
-                <div className="mt-4 flex gap-4 text-slate-300">
-                  <div className="flex items-center gap-1.5"><ArrowRight size={14} className="-rotate-90" /> <span className="text-xs font-bold">142</span></div>
-                  <div className="flex items-center gap-1.5"><Activity size={14} /> <span className="text-xs font-bold">28 comments</span></div>
+
+                <div className="flex items-center justify-between border-t border-slate-50 pt-5">
+                  <div className="flex items-center gap-4">
+                    <div className="flex items-center gap-1.5 text-slate-400">
+                      <ArrowRight size={14} className="-rotate-90" />
+                      <span className="text-[10px] font-black">284</span>
+                    </div>
+                    <div className="flex items-center gap-1.5 text-slate-400">
+                      <Activity size={14} />
+                      <span className="text-[10px] font-black">56 comments</span>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-1.5 bg-[#5a8c12]/5 px-2 py-1 rounded">
+                     <span className="w-1 h-1 rounded-full bg-[#5a8c12]" />
+                     <span className="text-[9px] font-black text-[#5a8c12] uppercase">High Intent</span>
+                  </div>
                 </div>
              </div>
 
-              {/* The AI Reasoning Card (Overlapping & Animated) */}
-              <div className="absolute z-20 bottom-4 md:bottom-12 right-0 md:-right-8 lg:-right-16 w-[280px] md:w-80 bg-white border-2 border-slate-200 p-5 shadow-2xl shadow-black/15 hover:border-black transition-colors rounded-xl animate-bounce" style={{ animationDuration: '4s' }}>
-                 <div className="flex items-center justify-between mb-3 border-b-2 border-slate-100 pb-3">
+              {/* The "Lead Analysis" AI Reasoning Card (Overlapping & Animated) */}
+              <div className="absolute z-20 -bottom-10 -right-4 md:-right-16 w-[240px] md:w-80 bg-white border border-slate-200 p-6 shadow-[0_40px_80px_-15px_rgba(0,0,0,0.15)] rounded-[2rem] animate-float transition-all hover:border-[#5a8c12]">
+                 <div className="flex items-center justify-between mb-4">
                     <div className="flex items-center gap-2">
-                      <Zap className="text-[#5a8c12] w-5 h-5 fill-[#5a8c12]" />
+                      <Zap className="text-[#5a8c12] w-5 h-5 fill-[#5a8c12]/20" />
                       <span className="text-xs font-black uppercase tracking-widest text-[#5a8c12]">Lead Analysis</span>
                     </div>
-                    <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest bg-slate-100 px-2 py-1 rounded-sm">High Quality</span>
+                    <div className="px-2 py-1 bg-[#5a8c12] text-white text-[8px] font-black uppercase rounded">10/10 Score</div>
                  </div>
-                 <p className="text-[13px] text-slate-700 font-medium leading-relaxed">
-                   <span className="font-bold text-black border-b border-[#5a8c12] inline-block mb-1">Why this is a good lead:</span><br/>
-                   This person is asking for exactly what you do. You should reply and explain how you can help.
-                 </p>
+                 <div className="space-y-3">
+                   <div className="bg-slate-50 rounded-xl p-3 border border-slate-100">
+                     <p className="text-[11px] text-slate-600 font-medium leading-relaxed">
+                       <span className="text-black font-black block mb-1">AI INSIGHT:</span>
+                       "Explicit dissatisfaction with current $5k provider. Active budget available and urgent need for transition."
+                     </p>
+                   </div>
+                   <button className="w-full bg-black text-white py-3 rounded-xl text-[9px] font-black uppercase tracking-widest hover:bg-[#5a8c12] transition-colors flex items-center justify-center gap-2">
+                      Draft Expert Reply <ArrowRight size={12} />
+                   </button>
+                 </div>
               </div>
           </div>
 
@@ -625,10 +660,13 @@ export function LandingPage() {
               The <span className="font-bold bg-gradient-to-br from-black to-slate-600 bg-clip-text text-transparent">Stage.</span>
             </h2>
             <p className="text-xl md:text-2xl text-slate-600 font-light leading-relaxed mb-12 max-w-3xl relative z-30">
-              Review growth opportunities, approve Strategic Match Engine responses, and generate proof-of-value answers with one click—all in a professional workspace.
+              Preemptly filters through the noise to deliver high-intent <span className="text-[#5a8c12] font-bold">9/10 conversations</span>. Our AI handles the drafting, leaving you with one goal: <span className="text-[#5a8c12] font-bold">Being the Expert.</span>
             </p>
-            <button className="group bg-black text-white hover:bg-[#5a8c12] transition-all duration-500 px-10 py-5 text-[11px] font-black uppercase tracking-[0.25em] flex items-center justify-center gap-4 rounded-2xl shadow-2xl shadow-black/20 hover:scale-105">
-              Sign up to get your own stage 
+            <button 
+              onClick={() => setIsModalOpen(true)}
+              className="group bg-black text-white hover:bg-[#5a8c12] transition-all duration-500 px-10 py-5 text-[11px] font-black uppercase tracking-[0.25em] flex items-center justify-center gap-4 rounded-2xl shadow-2xl shadow-black/20 hover:scale-105"
+            >
+              Get access to the stage 
               <ArrowRight size={16} className="group-hover:translate-x-1 transition-transform" />
             </button>
           </div>
@@ -654,7 +692,7 @@ export function LandingPage() {
                 </div>
                 
                 <h3 className="font-black text-slate-400 group-hover:text-slate-900 tracking-[0.4em] text-xs uppercase mb-3 transition-colors">
-                  Client Dashboard Walkthrough
+                  Preemptly Portal: 9/10 Intent Discovery
                 </h3>
                 <p className="text-sm text-slate-400 font-light flex items-center gap-2">
                    <span className="w-2 h-2 rounded-full bg-slate-200" />
@@ -793,57 +831,66 @@ export function LandingPage() {
              {/* Card 3: Global Reach */}
              <div className="bg-white rounded-3xl border border-slate-200 shadow-sm flex flex-col overflow-hidden group hover:shadow-md transition-shadow">
                 <div className="p-8 pb-4 text-left">
-                  <h3 className="font-bold text-lg text-slate-900 mb-2">Global Community Coverage</h3>
+                  <div className="flex items-center gap-2 mb-2">
+                    <div className="w-2 h-2 rounded-full bg-[#5a8c12]" />
+                    <h3 className="font-bold text-lg text-slate-900">Global Intent Network</h3>
+                  </div>
                   <p className="text-sm text-slate-500 leading-relaxed font-light">
-                    Instead of manually searching through subreddits and forums, our engine continuously checks over 250k+ niche communities to find matching queries.
+                    Instead of manual searching, our engine scans 250,000+ niche communities every second to find the exact moment your expertise is needed.
                   </p>
                 </div>
-                <div className="flex-1 bg-[#FAFAFA] mx-8 border border-b-0 border-slate-200 rounded-t-2xl overflow-hidden relative min-h-[220px]">
-                   <div className="absolute inset-0 bg-[#0A0A0A] overflow-hidden">
-                      {/* Radar grid network */}
-                      <div className="absolute inset-0 opacity-20"
-                           style={{
-                             backgroundImage: 'linear-gradient(rgba(255,255,255,0.15) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.15) 1px, transparent 1px)',
-                             backgroundSize: '24px 24px',
-                           }}>
+                <div className="flex-1 bg-slate-50 mx-8 border border-b-0 border-slate-200 rounded-t-2xl overflow-hidden relative min-h-[220px]">
+                   <div className="absolute inset-0 p-6 flex items-center justify-center">
+                      {/* Network Grid Background */}
+                      <div className="absolute inset-0 opacity-[0.03]" 
+                           style={{ backgroundImage: 'radial-gradient(#000 1px, transparent 1px)', backgroundSize: '20px 20px' }} />
+                      
+                      {/* Central Engine Hub */}
+                      <div className="relative z-10 w-16 h-16 rounded-3xl bg-white border border-slate-200 shadow-xl flex items-center justify-center group-hover:scale-110 transition-transform duration-700">
+                         <div className="absolute inset-0 bg-[#5a8c12]/5 rounded-3xl animate-ping" />
+                         <Zap size={24} className="text-[#5a8c12] fill-[#5a8c12]/10" />
                       </div>
 
-                      {/* Live Counter Overlay */}
-                      <div className="absolute top-4 left-4 z-30">
-                         <div className="flex items-center gap-2 bg-black/40 backdrop-blur-md border border-white/10 px-3 py-1.5 rounded-full">
-                            <div className="w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse" />
-                            <span className="text-[8px] font-black text-white uppercase tracking-widest">Live: 242 Opportunity Intercepts</span>
+                      {/* Orbiting Intercept Nodes */}
+                      <div className="absolute top-1/2 left-1/2 w-full h-full -translate-x-1/2 -translate-y-1/2">
+                         {/* Signal 1: Reddit */}
+                         <div className="absolute top-[20%] left-[20%] animate-float">
+                            <div className="flex items-center gap-2 bg-white px-3 py-1.5 rounded-full border border-slate-100 shadow-sm">
+                               <div className="w-1.5 h-1.5 rounded-full bg-[#5a8c12] animate-pulse" />
+                               <span className="text-[9px] font-black uppercase text-slate-400 tracking-tighter">Intercepted r/SaaS</span>
+                            </div>
+                         </div>
+
+                         {/* Signal 2: StackOverflow */}
+                         <div className="absolute bottom-[30%] right-[10%] animate-float-delayed">
+                            <div className="flex items-center gap-2 bg-white px-3 py-1.5 rounded-full border border-slate-100 shadow-sm">
+                               <div className="w-1.5 h-1.5 rounded-full bg-orange-500 animate-pulse" />
+                               <span className="text-[9px] font-black uppercase text-slate-400 tracking-tighter">Found on StackOverflow</span>
+                            </div>
+                         </div>
+
+                         {/* Signal 3: Niche Forum */}
+                         <div className="absolute top-[40%] right-[20%] animate-float" style={{ animationDelay: '1.5s' }}>
+                            <div className="flex items-center gap-2 bg-white px-3 py-1.5 rounded-full border border-slate-100 shadow-sm">
+                               <div className="w-1.5 h-1.5 rounded-full bg-blue-500 animate-pulse" />
+                               <span className="text-[9px] font-black uppercase text-slate-400 tracking-tighter">Matched: Founder Forum</span>
+                            </div>
                          </div>
                       </div>
-                      
-                      {/* Radar sweep */}
-                      <div className="absolute top-1/2 left-1/2 w-[350px] h-[350px] -translate-x-1/2 -translate-y-1/2 rounded-full border border-[#5a8c12]/10 group-hover:border-[#5a8c12]/30 transition-colors duration-1000">
-                         <div className="w-1/2 h-1/2 absolute top-0 right-0 bg-gradient-to-bl from-[#5a8c12]/20 to-transparent origin-bottom-left animate-[spin_4s_linear_infinite]" />
-                      </div>
 
-                      {/* Concentric rings */}
-                      <div className="absolute top-1/2 left-1/2 w-48 h-48 -translate-x-1/2 -translate-y-1/2 rounded-full border border-[#5a8c12]/20" />
-                      <div className="absolute top-1/2 left-1/2 w-24 h-24 -translate-x-1/2 -translate-y-1/2 rounded-full border border-[#5a8c12]/30" />
-                      
-                      {/* Intercept Nodes */}
-                      <div className="absolute top-[25%] left-[55%] flex gap-2 items-center group-hover:scale-110 transition-transform">
-                         <div className="w-1.5 h-1.5 bg-[#5a8c12] rounded-full shadow-[0_0_12px_3px_rgba(90,140,18,0.8)] animate-pulse" />
-                         <span className="text-[7px] text-[#5a8c12] font-bold uppercase tracking-widest bg-[#5a8c12]/10 px-1.5 py-0.5 rounded border border-[#5a8c12]/20 hidden md:block">High Intent Found (r/SaaS)</span>
+                      {/* Decorative connection lines */}
+                      <svg className="absolute inset-0 w-full h-full opacity-[0.05]" viewBox="0 0 400 220">
+                         <path d="M80 50 L200 110 L350 160" fill="none" stroke="black" strokeWidth="1" strokeDasharray="4 4" />
+                         <path d="M300 80 L200 110 L100 180" fill="none" stroke="black" strokeWidth="1" strokeDasharray="4 4" />
+                      </svg>
+                   </div>
+                   
+                   {/* Bottom Status Ticker */}
+                   <div className="absolute bottom-0 left-0 w-full bg-white/80 backdrop-blur-sm border-t border-slate-100 px-4 py-2 flex items-center justify-between z-20">
+                      <div className="flex items-center gap-2">
+                         <span className="text-[8px] font-black text-[#5a8c12] uppercase animate-pulse">Scanning live...</span>
                       </div>
-
-                      <div className="absolute top-[65%] left-[25%] flex gap-2 items-center group-hover:scale-110 transition-transform delay-75">
-                         <div className="w-1 h-1 bg-white rounded-full shadow-[0_0_8px_2px_rgba(255,255,255,0.8)] animate-pulse" style={{ animationDelay: '1s' }} />
-                         <span className="text-[7px] text-slate-300 font-bold uppercase tracking-widest bg-white/5 px-1.5 py-0.5 rounded border border-white/10 hidden md:block">Pain Gap Intercepted</span>
-                      </div>
-                      
-                      <div className="absolute top-[75%] left-[65%] flex gap-2 items-center group-hover:scale-110 transition-transform delay-150">
-                         <div className="w-2 h-2 bg-[#5a8c12] rounded-full shadow-[0_0_15px_4px_rgba(90,140,18,0.6)] animate-pulse" style={{ animationDelay: '0.5s' }} />
-                         <span className="text-[7px] text-[#5a8c12] font-bold uppercase tracking-widest bg-[#5a8c12]/10 px-1.5 py-0.5 rounded border border-[#5a8c12]/20 hidden md:block">Golden Intercept (Reddit)</span>
-                      </div>
-                      
-                      {/* Gradient overlay for fade effect */}
-                      <div className="absolute bottom-0 left-0 w-full h-24 bg-gradient-to-t from-[#0A0A0A] to-transparent pointer-events-none" />
-                      <div className="absolute inset-0 shadow-[inset_0_0_40px_rgba(0,0,0,0.8)] pointer-events-none" />
+                      <div className="text-[8px] font-bold text-slate-400">254,821 COMMUNITIES MONITORED</div>
                    </div>
                 </div>
              </div>
@@ -1087,7 +1134,7 @@ export function LandingPage() {
                  <div className="text-[10px] font-bold tracking-widest uppercase text-slate-400 mb-4">Phase 1: The Proof</div>
                  <div className="text-5xl font-black mb-6 text-black tracking-tighter">Free</div>
                  <p className="text-slate-600 font-light leading-relaxed mb-10 max-w-sm">
-                   We spin up a dedicated listener for {nicheData ? `your ${nicheData.industry} firm` : 'your industry'}. We will find and drop your first 10 hyper-qualified {nicheData ? nicheData.nichePersona.toLowerCase() : 'screaming leads'} directly into your dashboard. Completely free. No credit card required.
+                   We spin up a <span className="text-[#5a8c12] font-bold">dedicated monitor</span> for {nicheData ? `your ${nicheData.industry} firm` : 'your industry'}. We will find and drop your <span className="text-[#5a8c12] font-bold">first 10</span> hyper-qualified {nicheData ? nicheData.nichePersona.toLowerCase() : <span className="text-[#5a8c12] font-bold">screaming opportunities</span>} directly into your <span className="text-[#5a8c12] font-bold">dashboard</span>. Completely free. No credit card required.
                  </p>
                </div>
                <button 
@@ -1115,7 +1162,7 @@ export function LandingPage() {
                     <div className="text-[10px] text-slate-400 font-bold uppercase tracking-widest line-through decoration-slate-300 ml-2">R2500</div>
                  </div>
                  <p className="text-slate-600 font-light leading-relaxed mb-10 max-w-sm">
-                   Once you see the evidence, upgrade to unlock high-volume {nicheData ? `${nicheData.industry.toLowerCase()} matches` : 'matches'}, advanced expertise strategies, and priority access to our upcoming {nicheData ? nicheData.pricingContext : 'CRM integrations'}.
+                   Once you see the vision, upgrade to unlock <span className="text-[#5a8c12] font-bold">AI</span> that <span className="text-[#5a8c12] font-bold">helps you draft better, more helpful responses</span>. You'll also get <span className="text-[#5a8c12] font-bold">2+ additional monitors</span> ( increasing to 7 in total), which increases your reach to 7 whole subreddits, plus you will now be paying for<span className="text-[#5a8c12] font-bold"> 20 opportunities</span>.
                  </p>
                </div>
                <button 
@@ -1133,7 +1180,7 @@ export function LandingPage() {
                 <div className="relative z-20 flex-1">
                   <h3 className="text-lg font-bold text-slate-900 mb-2">Early User Benefits</h3>
                   <p className="text-slate-600 font-light leading-relaxed max-w-3xl">
-                    Early users get a Founder's rate of R500/mo and double the alerts for free. Plus, you'll lock in a **50% discount for 1 year** when we launch our official pricing. We don't offer unlimited matches, but we ensure every match is high-intent.
+                    Early users get <span className="text-[#5a8c12] font-bold">5 monitored subreddits</span> and their <span className="text-[#5a8c12] font-bold">first 10 discovered opportunities</span> for free. Plus, you'll lock in a <span className="text-[#5a8c12] font-bold">50% discount for 1 year</span> when we launch our official pricing.
                   </p>
                 </div>
 

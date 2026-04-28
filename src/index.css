@@ -163,3 +163,13 @@
 .custom-scrollbar::-webkit-scrollbar-thumb:hover {
   background: #cbd5e1;
 }
+
+@keyframes slow-flash {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.1; }
+}
+
+.animate-slow-flash {
+  animation: slow-flash 2.5s ease-in-out infinite;
+}
+
