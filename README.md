@@ -1,134 +1,163 @@
-Preemptly is a high-performance **Real-time Growth Intelligence platform** designed to identify and intercept business opportunities the millisecond they appear online. It utilizes **Proprietary AI Scrutiny** to scan social platforms (Reddit, Stack Overflow) for high-intent signals—identifying users who are actively inquiring about solutions and providing a dedicated **Client Engagement Portal** for seamless community interaction.
+# Preemptly
 
----
+Preemptly is a real-time lead intelligence platform that monitors public conversations (Reddit and Stack Overflow), scores buying intent with AI, and routes qualified opportunities into an internal dashboard and a client-facing portal.
 
-## 🏗️ System Architecture
+## What this project does
 
-The application is built on a "Real-time Intelligence Loop" where background workers, AI models, and live dashboards operate in a continuous cycle.
+Preemptly continuously runs "monitors" (called scrapers in code) that:
 
-```mermaid
-graph TD
-    subgraph "The Internet"
-        R[Reddit RSS]
-        SO[Stack Overflow Feed]
-    end
+1. Pull fresh posts from platform RSS feeds.
+2. Deduplicate and filter them efficiently.
+3. Score intent with Gemini.
+4. Store and surface qualified leads in Firestore.
+5. Let providers and clients collaborate on follow-up through a portal and chat.
 
-    subgraph "Backend Engine (server.ts)"
-        CRON[Background Loop - 60s]
-        FETCHER[RSS Bypass Fetcher]
-        GENAI[Gemini 3 Flash AI]
-        ADMIN[Firebase Admin SDK]
-    end
+## Who it is for
 
-    subgraph "Data & Analytics"
-        FS[(Cloud Firestore)]
-        VITE[Vite + React SPA]
-        DASH[Intelligence Hub]
-        PORTAL[Client Engagement Portal]
-    end
+- **Agencies and consultants** doing high-ticket outbound/inbound prospecting.
+- **B2B teams** that need early buying-signal detection.
+- **Operators** who want a shared provider/client workflow instead of one-sided lead exports.
 
-    CRON --> FETCHER
-    FETCHER --> R & SO
-    FETCHER -- "New Posts" --> GENAI
-    GENAI -- "Strategic Match Rationale" --> ADMIN
-    ADMIN -- "Sync" --> FS
-    FS -- "onSnapshot" --> VITE
-    VITE --> DASH
-    DASH -- "Enable AI Power-ups" --> FS
-    FS -- "Visibility Toggle" --> PORTAL
+## Product surfaces
+
+### 1) Public site (SEO + landing)
+- Host-aware routing in `src/App.tsx` sends public hostnames to `LandingPage`.
+- Programmatic SEO pages are served on `/intercept/:slug` from `src/data/pseo.ts`.
+
+### 2) Provider HQ app
+- Authenticated app for monitor setup, analytics, logs, CRM, and chat management.
+- Main routes include home, scraper details, logs, CRM, and inbox.
+
+### 3) Client portal
+- Tokenized portal route (`/portal/:token` or `/:token`) for clients.
+- Shows matched leads, feedback workflow, outcomes, AI-assisted comments, and real-time chat.
+
+## How it works from the ground up
+
+### 1) Frontend runtime
+
+- React + Vite app (`src/main.tsx`, `src/App.tsx`).
+- Firebase client SDK initialized in `src/firebase.ts`.
+- `AuthProvider` handles sign-in and allowlist gating.
+- `DataProvider` hydrates the HQ UI from Firestore:
+  - Real-time listener for scrapers (`onSnapshot`).
+  - Cost-controlled reads for leads/logs (throttled one-time fetch + count queries).
+
+### 2) API/server runtime
+
+- `server.ts` runs Express and also hosts Vite middleware in development.
+- Key API groups:
+  - **System/SEO**: `/api/health`, `/robots.txt`, `/sitemap.xml`
+  - **AI assist**: `/api/suggest-keywords`, `/api/suggest-targets`
+  - **RSS utility**: `/api/reddit/:subreddit`
+  - **Portal APIs**: fetch portal data, setup, lead actions, AI comment generation, chat + presence
+
+### 3) Background intelligence engine
+
+Started by `server.ts` after boot:
+
+- A scheduler runs `runBackgroundScrapers` every 2 minutes.
+- Active scrapers are cached via Firestore real-time listener (no full polling loop each cycle).
+- For each scraper due to run:
+  1. Fetch posts from Reddit/Stack Overflow RSS through proxy endpoints.
+  2. Normalize post data.
+  3. Deduplicate using deterministic lead IDs (`sha256(scraperId::postUrl)`), plus in-memory cache.
+  4. Apply date-fence filtering around last run to avoid rescanning stale feed items.
+  5. Score in AI batches (20 posts per batch) with Gemini.
+  6. Save qualified matches to `leads` with batched writes.
+  7. Update scraper run state and logs.
+
+Reliability protections in engine internals:
+- Exponential retry backoff based on consecutive failures.
+- Auto-pause after repeated failures.
+- Recovery path resets error counters after successful runs.
+
+### 4) Data model (Firestore)
+
+Core collections:
+- `scrapers`: monitor configs + client portal settings.
+- `leads`: scored opportunities + interaction metadata.
+- `logs`: activity and error events.
+- `portal_chats`: chat room metadata.
+- `portal_chats/{token}/messages`: chat message stream.
+- `beta_applicants`, `login_attempts`: CRM/admission/ops tracking.
+
+Rules and validation:
+- `firestore.rules` enforces authenticated ownership for HQ data.
+- Includes schema-like field constraints for create/update paths.
+
+### 5) Client collaboration internals
+
+Portal flow:
+- Provider deploys a token to one or more related scrapers.
+- Client opens portal link and gets merged lead feed across all associated scrapers.
+- Lead actions (clicks, feedback, outcome, delete) are tracked server-side.
+- Optional AI comment generation uses per-client tone/aggression/length settings.
+- Chat uses SSE stream + Firestore snapshots for near real-time updates.
+
+## Technology stack
+
+- **Frontend**: React, Vite, TypeScript, Tailwind, Recharts
+- **Backend**: Node.js, Express, TypeScript (`tsx` runtime)
+- **AI**: Google Gemini via `@google/genai`
+- **Data/Auth**: Firebase Firestore + Firebase Auth + Firebase Admin SDK
+- **Feeds**: RSS parsing (`rss-parser`) with proxy/bypass strategy
+
+## Local development
+
+## Prerequisites
+- Node.js 20+
+- npm
+- Firebase project config in `firebase-applet-config.json`
+- Environment variables for Gemini/API and Firebase credentials as needed
+
+## Install
+
+```bash
+npm install
 ```
 
----
+## Run dev server
 
-## 🧠 The "Brain": AI Scrutiny Logic
+```bash
+npm run dev
+```
 
-While traditional scrapers look for `keyword == "plumber"`, Preemptly looks for **Intent**.
+## Type check
 
-### How the Machine "Thinks"
-When a post is discovered, it is sent to **Our Intent Scoring Engine** in optimized batches. The machine is programmed to look for specific behavioral signals:
-1.  **Explicit Requests**: "Can anyone recommend a service for...?"
-2.  **Pain Points**: "I'm so frustrated with my current [Solution]..."
-3.  **Exploratory Questions**: "Does anyone know how to solve [Problem X]?"
-4.  **High-Intent Phrases**: "What is the best [X] for [Y]?"
+```bash
+npm run lint
+```
 
-### Scoring Algorithm
-*   **1-3 (Cold)**: General discussion, news, or unrelated content.
-*   **4-6 (Warm)**: Vague interest or early-stage research.
-*   **7-10 (Hot)**: High-intent lead. The user is actively seeking a solution *now*.
+## Production build
 
-### ⚡ Strategic Match Intelligence
-Every match discovered undergoes a **Strategic Rationale** calculation.
-- **Provider View**: Explains exactly *why* the match was flagged based on the client's business profile.
-- **Client View**: A simplified, professional justification for the match to build trust in the automated lead hunt.
+```bash
+npm run build
+```
 
-### 🪄 On-Demand "Smart Helper" Comments
-Preemptly avoids aggressive "Cold DMs." Instead, it enables high-trust community engagement.
-- **Master AI Toggle**: Providers control AI costs by enabling/disabling generative features for clients in real-time.
-- **Smart Comments**: When enabled, clients can generate a **Context-Aware Helpful Comment** for any match, tailored to their business tone and specific expertise.
-- **Actionable Workflow**: Clients review the match, generate a comment, and use the **"One-Click Copy"** to engage on the source platform instantly.
+## Key scripts
 
----
+From `package.json`:
+- `npm run dev` → run `server.ts` via `tsx`
+- `npm run start` → run `server.ts`
+- `npm run lint` → TypeScript no-emit check
+- `npm run build` → generate sitemap + build frontend assets
 
-## ⚙️ The Backend Engine
+## File map
 
-The backend is a robust Node.js server powered by **Express** and **Hono-style routing**, serving as a bridge between the browser and the raw internet.
+- `server.ts` — API server + background engine
+- `src/App.tsx` — host-based routing and app entry
+- `src/components/AuthProvider.tsx` — auth and access gate
+- `src/components/DataProvider.tsx` — Firestore data subscriptions and hydration
+- `src/components/ClientPortal.tsx` — portal UI + chat client
+- `src/data/pseo.ts` — pSEO content matrix
+- `generate-sitemap.ts` — sitemap generation at build time
+- `firestore.rules` — Firestore access/data rules
 
-### 1. The RSS Bypass Technique
-Platforms like Reddit have strict IP blocking for standard scrapers. Preemptly bypasses this by:
-*   Using **RSS Feeds** instead of the JSON API.
-*   Routing requests through **rss2json** and standard RSS parsers to distribute request footprints.
-*   Implementing **Randomized Delays** (1s - 3s) between platform fetches to mimic human interaction.
+## Current operating model (high-level)
 
-### 2. Background Surveillance Loop
-The server runs a `setInterval` worker every 60 seconds.
-- It identifies "Active" intelligence monitors.
-- It calculates the `nextRun` based on the user-defined interval.
-- It executes the `executeScraper` function, which handles the full pipeline: Fetch -> Batch -> Score -> Save (with Reaction Time capture).
+Preemptly is designed as a continuous loop:
 
----
+**Monitor setup → Feed ingestion → Intent scoring → Lead persistence → Provider/client collaboration → Outcome tracking**
 
-## 🎨 The (Frontend) Dashboard
-
-The frontend is a **Vite-powered React SPA** built for speed and visual clarity.
-
--   **State Management**: Uses a custom `DataProvider` with React Context. It maintains a **real-time WebSocket-like connection** to Firestore using the `onSnapshot` listener. As soon as the backend identifies a lead, it "pops" onto the user's screen without a refresh.
--   **Data Visualization**: Uses **Recharts** to process raw lead data into trend lines (Lead Velocity) and distribution charts (Scraper Health).
--   **Security**: Minimalist design with **Firebase Auth** guarding access, ensuring each user only sees their own intelligence data.
-
----
-
-## 🚀 The User Flow: From Signal to Sale
-
-### 1. Initializing the Engine
-When a user clicks **"Deploy Monitor"**, they aren't just setting up a search; they are configuring a digital hunter.
-- **Identity (Internal)**: What is this monitor called?
-- **Ideal Customer Profile**: What does a "perfect match" look like to our AI?
-- **Target**: Which platform "hunting grounds" should the engine surveil?
-
-### 2. Intercepting the Opportunity
-When a match is identified:
-- The backend writes the intelligence data to Firestore.
-- The **Provider** receives a "Strategic Alert" on their dashboard.
-- The **Client** receives an automated notification (WhatsApp/Email) alerting them to a new match.
-
-### 3. Smart Interaction
-Within the **Client Engagement Portal**, the user can:
-- Review the post content and strategic rationale.
-- Click **"Open Post"** to view the live conversation.
-- Use **"Draft AI Comment"** (if enabled) to generate a helpful, high-trust response that positions them as an expert.
-
----
-
-## 🛠️ Technical Stack
-
--   **Frontend**: React 18, Vite, Tailwind CSS, Lucide icons.
--   **Charts**: Recharts (High-performance SVG charting).
--   **Backend**: Node.js, Express, Google Generative AI (Gemini Flash).
--   **Database**: Google Firebase (Firestore + Authentication).
--   **RSS Logic**: `rss-parser`, `node-fetch`.
-
-## 🕸️ Programmatic SEO (pSEO) Matrix
-Preemptly utilizes a highly scalable Programmatic SEO engine to capture high-intent organic search traffic.
-- **The Router Engine**: We dynamically intersect `<Route path="/intercept/:slug" />` with our unified `<LandingPage />`.
-- **The Data Matrix**: The `src/data/pseo.ts` file acts as the "Brain". It calculates high-value intersections (e.g., Target: *SaaS Founders*, Platform: *Reddit*, Pain Point: *Low Conversion*).
-- **The Crawler Bait**: During every `npm run build`, our custom `generate-sitemap.ts` Node script injects these combinations into `sitemap.xml`, artificially scaling our organic footprint with zero duplicate code.
+That loop is the core of the system and where most internal complexity lives.
